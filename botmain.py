@@ -88,7 +88,6 @@ async def main():
     # =============================================================================
     # AIOGRAM OBYEKTLARINI YARATISH
     # =============================================================================
-    session = AiohttpSession(proxy=config.PROXY_URL) if config.PROXY_URL else None
     bot = Bot(
         token=config.BOT_TOKEN,
         session=session,
