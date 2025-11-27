@@ -15,7 +15,7 @@ from xdata_handlers.database import (
     get_detailed_user_stats, get_new_users_stats_extended,
     get_posts_stats, get_language_distribution, get_daily_stats_for_graph,
     get_active_users_by_period, get_total_errors_count, get_activity_heatmap_for_last_24h,
-    get_now # YANGI IMPORT
+    get_now
 )
 from admin_handlers.xinline_keyboard import get_stats_menu_keyboard
 
@@ -68,15 +68,22 @@ async def _format_stats_text(
     current_time: datetime
 ) -> str:
     """Statistika ma'lumotlaridan formatlangan matn yaratadi."""
-    # Vaqtni to'g'ridan-to'g'ri formatlaymiz
     time_str = current_time.strftime('%d.%m.%Y %H:%M')
     status_line = f" <b>( {time_str} )</b>"
 
     lang_block_parts = ["<b>🏴 Tillar boʻyicha taqsimot:</b>"]
 
+    # --- O'ZGARISH: Tillar nomi va foizlar aniqligi ---
     lang_map = {
-        'uzl': 'UZ 🇺🇿', 'uzk': 'ЎЗ 🇺🇿', 'ru': 'RU 🇷🇺', 'en': 'EN 🇬🇧',
-        'kz': 'KZ 🇰🇿', 'az': 'AZ 🇦🇿', 'tr': 'TR 🇹🇷', 'kg': 'KG 🇰🇬',
+        'uzl': 'UL 🇺🇿',  # O'zbek Lotin
+        'uz': 'UL 🇺🇿',   # Ehtimoliy eski kodlar uchun
+        'uzk': 'UK 🇺🇿',  # O'zbek Kirill
+        'ru': 'RU 🇷🇺',
+        'en': 'EN 🇬🇧',
+        'kz': 'KZ 🇰🇿',
+        'az': 'AZ 🇦🇿',
+        'tr': 'TR 🇹🇷',
+        'kg': 'KG 🇰🇬',
         None: 'Noma\'lum'
     }
 
@@ -85,7 +92,8 @@ async def _format_stats_text(
     if active_langs:
         for lang_code, data in active_langs.items():
             lang_name = lang_map.get(lang_code, lang_code)
-            percentage = int(data['percentage'])
+            # Foizni butun songa (int) aylantirmaymiz, shundayligicha olamiz (masalan 0.84)
+            percentage = data['percentage']
             lang_block_parts.append(f"  - {lang_name} : {data['count']} ta ({percentage}%)")
     else:
         lang_block_parts.append("Tillar bo'yicha ma'lumot yo'q.")
@@ -131,7 +139,6 @@ async def admin_general_stats_handler(callback: types.CallbackQuery, bot: Bot):
     total_errors = await get_total_errors_count()
     heatmap = await get_activity_heatmap_for_last_24h(admin_ids=config.ADMIN_IDS)
 
-    # Hozirgi Toshkent vaqtini olamiz
     current_tashkent_time = get_now()
 
     text = await _format_stats_text(
@@ -174,20 +181,15 @@ async def create_stats_graph(daily_stats: list, title: str) -> io.BytesIO:
     ax.legend(facecolor='#2c2c2c', edgecolor='white', labelcolor='white')
     ax.grid(True, linestyle='--', alpha=0.3)
 
-    # X o'qini har bir kunni ko'rsatadigan qilib sozlash
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b'))
     ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
     fig.autofmt_xdate(ha='right')
 
-    # Y o'qini butun sonlarda ko'rsatish
     max_val = max(max(new_users), max(new_posts)) if new_users or new_posts else 1
     step = max(1, int(np.ceil(max_val / 10)))
     ax.yaxis.set_major_locator(plt.MultipleLocator(step))
 
-    # Y o'qining pastki chegarasiga kichik bo'sh joy qo'shish (80% tushirish)
     ax.set_ylim(bottom=-0.02 * max(1, max_val))
-
-    # X o'qining chegaralariga kichik bo'sh joy qo'shish
     ax.set_xlim(dates[0] - timedelta(days=0.5), dates[-1] + timedelta(days=0.5))
 
     fig.tight_layout(pad=3.0)
