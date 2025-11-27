@@ -7,7 +7,6 @@ from flask import Flask
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import BotCommand
 
@@ -68,6 +67,17 @@ def run_web_server():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
+# =============================================================================
+# BOT BUYRUQLARINI O'RNATISH FUNKSIYASI
+# =============================================================================
+async def set_bot_commands(bot: Bot):
+    """Bot uchun buyruqlar menyusini o'rnatadi."""
+    commands = [
+        BotCommand(command="feedback", description="✍️ Adminga xabar yuborish")
+    ]
+    await bot.set_my_commands(commands)
+
+
 async def main():
     # =============================================================================
     # BOSHLANG'ICH SOZLASH
@@ -80,19 +90,12 @@ async def main():
     # AIOGRAM OBYEKTLARINI YARATISH
     # =============================================================================
     
-    # --- TUZATILGAN QISM ---
-    # Sessionni aniq yaratamiz
-    if config.PROXY_URL:
-        session = AiohttpSession(proxy=config.PROXY_URL)
-    else:
-        session = None
-    # -----------------------
-
+    # PROXYSIZ ULANISH (Session ishlatilmaydi)
     bot = Bot(
         token=config.BOT_TOKEN,
-        session=session, # Mana shu yerda xato berayotgan edi
         default=DefaultBotProperties(parse_mode='HTML')
     )
+    
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
