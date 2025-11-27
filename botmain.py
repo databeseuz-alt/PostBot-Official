@@ -1,9 +1,10 @@
 #--- START OF FILE botmain.py ---
 import asyncio
 import logging
-import os
 import threading
+import os
 from flask import Flask
+
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.session.aiohttp import AiohttpSession
@@ -54,28 +55,18 @@ from admin_handlers.security_handler import AntiFloodMiddleware
 from admin_handlers.statsmiddleware import UserActivityMiddleware
 
 # =============================================================================
-# FLASK SERVER (RENDER UCHUN KEEP-ALIVE)
+# RENDER UCHUN FLASK SERVER (FAKE SERVER)
 # =============================================================================
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running in Polling mode!", 200
+    return "Bot is running!"
 
 def run_web_server():
-    port = int(os.environ.get("PORT", 5000))
+    # Render PORT environment o'zgaruvchisini beradi, bo'lmasa 8080
+    port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
-
-# =============================================================================
-# BOT BUYRUQLARINI O'RNATISH FUNKSIYASI
-# =============================================================================
-async def set_bot_commands(bot: Bot):
-    """Bot uchun buyruqlar menyusini o'rnatadi."""
-    commands = [
-        BotCommand(command="feedback", description="✍️ Adminga xabar yuborish")
-    ]
-    await bot.set_my_commands(commands)
-
 
 async def main():
     # =============================================================================
@@ -88,9 +79,18 @@ async def main():
     # =============================================================================
     # AIOGRAM OBYEKTLARINI YARATISH
     # =============================================================================
+    
+    # --- TUZATILGAN QISM ---
+    # Sessionni aniq yaratamiz
+    if config.PROXY_URL:
+        session = AiohttpSession(proxy=config.PROXY_URL)
+    else:
+        session = None
+    # -----------------------
+
     bot = Bot(
         token=config.BOT_TOKEN,
-        session=session,
+        session=session, # Mana shu yerda xato berayotgan edi
         default=DefaultBotProperties(parse_mode='HTML')
     )
     storage = MemoryStorage()
@@ -99,13 +99,19 @@ async def main():
     # =============================================================================
     # MIDDLEWARE'LARNI ULASH
     # =============================================================================
+    
+    # 1. Har qanday holatda foydalanuvchi faolligini qayd etish
     dp.update.middleware(UserActivityMiddleware())
+    # 2. Faollik qayd etilgandan so'ng, foydalanuvchi bloklanganligini tekshirish
     dp.update.middleware(BlockUserMiddleware())
+    # 3. Faqat xabarlar uchun flood-nazorat
     dp.message.middleware(AntiFloodMiddleware())
+
 
     # =============================================================================
     # BARCHA ROUTERLARNI ULASH
     # =============================================================================
+    # Xatoliklarni tutuvchi router eng birinchi ulanishi kerak
     dp.include_router(error_router)
 
     # Admin routerlari
@@ -121,7 +127,7 @@ async def main():
     dp.include_router(settings_router)
     dp.include_router(user_ad_router)
 
-    # Post routerlari
+    # Post routerlari (keng qamrovli bo'lgani uchun oxirida)
     dp.include_router(start_router)
     dp.include_router(lang_router)
     dp.include_router(post_router)
@@ -136,6 +142,8 @@ async def main():
     # =============================================================================
     # BOTNI ISHGA TUSHIRISH
     # =============================================================================
+
+    # Bot buyruqlarini o'rnatamiz
     await set_bot_commands(bot)
 
     logging.info("Bot ishga tushmoqda (Polling)...")
@@ -144,9 +152,8 @@ async def main():
 
 
 if __name__ == "__main__":
-    # Web serverni alohida potokda ishga tushiramiz (Render portni ko'rishi uchun)
+    # Web serverni alohida potokda ishga tushiramiz (Render uchun)
     t = threading.Thread(target=run_web_server)
-    t.daemon = True
     t.start()
 
     try:
