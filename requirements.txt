@@ -1,0 +1,7 @@
+aiogram>=3.0.0
+python-dotenv
+flask
+matplotlib
+numpy
+beautifulsoup4
+aiohttp
