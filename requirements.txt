@@ -5,3 +5,4 @@ matplotlib
 numpy
 beautifulsoup4
 aiohttp
+gunicorn
