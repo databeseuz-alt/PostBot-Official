@@ -5,4 +5,5 @@ matplotlib
 numpy
 beautifulsoup4
 aiohttp
+psycopg2-binary
 gunicorn
