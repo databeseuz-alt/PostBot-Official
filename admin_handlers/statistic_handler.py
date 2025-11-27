@@ -75,8 +75,8 @@ async def _format_stats_text(
 
     # --- O'ZGARISH: Tillar nomi va foizlar aniqligi ---
     lang_map = {
-        'uzl': 'UL 🇺🇿',  # O'zbek Lotin
-        'uzk': 'UK 🇺🇿',  # O'zbek Kirill
+        'uzl': 'UZL 🇺🇿',  # O'zbek Lotin
+        'uzk': 'UZK 🇺🇿',  # O'zbek Kirill
         'ru': 'RU 🇷🇺',
         'en': 'EN 🇬🇧',
         'kz': 'KZ 🇰🇿',
