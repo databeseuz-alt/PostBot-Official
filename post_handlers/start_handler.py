@@ -115,7 +115,7 @@ async def start_post_editing_process(message: types.Message, state: FSMContext, 
             post_code = post['code']
             posts_list_text += f"{count}. {safe_post_name}\n"
             posts_list_text += f"<code>@{bot_info.username} {post_code}</code>\n"
-            posts_list_text += f"<code>/delate_post {post_code}</code>\n\n"
+            posts_list_text += f"<code>/delete_post {post_code}</code>\n\n"
             count += 1
 
         posts_list_text += "Postingizni tahrirlash uchun post kodingizni kiriting!"
