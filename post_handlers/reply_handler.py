@@ -35,6 +35,7 @@ async def options_menu_handler(message: types.Message, state: FSMContext):
     current_parse_mode = post_data.get('parse_mode')
     url_preview_disabled = post_data.get("disable_web_page_preview", False)
 
+    # Agar faqat matn formati sozlamasi mavjud bo'lsa (rasm/video izohi uchun)
     if (content_type != 'text') and has_caption:
         keyboard = create_post_parse_mode_keyboard(current_parse_mode, show_back_button=False)
         text = "Matn formatini tanlang:"
@@ -117,14 +118,6 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
     parse_mode = post_data.get("parse_mode")
     disable_preview = post_data.get("disable_web_page_preview", False)
 
-    # --- YANGI QO'SHILGAN QISM: MarkdownV2 uchun tuzatish ---
-    if parse_mode == 'MarkdownV2':
-        if text:
-            text = text.replace('!', '\\!').replace('.', '\\.')
-        if caption:
-            caption = caption.replace('!', '\\!').replace('.', '\\.')
-    # -------------------------------------------------------
-
     message_kwargs = {
         "reply_markup": keyboard,
         "disable_web_page_preview": disable_preview,
@@ -148,27 +141,10 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
             await message.bot.send_document(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'video_note':
             await message.bot.send_video_note(chat_id, file_id, reply_markup=keyboard)
-    
     except TelegramBadRequest as e:
-        # Agar baribir xato bersa (masalan boshqa belgilar tufayli)
         if "can't parse entities" in str(e).lower():
             error_mode = f"<code>{parse_mode or 'None'}</code>"
-            await message.answer(
-                f"⚠️ <b>Xatolik:</b> Matn tanlangan {error_mode} formatiga mos kelmadi.\n"
-                f"Bot avtomatik ravishda oddiy formatda ko'rsatadi:"
-            )
-            # Formatni o'chirib qayta yuboramiz
-            message_kwargs["parse_mode"] = None
-            media_kwargs["parse_mode"] = None
-            
-            try:
-                if content_type == 'text':
-                    await message.bot.send_message(chat_id, post_data.get("text"), **message_kwargs)
-                elif content_type == 'photo':
-                    await message.bot.send_photo(chat_id, file_id, caption=post_data.get("caption"), **media_kwargs)
-                # Boshqa turlar uchun ham shunday...
-            except Exception:
-                pass
+            await message.answer(f"⚠️ <b>Xatolik:</b> Matn tanlangan {error_mode} formatiga mos kelmadi.")
         else:
             logging.error(f"Previewda xatolik: {e}")
             await message.answer(get_text('preview_error', lang))
@@ -194,12 +170,10 @@ async def cancel_post_creation_handler(message: types.Message, state: FSMContext
 async def show_parse_mode_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_mode = data.get("post_data", {}).get("parse_mode")
-    
-    with suppress(TelegramBadRequest):
-        await callback.message.edit_text(
-            "Matn formatini tanlang:",
-            reply_markup=create_post_parse_mode_keyboard(current_mode, show_back_button=True)
-        )
+    await callback.message.edit_text(
+        "Matn formatini tanlang:",
+        reply_markup=create_post_parse_mode_keyboard(current_mode, show_back_button=True)
+    )
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "set_parse_mode"))
 async def set_parse_mode(callback: types.CallbackQuery, state: FSMContext, callback_data: PostSettingsCallbackFactory):
@@ -214,9 +188,12 @@ async def set_parse_mode(callback: types.CallbackQuery, state: FSMContext, callb
     else:
         new_mode = clicked_mode
 
+    # Lokal sozlamani (FSMContext ichida) har doim yangilaymiz
     post_data["parse_mode"] = new_mode
     await state.update_data(post_data=post_data)
 
+    # --- O'ZGARISH BOSHLANDI ---
+    # Rejimni tekshiramiz: agar tahrirlash rejimi bo'lmasa, global sozlamani yangilaymiz
     is_editing = "editing_post_code" in data
     if not is_editing:
         await update_user_post_settings(
@@ -224,6 +201,7 @@ async def set_parse_mode(callback: types.CallbackQuery, state: FSMContext, callb
             parse_mode=new_mode,
             url_preview_disabled=post_data.get("disable_web_page_preview", False)
         )
+    # --- O'ZGARISH TUGADI ---
 
     if new_mode is None:
         await callback.answer("✅ Format o'chirildi va saqlandi")
@@ -233,20 +211,17 @@ async def set_parse_mode(callback: types.CallbackQuery, state: FSMContext, callb
     content_type = post_data.get('content_type')
     show_back_button = (content_type == 'text')
 
-    with suppress(TelegramBadRequest):
-        await callback.message.edit_reply_markup(reply_markup=create_post_parse_mode_keyboard(new_mode, show_back_button=show_back_button))
+    await callback.message.edit_reply_markup(reply_markup=create_post_parse_mode_keyboard(new_mode, show_back_button=show_back_button))
 
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "show_url_preview"))
 async def show_url_preview_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     is_disabled = data.get("post_data", {}).get("disable_web_page_preview", False)
-    
-    with suppress(TelegramBadRequest):
-        await callback.message.edit_text(
-            "URL havolalari uchun oldindan ko'rishni sozlang:",
-            reply_markup=create_post_url_preview_keyboard(is_disabled)
-        )
+    await callback.message.edit_text(
+        "URL havolalari uchun oldindan ko'rishni sozlang:",
+        reply_markup=create_post_url_preview_keyboard(is_disabled)
+    )
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "set_url_preview"))
 async def set_url_preview(callback: types.CallbackQuery, state: FSMContext, callback_data: PostSettingsCallbackFactory):
@@ -255,9 +230,12 @@ async def set_url_preview(callback: types.CallbackQuery, state: FSMContext, call
     data = await state.get_data()
     post_data = data.get("post_data", {})
 
+    # Lokal sozlamani (FSMContext ichida) har doim yangilaymiz
     post_data["disable_web_page_preview"] = is_disabled
     await state.update_data(post_data=post_data)
 
+    # --- O'ZGARISH BOSHLANDI ---
+    # Rejimni tekshiramiz: agar tahrirlash rejimi bo'lmasa, global sozlamani yangilaymiz
     is_editing = "editing_post_code" in data
     if not is_editing:
         await update_user_post_settings(
@@ -265,12 +243,11 @@ async def set_url_preview(callback: types.CallbackQuery, state: FSMContext, call
             parse_mode=post_data.get("parse_mode"),
             url_preview_disabled=is_disabled
         )
+    # --- O'ZGARISH TUGADI ---
 
     status_text = "o'chirildi" if is_disabled else "yoqildi"
     await callback.answer(f"✅ URL oldindan ko'rish {status_text} va saqlandi")
-    
-    with suppress(TelegramBadRequest):
-        await callback.message.edit_reply_markup(reply_markup=create_post_url_preview_keyboard(is_disabled))
+    await callback.message.edit_reply_markup(reply_markup=create_post_url_preview_keyboard(is_disabled))
 
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "back_to_options"))
@@ -284,11 +261,10 @@ async def back_to_options(callback: types.CallbackQuery, state: FSMContext):
         current_parse_mode=post_data.get('parse_mode'),
         url_preview_disabled=post_data.get("disable_web_page_preview", False)
     )
-    
-    with suppress(TelegramBadRequest):
-        await callback.message.edit_text(
-            "Post uchun qo'shimchalar :",
-            reply_markup=keyboard
-        )
+    await callback.message.edit_text(
+        "Post uchun qo'shimchalar :",
+        reply_markup=keyboard
+    )
     await callback.answer()
+
 #--- END OF FILE reply_handler.py ---
