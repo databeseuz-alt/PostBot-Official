@@ -22,13 +22,15 @@ edit_post_router = Router()
 # --- P O S T N I   S A Q L A N G A N L A R D A N   O' CH I R I SH ---
 #==================================================
 
-@edit_post_router.message(Command("delate_post"))
+# --- O'ZGARISH: Command("delate_post") -> Command("delete_post") ---
+@edit_post_router.message(Command("delete_post"))
 async def delete_saved_post_handler(message: types.Message, state: FSMContext, bot: Bot):
     user_id = message.from_user.id
     try:
         post_code = message.text.split()[1]
     except IndexError:
-        await message.answer("❌ Noto'g'ri buyruq formati. Namuna: `/delate_post ABCDE`")
+        # --- O'ZGARISH: Xabar matnida ham to'g'rilandi ---
+        await message.answer("❌ Noto'g'ri buyruq formati. Namuna: `/delete_post ABCDE`")
         return
 
     post_name = await unsave_post_name(post_code, user_id)
