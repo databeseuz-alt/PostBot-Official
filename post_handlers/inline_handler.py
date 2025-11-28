@@ -2,6 +2,7 @@
 
 import logging
 from aiogram import Router, types, Bot
+from aiogram.exceptions import TelegramBadRequest
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
 from xdata_handlers.database import get_post_from_db
@@ -32,7 +33,10 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
                 "message_text": "Post yaratish uchun botga o'ting. Keyin uning kodini bu yerga joylang."
             }
         })
-        return await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=1)
+        try:
+            return await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=1)
+        except Exception:
+            return
 
     post_data_from_db = await get_post_from_db(post_code)
 
@@ -46,8 +50,19 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
         content_type = content.get('content_type')
         file_id = content.get('file_id')
         caption = content.get('caption')
+        text = content.get('text')
         parse_mode = content.get('parse_mode')
         disable_preview = content.get('disable_web_page_preview', False)
+
+        # --- YANGI QO'SHILGAN QISM: MarkdownV2 uchun tuzatish ---
+        if parse_mode == 'MarkdownV2':
+            # ! va . belgilarini "escape" qilamiz (oldiga \ qo'yamiz)
+            # Bu formatni buzmaydi, lekin xatolikni yo'qotadi
+            if text:
+                text = text.replace('!', '\\!').replace('.', '\\.')
+            if caption:
+                caption = caption.replace('!', '\\!').replace('.', '\\.')
+        # -------------------------------------------------------
 
         try:
             if content_type == 'text':
@@ -57,7 +72,7 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
                     "title": "Postni yuborish",
                     "description": "Postni yuborish uchun shu yerga bosing",
                     "input_message_content": {
-                        "message_text": content.get('text', ''),
+                        "message_text": text or "",
                         "parse_mode": parse_mode,
                         "disable_web_page_preview": disable_preview
                     },
@@ -104,6 +119,24 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
             "input_message_content": {"message_text": f"'{post_code}' kodli postni topa olmadim."}
         })
 
-    await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
+    # --- XAVFSIZLIK YOSTIQCHASI (FALLBACK) ---
+    # Agar baribir xato chiqsa (masalan boshqa belgi tufayli), 
+    # formatni o'chirib yuboramiz, toki bot to'xtab qolmasin.
+    try:
+        await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
+    except TelegramBadRequest as e:
+        if "parse entities" in str(e) or "can't parse" in str(e):
+            logging.warning(f"Inline post ({post_code}) formatida baribir xatolik qoldi. Format o'chirilmoqda.")
+            
+            for res in results:
+                if "input_message_content" in res and "parse_mode" in res["input_message_content"]:
+                    res["input_message_content"]["parse_mode"] = None
+                if "parse_mode" in res:
+                    res["parse_mode"] = None
+            
+            try:
+                await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
+            except Exception:
+                pass
 
 #--- END OF FILE inline_handler.py ---
