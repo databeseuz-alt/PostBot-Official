@@ -2,6 +2,7 @@
 
 import logging
 from aiogram import Router, types, Bot
+from aiogram.exceptions import TelegramBadRequest
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
 from xdata_handlers.database import get_post_from_db
@@ -32,7 +33,13 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
                 "message_text": "Post yaratish uchun botga o'ting. Keyin uning kodini bu yerga joylang."
             }
         })
-        return await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=1)
+        try:
+    return await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=1)
+        except TelegramBadRequest as e:
+            if "query is too old" in str(e) or "query ID is invalid" in str(e):
+                logging.warning(f"Inline query eski: {query.id}")
+                return
+            raise
 
     post_data_from_db = await get_post_from_db(post_code)
 
@@ -104,6 +111,12 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
             "input_message_content": {"message_text": f"'{post_code}' kodli postni topa olmadim."}
         })
 
+    try:
     await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
+    except TelegramBadRequest as e:
+        if "query is too old" in str(e) or "query ID is invalid" in str(e):
+            logging.warning(f"Inline query eski: {query.id}")
+            return
+        raise
 
 #--- END OF FILE inline_handler.py ---
