@@ -22,14 +22,6 @@ class IsAdmin(Filter):
 async def admin_panel_handler(message: types.Message, state: FSMContext):
     await state.clear()
 
-    # --- REPLY KEYBOARD'NI OLIB TASHLASH MANTIG'I ---
-    remover_message = await message.answer(
-        "Admin paneli ochilmoqda...",
-        reply_markup=ReplyKeyboardRemove()
-    )
-    await remover_message.delete()
-    # --- MANTIQ TUGADI ---
-
     await message.answer("xush kelibsiz 👋. biror bo'limni tanlang :", reply_markup=get_main_admin_keyboard())
 
 @admin_router.message(F.text == "◀️ Ortga (Admin panel)", IsAdmin())
