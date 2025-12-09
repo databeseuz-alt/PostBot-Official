@@ -170,13 +170,7 @@ async def cancel_post_creation_handler(message: types.Message, state: FSMContext
 async def show_parse_mode_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_mode = data.get("post_data", {}).get("parse_mode")
-    try:
     await callback.message.edit_text(
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            logging.warning(f"Message o'zgartirilmadi, bir xil kontent")
-        else:
-            raise
         "Matn formatini tanlang:",
         reply_markup=create_post_parse_mode_keyboard(current_mode, show_back_button=True)
     )
@@ -217,26 +211,14 @@ async def set_parse_mode(callback: types.CallbackQuery, state: FSMContext, callb
     content_type = post_data.get('content_type')
     show_back_button = (content_type == 'text')
 
-    try:
     await callback.message.edit_reply_markup(reply_markup=create_post_parse_mode_keyboard(new_mode, show_back_button=show_back_button))
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            logging.warning(f"Message o'zgartirilmadi, bir xil kontent")
-        else:
-            raise
 
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "show_url_preview"))
 async def show_url_preview_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     is_disabled = data.get("post_data", {}).get("disable_web_page_preview", False)
-    try:
     await callback.message.edit_text(
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            logging.warning(f"Message o'zgartirilmadi, bir xil kontent")
-        else:
-            raise
         "URL havolalari uchun oldindan ko'rishni sozlang:",
         reply_markup=create_post_url_preview_keyboard(is_disabled)
     )
@@ -265,13 +247,7 @@ async def set_url_preview(callback: types.CallbackQuery, state: FSMContext, call
 
     status_text = "o'chirildi" if is_disabled else "yoqildi"
     await callback.answer(f"✅ URL oldindan ko'rish {status_text} va saqlandi")
-    try:
     await callback.message.edit_reply_markup(reply_markup=create_post_url_preview_keyboard(is_disabled))
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            logging.warning(f"Message o'zgartirilmadi, bir xil kontent")
-        else:
-            raise
 
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "back_to_options"))
@@ -285,13 +261,7 @@ async def back_to_options(callback: types.CallbackQuery, state: FSMContext):
         current_parse_mode=post_data.get('parse_mode'),
         url_preview_disabled=post_data.get("disable_web_page_preview", False)
     )
-    try:
     await callback.message.edit_text(
-    except TelegramBadRequest as e:
-        if "message is not modified" in str(e):
-            logging.warning(f"Message o'zgartirilmadi, bir xil kontent")
-        else:
-            raise
         "Post uchun qo'shimchalar :",
         reply_markup=keyboard
     )
