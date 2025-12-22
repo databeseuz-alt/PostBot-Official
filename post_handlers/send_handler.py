@@ -189,14 +189,66 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
     buttons_matrix = full_post.get('buttons_matrix', [])
     keyboard = generate_final_keyboard(buttons_matrix)
 
+    # --- O'ZGARISH: Parse mode va preview sozlamalarini olish ---
+    parse_mode = post_data.get('parse_mode')
+    disable_preview = post_data.get('disable_web_page_preview', False)
+
     try:
         content_type = post_data.get('content_type')
         if content_type == 'text':
-            await bot.send_message(channel_id, post_data.get('text', ''), reply_markup=keyboard)
+            await bot.send_message(
+                channel_id,
+                post_data.get('text', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode,
+                disable_web_page_preview=disable_preview
+            )
         elif content_type == 'photo':
-            await bot.send_photo(channel_id, post_data.get('file_id'), caption=post_data.get('caption', ''), reply_markup=keyboard)
+            await bot.send_photo(
+                channel_id,
+                post_data.get('file_id'),
+                caption=post_data.get('caption', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode
+            )
         elif content_type == 'video':
-            await bot.send_video(channel_id, post_data.get('file_id'), caption=post_data.get('caption', ''), reply_markup=keyboard)
+            await bot.send_video(
+                channel_id,
+                post_data.get('file_id'),
+                caption=post_data.get('caption', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode
+            )
+        elif content_type == 'audio':
+            await bot.send_audio(
+                channel_id,
+                post_data.get('file_id'),
+                caption=post_data.get('caption', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode
+            )
+        elif content_type == 'document':
+            await bot.send_document(
+                channel_id,
+                post_data.get('file_id'),
+                caption=post_data.get('caption', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode
+            )
+        elif content_type == 'animation':
+            await bot.send_animation(
+                channel_id,
+                post_data.get('file_id'),
+                caption=post_data.get('caption', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode
+            )
+        elif content_type == 'video_note':
+            await bot.send_video_note(
+                channel_id,
+                post_data.get('file_id'),
+                reply_markup=keyboard
+            )
 
         await callback.message.edit_text("✅ Post muvaffaqiyatli yuborildi!")
         await callback.message.answer("Bosh menyu.", reply_markup=ReplyKeyboardRemove())
