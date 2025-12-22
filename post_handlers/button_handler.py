@@ -111,6 +111,9 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             sent_message = await message.bot.send_document(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'video_note':
             sent_message = await message.bot.send_video_note(chat_id, file_id, reply_markup=new_keyboard)
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif content_type == 'voice':
+            sent_message = await message.bot.send_voice(chat_id, file_id, caption=caption, **media_kwargs)
 
         if sent_message:
             post_data['message_id'] = sent_message.message_id
