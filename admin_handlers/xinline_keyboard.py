@@ -277,7 +277,6 @@ def get_user_search_start_keyboard():
     )
     return builder.as_markup()
 
-# --- XATOLIK TUZATILGAN JOY ---
 def get_user_search_result_keyboard(posts: list):
     """User qidiruvi natijasi uchun klaviatura (yaratilgan postlar bilan)."""
     builder = InlineKeyboardBuilder()
@@ -360,7 +359,8 @@ def get_channel_main_menu_keyboard():
     builder.adjust(2, 1)
     return builder.as_markup()
 
-async def get_channel_list_keyboard_admin():
+# --- O'ZGARISH: Funksiya nomi o'zgartirildi ---
+async def get_admin_channel_list_keyboard():
     from xdata_handlers.database import get_all_required_channels
     builder = InlineKeyboardBuilder()
     channels = await get_all_required_channels()
