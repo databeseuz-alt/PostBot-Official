@@ -206,6 +206,9 @@ async def review_user_post_from_search(callback: types.CallbackQuery, bot: Bot):
             await bot.send_animation(chat_id, file_id, caption=caption, reply_markup=keyboard)
         elif content_type == 'video_note':
             await bot.send_video_note(chat_id, file_id, reply_markup=keyboard)
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif content_type == 'voice':
+            await bot.send_voice(chat_id, file_id, caption=caption, reply_markup=keyboard)
         else:
             await bot.send_message(chat_id, f"Bu turdagi postni ko'rsatib bo'lmadi (turi: {content_type}).")
 
