@@ -137,6 +137,9 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             sent_message = await bot.send_animation(chat_id, post_data.get('file_id'), caption=post_data.get('caption'), **media_kwargs)
         elif content_type == 'video_note':
             sent_message = await bot.send_video_note(chat_id, post_data.get('file_id'), reply_markup=keyboard)
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif content_type == 'voice':
+            sent_message = await bot.send_voice(chat_id, post_data.get('file_id'), caption=post_data.get('caption'), **media_kwargs)
         else:
             await bot.send_message(chat_id, get_text('edit_type_error', lang).format(content_type=content_type))
             await state.clear()
@@ -184,7 +187,19 @@ async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
             await bot.send_message(chat_id, text, reply_markup=keyboard, parse_mode=parse_mode, disable_web_page_preview=disable_preview)
         elif content_type == 'photo':
             await bot.send_photo(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
-        # Boshqa media turlari uchun ham shunday davom etadi...
+        elif content_type == 'video':
+            await bot.send_video(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
+        elif content_type == 'audio':
+            await bot.send_audio(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
+        elif content_type == 'document':
+            await bot.send_document(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
+        elif content_type == 'animation':
+            await bot.send_animation(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
+        elif content_type == 'video_note':
+            await bot.send_video_note(chat_id, file_id, reply_markup=keyboard)
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif content_type == 'voice':
+            await bot.send_voice(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
         else:
             await bot.send_message(chat_id, "Bu turdagi postni ko'rsatib bo'lmadi.")
 
