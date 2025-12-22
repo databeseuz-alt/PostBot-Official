@@ -249,6 +249,15 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 post_data.get('file_id'),
                 reply_markup=keyboard
             )
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif content_type == 'voice':
+            await bot.send_voice(
+                channel_id,
+                post_data.get('file_id'),
+                caption=post_data.get('caption', ''),
+                reply_markup=keyboard,
+                parse_mode=parse_mode
+            )
 
         await callback.message.edit_text("✅ Post muvaffaqiyatli yuborildi!")
         await callback.message.answer("Bosh menyu.", reply_markup=ReplyKeyboardRemove())
