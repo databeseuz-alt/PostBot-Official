@@ -94,6 +94,13 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
                     "title": "Aylana video", "caption": None, "parse_mode": parse_mode,
                     "reply_markup": keyboard_dict
                 })
+            # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+            elif content_type == 'voice' and file_id:
+                results.append({
+                    "type": "voice", "id": post_code, "voice_file_id": file_id,
+                    "title": "Ovozli xabar", "caption": caption, "parse_mode": parse_mode,
+                    "reply_markup": keyboard_dict
+                })
         except Exception as e:
             logging.error(f"Inline natija yasashda xatolik: {post_code} - {e}")
 
