@@ -141,6 +141,9 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
             await message.bot.send_document(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'video_note':
             await message.bot.send_video_note(chat_id, file_id, reply_markup=keyboard)
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif content_type == 'voice':
+            await message.bot.send_voice(chat_id, file_id, caption=caption, **media_kwargs)
     except TelegramBadRequest as e:
         if "can't parse entities" in str(e).lower():
             error_mode = f"<code>{parse_mode or 'None'}</code>"
