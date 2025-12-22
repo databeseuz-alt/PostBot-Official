@@ -72,6 +72,10 @@ async def _get_permanent_file_id(bot: Bot, message: Message) -> str | None:
         elif message.video_note:
             sent_message = await bot.send_video_note(config.STORAGE_CHANNEL_ID, message.video_note.file_id)
             return sent_message.video_note.file_id
+        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        elif message.voice:
+            sent_message = await bot.send_voice(config.STORAGE_CHANNEL_ID, message.voice.file_id)
+            return sent_message.voice.file_id
         return None
     except Exception as e:
         logging.error(f"Faylni saqlash kanaliga yuborishda xatolik: {e}")
@@ -92,7 +96,8 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
     if message.media_group_id:
         return await message.answer("Albomlar hozircha qo'llab-quvvatlanmaydi.")
 
-    supported_types = ('text', 'photo', 'video', 'audio', 'document', 'video_note')
+    # --- O'ZGARISH: 'voice' turi qo'shildi ---
+    supported_types = ('text', 'photo', 'video', 'audio', 'document', 'video_note', 'voice')
     if message.content_type not in supported_types:
         return await message.answer(get_text('wrong_format', lang))
 
@@ -187,6 +192,9 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 preview_message = await bot.send_document(message.chat.id, permanent_file_id, caption=caption_for_sending, **media_kwargs)
             elif message.video_note:
                 preview_message = await bot.send_video_note(message.chat.id, permanent_file_id, reply_markup=keyboard)
+            # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+            elif message.voice:
+                preview_message = await bot.send_voice(message.chat.id, permanent_file_id, caption=caption_for_sending, **media_kwargs)
 
         if preview_message:
             post_data['message_id'] = preview_message.message_id
