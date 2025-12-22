@@ -9,7 +9,8 @@ from aiogram.exceptions import TelegramBadRequest
 from admin_handlers.admin_handler import IsAdmin
 from admin_handlers.vadmin_states import AdminStates
 from xdata_handlers import config
-from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_channel_list_keyboard
+# --- O'ZGARISH: get_channel_list_keyboard -> get_admin_channel_list_keyboard ---
+from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_admin_channel_list_keyboard
 
 # =============================================================================
 # FOYDALANUVCHI A'ZOLIGINI TEKSHIRISH FUNKSIYASI
@@ -64,8 +65,8 @@ async def channel_management_menu(callback: types.CallbackQuery, state: FSMConte
 @channel_router.callback_query(F.data == "admin:channel_show_list", IsAdmin())
 async def show_channel_list(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
-    # --- O'ZGARISH: get_channel_list_keyboard asinxron funksiya bo'lgani uchun await qo'shildi ---
-    keyboard, text = await get_channel_list_keyboard()
+    # --- O'ZGARISH: Yangi nomlangan funksiya chaqirildi ---
+    keyboard, text = await get_admin_channel_list_keyboard()
     await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 
