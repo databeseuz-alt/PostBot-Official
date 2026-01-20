@@ -29,15 +29,15 @@ from admin_handlers.database_handler import db_router
 
 # Postlar bilan ishlash bo'limi
 from post_handlers.start_handler import start_router
-from post_handlers.lang_handler import lang_router
+from post_handlers.lang_router import lang_router
 from post_handlers.post_handler import post_router
-from post_handlers.button_handler import button_router
-from post_handlers.reply_handler import reply_router
-from post_handlers.done_handler import done_router
-from post_handlers.editp_handler import edit_post_router
-from post_handlers.inline_handler import inline_router
-from post_handlers.send_handler import send_router
-from post_handlers.mychannels_handler import mychannels_router
+from post_handlers.button_router import button_router
+from post_handlers.reply_router import reply_router
+from post_handlers.done_router import done_router
+from post_handlers.edit_post_router import edit_post_router
+from post_handlers.inline_router import inline_router
+from post_handlers.send_router import send_router
+from post_handlers.mychannels_router import mychannels_router
 
 # Foydalanuvchi bo'limi
 from user_handlers.feedback_handler import feedback_router
@@ -71,12 +71,35 @@ def run_web_server():
 #==================================================
 async def set_bot_commands(bot: Bot):
     """Bot uchun buyruqlar menyusini o'rnatadi."""
+    # Eski buyruqlarni tozalash
+    await bot.delete_my_commands()
+    
+    # Yangi buyruqlarni o'rnatish
     commands = [
         BotCommand(command="addchannel", description="add a new channel"),
         BotCommand(command="mychannels", description="edit your channels"),
         BotCommand(command="feedback", description="report an error")
     ]
     await bot.set_my_commands(commands)
+
+#==================================================
+# --- BOT TAVSIFINI O'RNATISH FUNKSIYASI ---
+#==================================================
+async def set_bot_description(bot: Bot):
+    """Bot uchun tavsif va qisqa ma'lumotlarni o'rnatadi."""
+    # Qisqa tavsif (Profil uchun)
+    short_desc = "✍️ Create pro posts with buttons!"
+    await bot.set_my_short_description(short_description=short_desc)
+
+    # To'liq tavsif (Startdan oldin ko'rinadigan qism)
+    full_desc = (
+        "🚀 Create pro posts with buttons!\n"
+        "✨ Add inline links to any media.\n"
+        "🔡 HTML & Markdown V2 supported.\n"
+        "📢 Easy multi-channel management.\n"
+        "🌍 Supports 8 different languages."
+    )
+    await bot.set_my_description(description=full_desc)
 
 
 async def main():
@@ -147,8 +170,9 @@ async def main():
     # --- BOTNI ISHGA TUSHIRISH ---
     #==================================================
 
-    # Bot buyruqlarini o'rnatamiz
+    # Bot buyruqlari va tavsiflarini o'rnatamiz
     await set_bot_commands(bot)
+    await set_bot_description(bot)
 
     logging.info("Bot ishga tushmoqda (Polling)...")
     await bot.delete_webhook(drop_pending_updates=True)
