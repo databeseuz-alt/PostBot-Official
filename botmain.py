@@ -29,15 +29,15 @@ from admin_handlers.database_handler import db_router
 
 # Postlar bilan ishlash bo'limi
 from post_handlers.start_handler import start_router
-from post_handlers.lang_router import lang_router
+from post_handlers.lang_handler import lang_router
 from post_handlers.post_handler import post_router
-from post_handlers.button_router import button_router
-from post_handlers.reply_router import reply_router
-from post_handlers.done_router import done_router
-from post_handlers.edit_post_router import edit_post_router
-from post_handlers.inline_router import inline_router
-from post_handlers.send_router import send_router
-from post_handlers.mychannels_router import mychannels_router
+from post_handlers.button_handler import button_router
+from post_handlers.reply_handler import reply_router
+from post_handlers.done_handler import done_router
+from post_handlers.edit_post_handler import edit_post_router
+from post_handlers.inline_handler import inline_router
+from post_handlers.send_handler import send_router
+from post_handlers.mychannels_handler import mychannels_router
 
 # Foydalanuvchi bo'limi
 from user_handlers.feedback_handler import feedback_router
