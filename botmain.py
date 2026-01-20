@@ -1,4 +1,3 @@
-#--- START OF FILE botmain.py ---
 import asyncio
 import logging
 import threading
@@ -10,16 +9,16 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
 from aiogram.types import BotCommand
 
-# =============================================================================
-# YADRO KOMPONENTLARINI IMPORT QILISH
-# =============================================================================
+#==================================================
+# --- YADRO KOMPONENTLARINI IMPORT QILISH ---
+#==================================================
 from xdata_handlers import config
 from xdata_handlers.database import init_db
 from xdata_handlers.translator import load_translations
 
-# =============================================================================
-# ROUTERLARNI IMPORT QILISH
-# =============================================================================
+#==================================================
+# --- ROUTERLARNI IMPORT QILISH ---
+#==================================================
 # Admin bo'limi
 from admin_handlers.admin_handler import admin_router
 from admin_handlers.advertisement import ad_router
@@ -46,16 +45,16 @@ from user_handlers.settings_handler import settings_router
 from user_handlers.errorlog_handler import error_router
 from user_handlers.ad_handler import ad_router as user_ad_router
 
-# =============================================================================
-# MIDDLEWARE'LARNI IMPORT QILISH
-# =============================================================================
+#==================================================
+# --- MIDDLEWARE'LARNI IMPORT QILISH ---
+#==================================================
 from admin_handlers.block_handler import BlockUserMiddleware
 from admin_handlers.security_handler import AntiFloodMiddleware
 from admin_handlers.statsmiddleware import UserActivityMiddleware
 
-# =============================================================================
-# RENDER UCHUN FLASK SERVER (FAKE SERVER)
-# =============================================================================
+#==================================================
+# --- RENDER UCHUN FLASK SERVER (FAKE SERVER) ---
+#==================================================
 app = Flask(__name__)
 
 @app.route('/')
@@ -67,28 +66,30 @@ def run_web_server():
     port = int(os.environ.get("PORT", 8080))
     app.run(host='0.0.0.0', port=port)
 
-# =============================================================================
-# BOT BUYRUQLARINI O'RNATISH FUNKSIYASI
-# =============================================================================
+#==================================================
+# --- BOT BUYRUQLARINI O'RNATISH FUNKSIYASI ---
+#==================================================
 async def set_bot_commands(bot: Bot):
     """Bot uchun buyruqlar menyusini o'rnatadi."""
     commands = [
-        BotCommand(command="feedback", description="✍️ Adminga xabar yuborish")
+        BotCommand(command="addchannel", description="add a new channel"),
+        BotCommand(command="mychannels", description="edit your channels"),
+        BotCommand(command="feedback", description="report an error")
     ]
     await bot.set_my_commands(commands)
 
 
 async def main():
-    # =============================================================================
-    # BOSHLANG'ICH SOZLASH
-    # =============================================================================
+    #==================================================
+    # --- BOSHLANG'ICH SOZLASH ---
+    #==================================================
     logging.basicConfig(level=config.LOGGING_LEVEL)
     init_db()
     load_translations()
 
-    # =============================================================================
-    # AIOGRAM OBYEKTLARINI YARATISH
-    # =============================================================================
+    #==================================================
+    # --- AIOGRAM OBYEKTLARINI YARATISH ---
+    #==================================================
     
     # PROXYSIZ ULANISH (Session ishlatilmaydi)
     bot = Bot(
@@ -99,9 +100,9 @@ async def main():
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
-    # =============================================================================
-    # MIDDLEWARE'LARNI ULASH
-    # =============================================================================
+    #==================================================
+    # --- MIDDLEWARE'LARNI ULASH ---
+    #==================================================
     
     # 1. Har qanday holatda foydalanuvchi faolligini qayd etish
     dp.update.middleware(UserActivityMiddleware())
@@ -111,9 +112,9 @@ async def main():
     dp.message.middleware(AntiFloodMiddleware())
 
 
-    # =============================================================================
-    # BARCHA ROUTERLARNI ULASH
-    # =============================================================================
+    #==================================================
+    # --- BARCHA ROUTERLARNI ULASH ---
+    #==================================================
     # Xatoliklarni tutuvchi router eng birinchi ulanishi kerak
     dp.include_router(error_router)
 
@@ -142,9 +143,9 @@ async def main():
     dp.include_router(send_router)
     dp.include_router(mychannels_router)
 
-    # =============================================================================
-    # BOTNI ISHGA TUSHIRISH
-    # =============================================================================
+    #==================================================
+    # --- BOTNI ISHGA TUSHIRISH ---
+    #==================================================
 
     # Bot buyruqlarini o'rnatamiz
     await set_bot_commands(bot)
@@ -165,4 +166,3 @@ if __name__ == "__main__":
         logging.info("Bot to'xtatildi.")
     except Exception as e:
         logging.error(f"Botda kutilmagan xatolik: {e}", exc_info=True)
-#--- END OF FILE botmain.py ---
