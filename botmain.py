@@ -34,7 +34,7 @@ from post_handlers.post_handler import post_router
 from post_handlers.button_handler import button_router
 from post_handlers.reply_handler import reply_router
 from post_handlers.done_handler import done_router
-from post_handlers.edit_post_handler import edit_post_router
+from post_handlers.editp_handler import edit_post_router
 from post_handlers.inline_handler import inline_router
 from post_handlers.send_handler import send_router
 from post_handlers.mychannels_handler import mychannels_router
