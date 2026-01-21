@@ -97,7 +97,7 @@ async def set_bot_description(bot: Bot):
         "✨ Add inline links to any media.\n"
         "🔡 HTML & Markdown V2 supported.\n"
         "📢 Easy multi-channel management.\n"
-        "🌍 Supports 8 different languages."
+        "🌍 Supports 10 different languages."
     )
     await bot.set_my_description(description=full_desc)
 
