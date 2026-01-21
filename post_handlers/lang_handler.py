@@ -36,7 +36,7 @@ async def language_settings_handler(message: types.Message):
         KeyboardButton(text="🇹🇯 Тоҷики"),
         KeyboardButton(text="🇹🇲 Türkmen")
     )
-    builder.adjust(5, 5)
+    builder.adjust(5, 5, 1)
 
     await message.answer(
         get_text('choose_language', lang),
