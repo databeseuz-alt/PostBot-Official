@@ -20,24 +20,23 @@ async def language_settings_handler(message: types.Message):
     lang = await get_user_language(message.from_user.id)
 
     builder = ReplyKeyboardBuilder()
+    # Birinchi qator: 5 ta til
     builder.row(
         KeyboardButton(text="🇺🇿 O'zbek"),
-        KeyboardButton(text="🇺🇿 Ўзбек")
-    )
-    builder.row(
+        KeyboardButton(text="🇺🇿 Ўзбек"),
         KeyboardButton(text="🇬🇧 English"),
-        KeyboardButton(text="🇷🇺 Русский")
+        KeyboardButton(text="🇷🇺 Русский"),
+        KeyboardButton(text="🇰🇿 Қазақ")
     )
+    # Ikkinchi qator: 5 ta til (shu jumladan yangi qo'shilgan tojik va turkman)
     builder.row(
-        KeyboardButton(text="🇰🇿 Қазақ"),
-        KeyboardButton(text="🇦🇿 Azərca")
-    )
-    builder.row(
+        KeyboardButton(text="🇦🇿 Azərca"),
         KeyboardButton(text="🇹🇷 Türkçe"),
-        KeyboardButton(text="🇰🇬 Кыргыз")
+        KeyboardButton(text="🇰🇬 Кыргыз"),
+        KeyboardButton(text="🇹🇯 Тоҷики"),
+        KeyboardButton(text="🇹🇲 Türkmen")
     )
-    builder.row(KeyboardButton(text=get_text('btn_back', lang)))
-    builder.adjust(4, 4, 1)
+    builder.adjust(5, 5)
 
     await message.answer(
         get_text('choose_language', lang),
@@ -48,7 +47,8 @@ async def language_settings_handler(message: types.Message):
     "🇺🇿 O'zbek", "🇺🇿 Ўзбек",
     "🇬🇧 English", "🇷🇺 Русский",
     "🇰🇿 Қазақ", "🇦🇿 Azərca",
-    "🇹🇷 Türkçe", "🇰🇬 Кыргыз"
+    "🇹🇷 Türkçe", "🇰🇬 Кыргыз",
+    "🇹🇯 Тоҷики", "🇹🇲 Türkmen"
 }))
 async def set_language_handler(message: types.Message, state: FSMContext, bot: Bot):
     lang_map = {
@@ -59,7 +59,9 @@ async def set_language_handler(message: types.Message, state: FSMContext, bot: B
         "🇰🇿 Қазақ": "kz",
         "🇦🇿 Azərca": "az",
         "🇹🇷 Türkçe": "tr",
-        "🇰🇬 Кыргыз": "kg"
+        "🇰🇬 Кыргыз": "kg",
+        "🇹🇯 Тоҷики": "tg",
+        "🇹🇲 Türkmen": "tk"
     }
     lang_code = lang_map.get(message.text)
 
