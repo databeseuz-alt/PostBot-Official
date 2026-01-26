@@ -797,8 +797,33 @@ async def get_detailed_user_stats(admin_ids: list) -> dict:
     return stats
 
 async def get_new_users_stats_extended(admin_ids: list) -> dict:
-    # Eski funksiya o'rniga get_daily_stats_for_graph ishlatiladi, lekin moslik uchun qoldiramiz
-    return {}
+    stats = {'daily': 0, 'weekly': 0, 'monthly': 0}
+    now = get_now()
+
+    async with db_lock:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Bugungi yangi foydalanuvchilar
+        today_str = now.strftime('%Y-%m-%d')
+        cursor.execute("SELECT new_users FROM daily_stats WHERE stat_date = %s", (today_str,))
+        today_row = cursor.fetchone()
+        stats['daily'] = today_row[0] if today_row else 0
+        
+        # Haftalik yangi foydalanuvchilar
+        week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        cursor.execute("SELECT SUM(new_users) FROM daily_stats WHERE stat_date >= %s", (week_start.strftime('%Y-%m-%d'),))
+        weekly_row = cursor.fetchone()
+        stats['weekly'] = weekly_row[0] if weekly_row and weekly_row[0] else 0
+        
+        # Oylik yangi foydalanuvchilar
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        cursor.execute("SELECT SUM(new_users) FROM daily_stats WHERE stat_date >= %s", (month_start.strftime('%Y-%m-%d'),))
+        monthly_row = cursor.fetchone()
+        stats['monthly'] = monthly_row[0] if monthly_row and monthly_row[0] else 0
+        
+        conn.close()
+    return stats
 
 async def get_language_distribution(admin_ids: list) -> dict:
     dist = {}
@@ -816,7 +841,39 @@ async def get_language_distribution(admin_ids: list) -> dict:
     return dist
 
 async def get_posts_stats(admin_ids: list) -> dict:
-    return {}
+    stats = {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
+    now = get_now()
+
+    async with db_lock:
+        conn = get_connection()
+        cursor = conn.cursor()
+        placeholders = ','.join('%s' for _ in admin_ids)
+        
+        # Jami postlar
+        cursor.execute(f"SELECT COUNT(id) FROM posts WHERE user_id NOT IN ({placeholders})", admin_ids)
+        total_row = cursor.fetchone()
+        stats['total'] = total_row[0] if total_row else 0
+        
+        # Bugungi postlar
+        today_str = now.strftime('%Y-%m-%d')
+        cursor.execute("SELECT new_posts FROM daily_stats WHERE stat_date = %s", (today_str,))
+        today_row = cursor.fetchone()
+        stats['daily'] = today_row[0] if today_row else 0
+        
+        # Haftalik postlar
+        week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+        cursor.execute("SELECT SUM(new_posts) FROM daily_stats WHERE stat_date >= %s", (week_start.strftime('%Y-%m-%d'),))
+        weekly_row = cursor.fetchone()
+        stats['weekly'] = weekly_row[0] if weekly_row and weekly_row[0] else 0
+        
+        # Oylik postlar
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        cursor.execute("SELECT SUM(new_posts) FROM daily_stats WHERE stat_date >= %s", (month_start.strftime('%Y-%m-%d'),))
+        monthly_row = cursor.fetchone()
+        stats['monthly'] = monthly_row[0] if monthly_row and monthly_row[0] else 0
+        
+        conn.close()
+    return stats
 
 async def get_daily_stats_for_graph(days: int = 30) -> tuple:
     dates = []
