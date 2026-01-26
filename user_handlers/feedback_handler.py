@@ -45,21 +45,18 @@ async def cmd_feedback_user(message: types.Message, state: FSMContext):
 
     if has_agreed:
         await message.answer(
-            "Fikr-mulohazangizni yoki xatolik haqida xabaringizni yuboring.",
+            get_text('feedback_send_your_message', lang),
             reply_markup=get_cancel_kb(lang)
         )
         await state.set_state(FeedbackState.waiting_for_feedback)
     else:
-        text = (
-            "<b>Diqqat!</b>\n\n"
-            "Iltimos, xatolikni yuborishdan oldin uni tekshiring, joyini aniq ayting.\n"
-            "Feyk (yolg'on) xabar uchun bloklanishingiz mumkin."
-        )
-        await message.answer(text, reply_markup=get_feedback_agreement_keyboard())
+        text = get_text('feedback_warning_agreement', lang)
+        await message.answer(text, reply_markup=get_feedback_agreement_keyboard(lang))
 
 @feedback_router.message(Command("feedback"), IsAdmin())
 async def cmd_feedback_admin(message: types.Message):
-    await message.answer("Bu buyruq faqat oddiy foydalanuvchilar uchun mo'ljallangan.")
+    lang = await get_user_language(message.from_user.id)
+    await message.answer(get_text('cmd_only_for_users', lang))
 
 #=============================================================================
 # SHARTLARGA ROZILIK BERISH
@@ -70,12 +67,12 @@ async def process_feedback_agreement(callback: types.CallbackQuery, state: FSMCo
     await accept_feedback_agreement(callback.from_user.id)
     lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
-        "Fikr-mulohazangizni yoki xatolik haqida xabaringizni yuboring.",
+        get_text('feedback_send_your_message', lang),
         reply_markup=None
     )
-    await callback.message.answer("Endi xabaringizni yozishingiz mumkin.", reply_markup=get_cancel_kb(lang))
+    await callback.message.answer(get_text('feedback_now_send', lang), reply_markup=get_cancel_kb(lang))
     await state.set_state(FeedbackState.waiting_for_feedback)
-    await callback.answer("✅ Roziligingiz qabul qilindi!")
+    await callback.answer(get_text('agreement_accepted', lang))
 
 #=============================================================================
 # FOYDALANUVCHIDAN BIRINCHI XABARNI QABUL QILISH
@@ -91,14 +88,15 @@ async def process_feedback_agreement(callback: types.CallbackQuery, state: FSMCo
 async def process_first_feedback(message: types.Message, state: FSMContext, bot: Bot):
     if not config.FEEDBACK_RECIPIENT_ID:
         logging.warning("FEEDBACK_RECIPIENT_ID topilmadi. Fikr-mulohaza yuborilmadi.")
-        await message.answer("Kechirasiz, hozirda texnik nosozlik. Iltimos, keyinroq urinib ko'ring.")
+        lang = await get_user_language(message.from_user.id)
+        await message.answer(get_text('error_technical', lang))
         return
 
     try:
         safe_full_name = html.escape(message.from_user.full_name)
-        user_info = (f"👤 <b>Yangi fikr-mulohaza!</b>\n\n"
-                     f"<b>Yuboruvchi:</b> {safe_full_name}\n<b>ID:</b> <code>{message.from_user.id}</code>\n"
-                     f"<b>Username:</b> @{message.from_user.username or 'N/A'}")
+        user_info = (f"{get_text('feedback_new_feedback_title', 'uzl')}\n\n"
+                     f"{get_text('feedback_sender', 'uzl')} {safe_full_name}\n<b>ID:</b> <code>{message.from_user.id}</code>\n"
+                     f"{get_text('feedback_username', 'uzl')} @{message.from_user.username or 'N/A'}")
 
         await bot.send_message(config.FEEDBACK_RECIPIENT_ID, user_info)
         await message.copy_to(
@@ -117,7 +115,8 @@ async def process_first_feedback(message: types.Message, state: FSMContext, bot:
 
     except Exception as e:
         logging.error(f"Fikr-mulohazani adminga yuborishda xatolik: {e}")
-        await message.answer("❌ Xabarni yuborishda xatolik yuz berdi.")
+        lang = await get_user_language(message.from_user.id)
+        await message.answer(get_text('error_sending_message', lang))
 
 #=============================================================================
 # ADMIN VA FOYDALANUVCHI O'RTASIDAGI MULOQOT
@@ -134,7 +133,7 @@ async def reply_from_admin_handler(callback: types.CallbackQuery, state: FSMCont
 
     lang = await get_user_language(callback.from_user.id)
     await callback.message.answer(
-        f"Foydalanuvchiga (<code>{user_id_to_reply}</code>) javobingizni yuboring:",
+        get_text('admin_reply_prompt', lang).format(user_id=user_id_to_reply),
         reply_markup=get_cancel_kb(lang)
     )
     await callback.answer()
@@ -148,7 +147,7 @@ async def send_message_from_admin(message: types.Message, state: FSMContext, bot
     lang = await get_user_language(message.from_user.id)
     if message.text == get_text('btn_cancel', lang):
         await state.clear()
-        await message.answer("Javob yozish bekor qilindi.", reply_markup=ReplyKeyboardRemove())
+        await message.answer(get_text('reply_cancelled', lang), reply_markup=ReplyKeyboardRemove())
         return
 
     data = await state.get_data()
@@ -165,10 +164,10 @@ async def send_message_from_admin(message: types.Message, state: FSMContext, bot
             chat_id=recipient_user_id,
             reply_markup=get_feedback_reply_to_admin_keyboard()
         )
-        await message.answer("✅ Javobingiz foydalanuvchiga yuborildi.", reply_markup=ReplyKeyboardRemove())
+        await message.answer(get_text('reply_sent_to_user', lang), reply_markup=ReplyKeyboardRemove())
     except Exception as e:
         logging.error(f"Admindan ({message.from_user.id}) foydalanuvchiga ({recipient_user_id}) javob yuborishda xatolik: {e}")
-        await message.answer("❌ Foydalanuvchiga javob yuborib bo'lmadi.", reply_markup=ReplyKeyboardRemove())
+        await message.answer(get_text('error_reply_to_user', lang), reply_markup=ReplyKeyboardRemove())
     finally:
         await state.clear()
 
@@ -179,7 +178,7 @@ async def reply_from_user_handler(callback: types.CallbackQuery, state: FSMConte
 
     await state.set_state(FeedbackState.chatting_with_admin)
     lang = await get_user_language(callback.from_user.id)
-    await callback.message.answer("Adminga javobingizni yuboring:", reply_markup=get_cancel_kb(lang))
+    await callback.message.answer(get_text('user_reply_prompt', lang), reply_markup=get_cancel_kb(lang))
     await callback.answer()
 
 @feedback_router.message(
@@ -191,7 +190,7 @@ async def reply_from_user_handler(callback: types.CallbackQuery, state: FSMConte
 async def send_message_from_user(message: types.Message, state: FSMContext, bot: Bot):
     if not config.FEEDBACK_RECIPIENT_ID:
         lang = await get_user_language(message.from_user.id)
-        await message.answer("Kechirasiz, texnik nosozlik.", reply_markup=await get_main_menu(lang, message.from_user.id))
+        await message.answer(get_text('error_technical', lang), reply_markup=await get_main_menu(lang, message.from_user.id))
         await state.clear()
         return
 
@@ -202,8 +201,8 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
              admin_id = config.FEEDBACK_RECIPIENT_ID
 
         safe_full_name = html.escape(message.from_user.full_name)
-        user_info = (f"💬 <b>Foydalanuvchidan javob:</b>\n\n"
-                     f"<b>Yuboruvchi:</b> {safe_full_name}\n"
+        user_info = (f"{get_text('feedback_reply_from_user_title', 'uzl')}\n\n"
+                     f"{get_text('feedback_sender', 'uzl')} {safe_full_name}\n"
                      f"<b>ID:</b> <code>{message.from_user.id}</code>")
 
         await bot.send_message(admin_id, user_info)
@@ -214,13 +213,13 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
 
         lang = await get_user_language(message.from_user.id)
         await message.answer(
-            "✅ Javobingiz adminga yuborildi.\n\nAsosiy menyuga qaytildi.",
+            get_text('reply_sent_to_admin', lang),
             reply_markup=await get_main_menu(lang, message.from_user.id)
         )
     except Exception as e:
         logging.error(f"Foydalanuvchidan adminga javob yuborishda xatolik: {e}")
         lang = await get_user_language(message.from_user.id)
-        await message.answer("❌ Adminga javob yuborishda xatolik yuz berdi.", reply_markup=await get_main_menu(lang, message.from_user.id))
+        await message.answer(get_text('error_reply_to_admin', lang), reply_markup=await get_main_menu(lang, message.from_user.id))
     finally:
         await state.clear()
 
@@ -236,7 +235,7 @@ async def cancel_feedback_process(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     await state.clear()
     await message.answer(
-        "Jarayon bekor qilindi.",
+        get_text('process_cancelled', lang),
         reply_markup=await get_main_menu(lang, message.from_user.id)
     )
 
