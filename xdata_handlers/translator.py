@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 translations: Dict[str, Dict[str, str]] = {}
 
 def load_translations():
-    """language_paks papkasidagi barcha .json fayllarni avtomatik o'qiydi va `translations` lug'atiga yuklaydi."""
-    locales_dir = os.path.join(BASE_DIR, "language_paks")
+    """language_packs papkasidagi barcha .json fayllarni avtomatik o'qiydi va `translations` lug'atiga yuklaydi."""
+    locales_dir = os.path.join(BASE_DIR, "language_packs")
 
     if not os.path.exists(locales_dir):
         logging.error(f"Tarjimalar papkasi topilmadi: {locales_dir}")
