@@ -17,12 +17,13 @@ from admin_handlers.vadmin_states import AdminStates
 from xdata_handlers import config
 from xdata_handlers.database import (
     is_user_blocked, add_or_update_user, get_user_language, block_user,
-    unblock_user, get_user_info_from_db, find_user_by_id_or_username
+    unblock_user, get_user_info_from_db, find_user_by_id_or_username,
+    get_user_block_info
 )
 from xdata_handlers.translator import get_text
 from admin_handlers.xinline_keyboard import (
     get_blocked_users_keyboard, get_blocked_list_view_keyboard,
-    get_unblock_confirmation_keyboard
+    get_unblock_confirmation_keyboard, get_blocked_user_detail_keyboard
 )
 
 block_router = Router()
@@ -91,7 +92,7 @@ async def block_user_query_received(message: types.Message, state: FSMContext):
     if await is_user_blocked(user_id_to_block, admin_ids=config.ADMIN_IDS):
         return await message.answer("Bu foydalanuvchi allaqachon bloklangan.")
 
-    if await block_user(user_id_to_block, admin_ids=config.ADMIN_IDS):
+    if await block_user(user_id_to_block, admin_ids=config.ADMIN_IDS, admin_id=message.from_user.id):
         full_name = user_data.get('full_name', 'Noma\'lum')
         await message.answer(f"✅ Foydalanuvchi <b>{full_name}</b> (<code>{user_id_to_block}</code>) muvaffaqiyatli bloklandi!")
 
@@ -145,6 +146,64 @@ async def unblock_confirm_handler(callback: types.CallbackQuery, state: FSMConte
             reply_markup=get_unblock_confirmation_keyboard(user_id)
         )
 
+    await callback.answer()
+
+@block_router.callback_query(F.data.startswith("admin:view_blocked_user:"), IsAdmin())
+async def view_blocked_user_handler(callback: types.CallbackQuery, state: FSMContext):
+    user_id = int(callback.data.split(":")[2])
+    block_info = await get_user_block_info(user_id)
+    
+    if not block_info:
+        await callback.answer("Foydalanuvchi ma'lumotlari topilmadi!", show_alert=True)
+        return await show_blocked_list_handler(callback, state)
+
+    name = block_info.get('full_name', 'Noma\'lum')
+    username = block_info.get('username')
+    username_text = f"@{username}" if username else "mavjud emas"
+    blocked_at = block_info.get('blocked_at')
+    
+    date_str = "Noma'lum"
+    if blocked_at:
+        # User requested date to be copyable (in code tags)
+        d_str = blocked_at.strftime("%H:%M %d.%m.%Y")
+        date_str = f"<code>{d_str}</code>"
+        
+    blocked_by_id = block_info.get('blocked_by')
+    admin_info = "Noma'lum"
+    
+    if blocked_by_id:
+        # Admin ma'lumotlarini olishga harakat qilamiz
+        admin_data = await get_user_info_from_db(blocked_by_id)
+        admin_username_val = admin_data.get('username') if admin_data else None
+
+        if admin_username_val:
+             admin_info = f"<b>@{admin_username_val}</b> <code>{blocked_by_id}</code>"
+        else:
+             admin_info = f"<b>👤 ADMIN</b> <code>{blocked_by_id}</code>"
+
+    text = (
+        f"<b> 🆔 FOYDALANUVCHI MA'LUMOTI </b>\n\n"
+        f"Foydalanuvchi: <code>{name}</code>\n"
+        f"Telegram ID: <code>{user_id}</code>\n"
+        f"Usernamesi: <code>{username_text}</code>\n\n"
+        f"Blok statusi: 🔴 to'liq bloklangan\n"
+        f"Qachon bloklangan: {date_str}\n"
+        f"<blockquote> {admin_info}\n"
+        f"tomonidan botdan bloklandi. </blockquote>"
+    )
+    
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=get_blocked_user_detail_keyboard(user_id)
+        )
+    except TelegramBadRequest:
+        await callback.message.delete()
+        await callback.message.answer(
+            text,
+            reply_markup=get_blocked_user_detail_keyboard(user_id)
+        )
+    
     await callback.answer()
 
 @block_router.callback_query(F.data.startswith("admin:unblock_do:"), IsAdmin())

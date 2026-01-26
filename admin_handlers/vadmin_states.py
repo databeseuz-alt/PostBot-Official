@@ -18,6 +18,7 @@ class AdminStates(StatesGroup):
 
     # Foydalanuvchini qidirish
     waiting_for_user_query = State()
+    viewing_user_profile = State() # --- YANGI QO'SHILDI ---
 
     # Kanalni ulash
     waiting_for_channel_forward = State()

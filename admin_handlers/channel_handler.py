@@ -9,8 +9,7 @@ from aiogram.exceptions import TelegramBadRequest
 from admin_handlers.admin_handler import IsAdmin
 from admin_handlers.vadmin_states import AdminStates
 from xdata_handlers import config
-# --- O'ZGARISH: get_channel_list_keyboard -> get_admin_channel_list_keyboard ---
-from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_admin_channel_list_keyboard
+from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_channel_list_keyboard
 
 # =============================================================================
 # FOYDALANUVCHI A'ZOLIGINI TEKSHIRISH FUNKSIYASI
@@ -18,7 +17,8 @@ from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_
 
 async def check_user_membership(user: types.User, bot: Bot):
     """Foydalanuvchining barcha majburiy kanallarga a'zoligini tekshiradi."""
-    from xdata_handlers.database import get_all_required_channels
+    from xdata_handlers.database import get_all_required_channels, get_user_language
+    from xdata_handlers.translator import get_text
 
     if user.id in config.ADMIN_IDS:
         return True, None, None
@@ -27,18 +27,21 @@ async def check_user_membership(user: types.User, bot: Bot):
     if not channels:
         return True, None, None
 
+    lang = await get_user_language(user.id)
+
     for channel in channels:
         try:
             member = await bot.get_chat_member(chat_id=int(channel['id']), user_id=user.id)
             if member.status in ['left', 'kicked']:
-                text = "❗️ Botdan to'liq foydalanish uchun, iltimos, quyidagi kanallarga a'zo bo'ling:"
+                text = get_text('join_required_channels', lang)
                 builder = InlineKeyboardBuilder()
                 for ch in channels:
                     link = f"https://t.me/{ch['username']}" if ch.get('username') else await bot.export_chat_invite_link(int(ch['id']))
                     if link:
-                        builder.button(text=f"Obuna bo'ling: {ch['title']}", url=link)
+                        btn_text = get_text('subscribe_button', lang).format(title=ch['title'])
+                        builder.button(text=btn_text, url=link)
 
-                builder.button(text="✅ A'zo bo'ldim", callback_data="check_subscription_again")
+                builder.button(text=get_text('btn_joined', lang), callback_data="check_subscription_again")
                 builder.adjust(1)
                 return False, text, builder.as_markup()
         except Exception as e:
@@ -65,8 +68,7 @@ async def channel_management_menu(callback: types.CallbackQuery, state: FSMConte
 @channel_router.callback_query(F.data == "admin:channel_show_list", IsAdmin())
 async def show_channel_list(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
-    # --- O'ZGARISH: Yangi nomlangan funksiya chaqirildi ---
-    keyboard, text = await get_admin_channel_list_keyboard()
+    keyboard, text = await get_channel_list_keyboard()
     await callback.message.edit_text(text, reply_markup=keyboard)
     await callback.answer()
 

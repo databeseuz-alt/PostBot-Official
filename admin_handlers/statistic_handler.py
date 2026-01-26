@@ -1,12 +1,6 @@
-#--- START OF FILE statistic_handler.py ---
-import io
-from datetime import datetime, timedelta, timezone
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-import numpy as np
-from aiogram import F, Router, types, Bot
+#--- START OF FILE admin_handlers/statistic_handler.py ---
+from aiogram import F, Router, types
 from aiogram.types import BufferedInputFile
-from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
 
 from admin_handlers.admin_handler import IsAdmin
@@ -15,24 +9,18 @@ from xdata_handlers.database import (
     get_detailed_user_stats, get_new_users_stats_extended,
     get_posts_stats, get_language_distribution, get_daily_stats_for_graph,
     get_active_users_by_period, get_total_errors_count, get_activity_heatmap_for_last_24h,
+    get_weekly_activity, get_daily_hours_activity, get_post_formats, get_button_stats,
     get_now
 )
-from admin_handlers.xinline_keyboard import get_stats_menu_keyboard
+from admin_handlers.xinline_keyboard import (
+    get_stats_menu_keyboard, get_graphics_menu_keyboard, 
+    get_users_stats_keyboard, get_posts_stats_keyboard, 
+    get_back_navigation_keyboard
+)
+from admin_handlers.stat_drawer import StatDrawer
 
 statistic_router = Router()
-
-#==================================================
-# --- Y O R D A M CH I   F U N K S I Y A L A R   V A   K L A V I A T U R A L A R ---
-#==================================================
-
-def _get_navigation_keyboard():
-    """Statistika bo'limi uchun navigatsiya klaviaturasini yaratadi."""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="◀️ Asosiy panel", callback_data="admin:back_to_main_menu")
-    builder.button(text="◀️ Ortga", callback_data="admin:stats_menu")
-    builder.adjust(2)
-    return builder.as_markup()
-
+drawer = StatDrawer()
 
 #==================================================
 # --- S T A T I S T I K A   B O' L I M I   A S O S I Y   M E N Y U S I ---
@@ -40,8 +28,8 @@ def _get_navigation_keyboard():
 
 @statistic_router.callback_query(F.data == "admin:stats_menu", IsAdmin())
 async def admin_stats_menu_handler(callback: types.CallbackQuery):
-    """Statistika bo'limining asosiy menyusini ko'rsatadi."""
-    text = "📊 Statistika bo'limi. Kerakli ma'lumot turini tanlang:"
+    """Statistika bo'limining asosiy menyusini (2-1) ko'rsatadi."""
+    text = "📊 <b>Statistika bo'limi</b>\n\nKerakli bo'limni tanlang:"
     keyboard = get_stats_menu_keyboard()
 
     try:
@@ -49,12 +37,15 @@ async def admin_stats_menu_handler(callback: types.CallbackQuery):
     except TelegramBadRequest:
         await callback.message.delete()
         await callback.message.answer(text, reply_markup=keyboard)
+    except Exception:
+        # Rasm bo'lsa edit qilib bo'lmaydi, o'chirib yozish kerak
+        await callback.message.delete()
+        await callback.message.answer(text, reply_markup=keyboard)
 
     await callback.answer()
 
-
 #==================================================
-# --- U M U M I Y   S T A T I S T I K A N I   K O' R S A T I SH ---
+# --- 1. U M U M I Y   M A T N L I   S T A T I S T I K A ---
 #==================================================
 
 async def _format_stats_text(
@@ -64,36 +55,28 @@ async def _format_stats_text(
     lang_dist: dict,
     active_users: dict,
     total_errors: int,
-    heatmap: str,
-    current_time: datetime
+    current_time
 ) -> str:
     """Statistika ma'lumotlaridan formatlangan matn yaratadi."""
     time_str = current_time.strftime('%d.%m.%Y %H:%M')
     status_line = f" <b>( {time_str} )</b>"
 
     lang_block_parts = ["<b>🏴 Tillar boʻyicha taqsimot:</b>"]
-
-    # --- O'ZGARISH: Tillar nomi va foizlar aniqligi ---
     lang_map = {
-        'uzl': 'UZL 🇺🇿',  # O'zbek Lotin
-        'uzk': 'UZK 🇺🇿',  # O'zbek Kirill
-        'ru': 'RU 🇷🇺',
-        'en': 'EN 🇬🇧',
-        'kz': 'KZ 🇰🇿',
-        'az': 'AZ 🇦🇿',
-        'tr': 'TR 🇹🇷',
-        'kg': 'KG 🇰🇬',
+        'uzl': 'UZ 🇺🇿', 'uzk': 'ЎЗ 🇺🇿', 'ru': 'RU 🇷🇺', 'en': 'EN 🇬🇧',
+        'kz': 'KZ 🇰🇿', 'az': 'AZ 🇦🇿', 'tr': 'TR 🇹🇷', 'kg': 'KG 🇰🇬',
+        'tj': 'TJ 🇹🇯', 'tk': 'TK 🇹🇲',
         None: 'Noma\'lum'
     }
 
-    active_langs = {lang: data for lang, data in lang_dist.items() if data.get('count', 0) > 0}
-
-    if active_langs:
-        for lang_code, data in active_langs.items():
+    # lang_dist endi oddiy lug'at {lang: count}
+    total_lang_users = sum(lang_dist.values())
+    
+    if lang_dist:
+        for lang_code, count in lang_dist.items():
             lang_name = lang_map.get(lang_code, lang_code)
-            # Foizni butun songa (int) aylantirmaymiz, shundayligicha olamiz (masalan 0.84)
-            percentage = data['percentage']
-            lang_block_parts.append(f"  - {lang_name} : {data['count']} ta ({percentage}%)")
+            percentage = int((count / total_lang_users) * 100) if total_lang_users > 0 else 0
+            lang_block_parts.append(f"  - {lang_name} : {count} ta ({percentage}%)")
     else:
         lang_block_parts.append("Tillar bo'yicha ma'lumot yo'q.")
 
@@ -101,129 +84,220 @@ async def _format_stats_text(
 
     return (
         f"<b>📊 Bot Statistikasi</b>\n\n"
-        f"<b>👥 Jami foydalanuvchilar:</b> {detailed_stats.get('total', 0)} ta{status_line}\n\n"
+        f"<b>👥 Jami foydalanuvchilar:</b> {detailed_stats.get('total_users', 0)} ta{status_line}\n\n"
         f"<b>📈 Yangi a'zolar:</b>\n"
         f"  - Bugun: {new_user_stats.get('daily', 0)} ta\n"
         f"  - Shu hafta: {new_user_stats.get('weekly', 0)} ta\n"
         f"  - Shu oy: {new_user_stats.get('monthly', 0)} ta\n\n"
         f"<b>🏃‍♂️ Faol a'zolar:</b>\n"
-        f"  - bugun: {active_users.get('daily', 0)} ta\n"
-        f"  - shu hafta: {active_users.get('weekly', 0)} ta\n"
-        f"  - shu Oy: {active_users.get('monthly', 0)} ta\n\n"
+        f"  - Bugun: {active_users.get('daily', 0)} ta\n"
+        f"  - Shu hafta: {active_users.get('weekly', 0)} ta\n"
+        f"  - Shu oy: {active_users.get('monthly', 0)} ta\n\n"
         f"{lang_text}\n\n"
         f"<b>✍️ Yaratilgan postlar:</b>\n"
         f"  - Jami: {posts_stats.get('total', 0)} ta\n"
         f"  - Bugun: {posts_stats.get('daily', 0)} ta\n"
         f"  - Shu hafta: {posts_stats.get('weekly', 0)} ta\n"
         f"  - Shu oy: {posts_stats.get('monthly', 0)} ta\n\n"
-        f"<b>🕒 Bugungi eng faol vaqt:</b>\n"
-        f"  - {heatmap}\n\n"
         f"<b>⚙️ Tizim holati:</b>\n"
         f"  - Qayd etilgan xatolar: {total_errors} ta"
     )
 
+@statistic_router.callback_query(F.data == "admin:stats:general_text", IsAdmin())
+async def show_general_text_stats(callback: types.CallbackQuery):
+    await callback.answer("⏳ Ma'lumotlar yuklanmoqda...")
 
-@statistic_router.callback_query(F.data == "admin:stats_show_general", IsAdmin())
-async def admin_general_stats_handler(callback: types.CallbackQuery, bot: Bot):
-    """
-    Ma'lumotlar bazasidan joriy statistikani oladi va foydalanuvchiga yuboradi.
-    """
-    await callback.answer("⏳ Ma'lumotlar yuklanmoqda...", show_alert=False)
-
-    detailed_stats = await get_detailed_user_stats(admin_ids=config.ADMIN_IDS)
-    new_user_stats = await get_new_users_stats_extended(admin_ids=config.ADMIN_IDS)
-    posts_stats = await get_posts_stats(admin_ids=config.ADMIN_IDS)
-    lang_dist = await get_language_distribution(admin_ids=config.ADMIN_IDS)
-    active_users = await get_active_users_by_period(admin_ids=config.ADMIN_IDS)
+    # Yangi database funksiyalaridan foydalanamiz
+    # Lekin eski formatga mos kelishi uchun ularni chaqiramiz
+    # get_detailed_user_stats yangi formatda, lekin bizga keragi ichida bor
+    detailed_stats = await get_detailed_user_stats(config.ADMIN_IDS)
+    
+    # Qolganlari uchun eski funksiyalarni database.py da qoldirdik yoki yangilarini moslaymiz
+    new_user_stats = await get_new_users_stats_extended(config.ADMIN_IDS)
+    posts_stats = await get_posts_stats(config.ADMIN_IDS)
+    lang_dist = await get_language_distribution(config.ADMIN_IDS)
+    active_users = await get_active_users_by_period(config.ADMIN_IDS)
     total_errors = await get_total_errors_count()
-    heatmap = await get_activity_heatmap_for_last_24h(admin_ids=config.ADMIN_IDS)
-
-    current_tashkent_time = get_now()
+    
+    current_time = get_now()
 
     text = await _format_stats_text(
         detailed_stats, new_user_stats, posts_stats, lang_dist,
-        active_users, total_errors, heatmap, current_tashkent_time
+        active_users, total_errors, current_time
     )
 
-    keyboard = _get_navigation_keyboard()
+    # Ortga tugmasi asosiy statistika menyusiga qaytaradi
+    keyboard = get_back_navigation_keyboard("admin:stats_menu")
 
     try:
         await callback.message.edit_text(text, reply_markup=keyboard)
-    except TelegramBadRequest:
+    except Exception:
         await callback.message.delete()
         await callback.message.answer(text, reply_markup=keyboard)
 
-
 #==================================================
-# --- G R A F I K A N I   Y A R A T I SH   V A   Y U B O R I SH ---
+# --- 2. G R A F I K A   B O' L I M I (MENYUSI) ---
 #==================================================
 
-async def create_stats_graph(daily_stats: list, title: str) -> io.BytesIO:
-    """Matplotlib yordamida statistika grafigini yaratadi."""
-    current_year = get_now().year
-    dates_str = [item['date'] for item in daily_stats]
-    dates = [datetime.strptime(f"{d}.{current_year}", "%d.%m.%Y") for d in dates_str]
-
-    new_users = [item['new_users'] for item in daily_stats]
-    new_posts = [item['new_posts'] for item in daily_stats]
-
-    plt.style.use('dark_background')
-    fig, ax = plt.subplots(figsize=(15, 8))
-
-    ax.plot(dates, new_users, marker='o', linestyle='-', label='Yangi foydalanuvchilar', color='#4CAF50', markersize=5)
-    ax.plot(dates, new_posts, marker='s', linestyle='--', label='Yangi postlar', color='#2196F3', markersize=5)
-
-    ax.set_title(title, fontsize=16, color='white', pad=20)
-    ax.set_ylabel('Soni', color='white', fontsize=12)
-    ax.tick_params(axis='x', rotation=45, colors='white', labelsize=10)
-    ax.tick_params(axis='y', colors='white', labelsize=10)
-    ax.legend(facecolor='#2c2c2c', edgecolor='white', labelcolor='white')
-    ax.grid(True, linestyle='--', alpha=0.3)
-
-    ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b'))
-    ax.xaxis.set_major_locator(mdates.DayLocator(interval=1))
-    fig.autofmt_xdate(ha='right')
-
-    max_val = max(max(new_users), max(new_posts)) if new_users or new_posts else 1
-    step = max(1, int(np.ceil(max_val / 10)))
-    ax.yaxis.set_major_locator(plt.MultipleLocator(step))
-
-    ax.set_ylim(bottom=-0.02 * max(1, max_val))
-    ax.set_xlim(dates[0] - timedelta(days=0.5), dates[-1] + timedelta(days=0.5))
-
-    fig.tight_layout(pad=3.0)
-
-    buf = io.BytesIO()
-    plt.savefig(buf, format='png', dpi=100)
-    buf.seek(0)
-    plt.close(fig)
-    return buf
-
-@statistic_router.callback_query(F.data == "admin:stats_show_graph", IsAdmin())
-async def admin_graph_stats_handler(callback: types.CallbackQuery):
-    await callback.answer("📈 Grafika yaratilmoqda...", show_alert=False)
-
-    daily_stats = await get_daily_stats_for_graph(days=30)
-    if not daily_stats or len(daily_stats) < 2:
-        await callback.message.answer("Grafika yaratish uchun ma'lumotlar yetarli emas.")
-        return
-
-    graph_buffer = await create_stats_graph(daily_stats, "Oxirgi 30 kunlik statistika")
-    photo_file = BufferedInputFile(graph_buffer.read(), filename="stats_graph.png")
-
-    keyboard = _get_navigation_keyboard()
-
+@statistic_router.callback_query(F.data == "admin:stats:graphics_menu", IsAdmin())
+async def show_graphics_menu(callback: types.CallbackQuery):
+    text = "📈 <b>Grafika bo'limi</b>\n\nQanday turdagi grafikani ko'rmoqchisiz?"
+    keyboard = get_graphics_menu_keyboard()
+    
     try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except Exception:
         await callback.message.delete()
-        await callback.message.answer_photo(
-            photo=photo_file,
-            caption="📊 oxirgi 30 kunlik faollik grafigi.",
-            reply_markup=keyboard
-        )
-    except TelegramBadRequest:
-        await callback.message.answer_photo(
-            photo=photo_file,
-            caption="📊 oxirgi 30 kunlik faollik grafigi.",
-            reply_markup=keyboard
-        )
-#--- END OF FILE statistic_handler.py ---
+        await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+
+#==================================================
+# --- 3. D A S H B O A R D ---
+#==================================================
+
+@statistic_router.callback_query(F.data == "admin:stats:dashboard", IsAdmin())
+async def show_dashboard_handler(callback: types.CallbackQuery):
+    await callback.answer("📊 Dashboard yuklanmoqda...")
+    stats = await get_detailed_user_stats(config.ADMIN_IDS)
+    image_buffer = drawer.draw_dashboard(stats)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="dashboard.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="📊 <b>Asosiy Dashboard</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:graphics_menu")
+    )
+
+#==================================================
+# --- 4. A ' Z O L A R   B O' L I M I ---
+#==================================================
+
+@statistic_router.callback_query(F.data == "admin:stats:users_menu", IsAdmin())
+async def show_users_menu(callback: types.CallbackQuery):
+    text = "👥 <b>A'zolar statistikasi</b>\n\nQaysi davr yoki turni ko'rmoqchisiz?"
+    keyboard = get_users_stats_keyboard()
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except Exception:
+        await callback.message.delete()
+        await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+
+@statistic_router.callback_query(F.data == "admin:stats:users:monthly", IsAdmin())
+async def show_users_monthly(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    dates, users, _ = await get_daily_stats_for_graph(30)
+    image_buffer = drawer.draw_line_chart("👥 Yangi a'zolar (30 kun)", dates, users)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="users_monthly.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="📈 <b>30 kunlik a'zolar o'sishi</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:users_menu")
+    )
+
+@statistic_router.callback_query(F.data == "admin:stats:users:weekly", IsAdmin())
+async def show_users_weekly(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    labels, values = await get_weekly_activity(config.ADMIN_IDS)
+    image_buffer = drawer.draw_bar_chart("📅 Haftalik faollik", labels, values)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="users_weekly.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="📅 <b>Hafta kunlari bo'yicha faollik</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:users_menu")
+    )
+
+@statistic_router.callback_query(F.data == "admin:stats:users:hourly", IsAdmin())
+async def show_users_hourly(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    labels, values = await get_daily_hours_activity(config.ADMIN_IDS)
+    image_buffer = drawer.draw_bar_chart("🕒 Kunlik faollik soatlari", labels, values)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="users_hourly.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="🕒 <b>Soatlar bo'yicha faollik</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:users_menu")
+    )
+
+#==================================================
+# --- 5. T I L L A R   B O' L I M I ---
+#==================================================
+
+@statistic_router.callback_query(F.data == "admin:stats:langs_menu", IsAdmin())
+async def show_langs_stats(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    data = await get_language_distribution(config.ADMIN_IDS)
+    image_buffer = drawer.draw_pie_chart("🌍 Tillar taqsimoti", data)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="langs_pie.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="🌍 <b>Foydalanuvchilar tili</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:graphics_menu")
+    )
+
+#==================================================
+# --- 6. P O S T L A R   B O' L I M I ---
+#==================================================
+
+@statistic_router.callback_query(F.data == "admin:stats:posts_menu", IsAdmin())
+async def show_posts_menu(callback: types.CallbackQuery):
+    text = "📝 <b>Postlar statistikasi</b>\n\nQaysi ma'lumotni ko'rmoqchisiz?"
+    keyboard = get_posts_stats_keyboard()
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except Exception:
+        await callback.message.delete()
+        await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()
+
+@statistic_router.callback_query(F.data == "admin:stats:posts:monthly", IsAdmin())
+async def show_posts_monthly(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    dates, _, posts = await get_daily_stats_for_graph(30)
+    image_buffer = drawer.draw_line_chart("📝 Yaratilgan postlar (30 kun)", dates, posts)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="posts_monthly.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="📈 <b>30 kunlik postlar statistikasi</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:posts_menu")
+    )
+
+@statistic_router.callback_query(F.data == "admin:stats:posts:formats", IsAdmin())
+async def show_posts_formats(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    data = await get_post_formats(config.ADMIN_IDS)
+    image_buffer = drawer.draw_pie_chart("📄 Post formatlari", data)
+    photo_file = BufferedInputFile(image_buffer.read(), filename="posts_formats.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="📄 <b>Post turlari</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:posts_menu")
+    )
+
+@statistic_router.callback_query(F.data == "admin:stats:posts:buttons", IsAdmin())
+async def show_posts_buttons(callback: types.CallbackQuery):
+    await callback.answer("Grafik chizilmoqda...")
+    data = await get_button_stats(config.ADMIN_IDS)
+    image_buffer = drawer.draw_bar_chart("🔘 Tugmalar ishlatilishi", list(data.keys()), list(data.values()))
+    photo_file = BufferedInputFile(image_buffer.read(), filename="posts_buttons.png")
+    
+    await callback.message.delete()
+    await callback.message.answer_photo(
+        photo=photo_file,
+        caption="🔘 <b>Postlarda tugmalar soni</b>",
+        reply_markup=get_back_navigation_keyboard("admin:stats:posts_menu")
+    )
+#--- END OF FILE admin_handlers/statistic_handler.py ---

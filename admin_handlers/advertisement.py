@@ -1,4 +1,4 @@
-#--- START OF FILE advertisement.py ---
+#--- START OF FILE admin_handlers/advertisement.py ---
 import asyncio
 import logging
 import re
@@ -75,6 +75,9 @@ async def redraw_ad_post(bot: Bot, chat_id: int, state: FSMContext, answer_text:
             sent_message = await bot.send_document(chat_id, post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
         elif content_type == 'animation':
             sent_message = await bot.send_animation(chat_id, post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
+        # YANGI: Voice (ovozli xabar) uchun
+        elif content_type == 'voice':
+            sent_message = await bot.send_voice(chat_id, post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
 
     except Exception as e:
         logging.error(f"Reklamani qayta chizishda xatolik: {e}")
@@ -91,12 +94,12 @@ async def send_ad_start(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
     await state.set_state(AdminStates.waiting_for_ad_content)
     await callback.message.delete()
-    await callback.message.answer("Reklama uchun post yuboring (matn, rasm, video, audio, hujjat yoki GIF).", reply_markup=get_admin_back_kb())
+    await callback.message.answer("Reklama uchun post yuboring (matn, rasm, video, audio, hujjat, GIF yoki ovozli xabar).", reply_markup=get_admin_back_kb())
     await callback.answer()
 
 @ad_router.message(
     AdminStates.waiting_for_ad_content,
-    F.content_type.in_({'text', 'photo', 'video', 'audio', 'document', 'animation'}),
+    F.content_type.in_({'text', 'photo', 'video', 'audio', 'document', 'animation', 'voice'}),
     IsAdmin()
 )
 async def ad_content_received(message: types.Message, state: FSMContext, bot: Bot):
@@ -107,6 +110,7 @@ async def ad_content_received(message: types.Message, state: FSMContext, bot: Bo
     elif message.audio: file_id = message.audio.file_id
     elif message.document: file_id = message.document.file_id
     elif message.animation: file_id = message.animation.file_id
+    elif message.voice: file_id = message.voice.file_id # YANGI
 
     await state.update_data(
         ad_post_data={
@@ -121,7 +125,7 @@ async def ad_content_received(message: types.Message, state: FSMContext, bot: Bo
 
 @ad_router.message(AdminStates.waiting_for_ad_content, IsAdmin())
 async def ad_wrong_content_type(message: types.Message):
-    await message.answer("❌ Ushbu media turi qabul qilinmaydi. Yaqinda qo'shilishi rejalashtirilmoqda.\n\nIltimos, faqat matn, rasm, video, audio, hujjat yoki GIF yuboring.")
+    await message.answer("❌ Ushbu media turi qabul qilinmaydi. Iltimos, faqat matn, rasm, video, audio, hujjat, GIF yoki ovozli xabar yuboring.")
 
 # =============================================================================
 # TUGMALARNI BOSHQARISH
@@ -255,6 +259,8 @@ async def ad_settings_handler(message: types.Message, state: FSMContext):
         elif content_type == 'audio': await message.answer_audio(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
         elif content_type == 'document': await message.answer_document(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
         elif content_type == 'animation': await message.answer_animation(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
+        # YANGI: Voice preview
+        elif content_type == 'voice': await message.answer_voice(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
 
     elif text in {"Preview: ON", "Preview: OFF"}:
         is_disabled = post_data.get('disable_web_page_preview', False)
@@ -297,6 +303,8 @@ async def ad_done_confirmation(message: types.Message, state: FSMContext, bot: B
     elif content_type == 'audio': await message.answer_audio(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
     elif content_type == 'document': await message.answer_document(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
     elif content_type == 'animation': await message.answer_animation(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
+    # YANGI: Voice final preview
+    elif content_type == 'voice': await message.answer_voice(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
 
     confirmation_kb = InlineKeyboardBuilder()
     confirmation_kb.button(text="✅ Ha, yuborilsin", callback_data="ad:send_now")
@@ -318,6 +326,9 @@ async def send_ad_to_user(bot: Bot, user_id: int, post_data: dict, keyboard: typ
             await bot.send_document(user_id, post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
         elif content_type == 'animation':
             await bot.send_animation(user_id, post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
+        # YANGI: Voice send
+        elif content_type == 'voice':
+            await bot.send_voice(user_id, post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard)
         return True
     except Exception:
         return False
@@ -428,4 +439,4 @@ async def cancel_from_confirmation(callback: types.CallbackQuery, state: FSMCont
 async def dummy_button_handler(callback: types.CallbackQuery):
     await callback.answer("Bu tugma faqat ko'rish uchun, bosilmaydi.")
 
-#--- END OF FILE advertisement.py ---
+#--- END OF FILE admin_handlers/advertisement.py ---
