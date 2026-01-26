@@ -1,4 +1,4 @@
-#--- START OF FILE reply_handler.py ---
+#--- START OF FILE post_handlers/reply_handler.py ---
 import logging
 from contextlib import suppress
 from aiogram import F, Router, types
@@ -21,10 +21,11 @@ reply_router = Router()
 # POSTNI SOZLASH MENYUSI HANDLERLARI
 #=============================================================================
 
-@reply_router.message(PostCreation.configuring_post, F.text == "⚙️ Options")
+@reply_router.message(PostCreation.configuring_post, LocalizedText('btn_options'))
 async def options_menu_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     post_data = data.get("post_data", {})
+    lang = await get_user_language(message.from_user.id)
 
     if 'last_options_message_id' in data:
         with suppress(TelegramBadRequest):
@@ -35,24 +36,25 @@ async def options_menu_handler(message: types.Message, state: FSMContext):
     current_parse_mode = post_data.get('parse_mode')
     url_preview_disabled = post_data.get("disable_web_page_preview", False)
 
-    # Agar faqat matn formati sozlamasi mavjud bo'lsa (rasm/video izohi uchun)
+    # Agar faqat matn formati sozlamasi mavjud bo'lsa (rasm/video/voice izohi uchun)
     if (content_type != 'text') and has_caption:
-        keyboard = create_post_parse_mode_keyboard(current_parse_mode, show_back_button=False)
-        text = "Matn formatini tanlang:"
+        keyboard = create_post_parse_mode_keyboard(current_parse_mode, show_back_button=False, lang=lang)
+        text = get_text('select_text_format', lang)
     else:
         keyboard = create_post_options_keyboard(
             content_type=content_type,
             has_caption=has_caption,
             current_parse_mode=current_parse_mode,
-            url_preview_disabled=url_preview_disabled
+            url_preview_disabled=url_preview_disabled,
+            lang=lang
         )
-        text = "Post uchun qo'shimchalar :"
+        text = get_text('post_additions', lang)
 
     options_msg = await message.answer(text, reply_markup=keyboard)
     await state.update_data(last_options_message_id=options_msg.message_id)
 
 
-@reply_router.message(PostCreation.configuring_post, F.text == "🔡 Get Buttons")
+@reply_router.message(PostCreation.configuring_post, LocalizedText('btn_get_buttons'))
 async def get_buttons_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
@@ -63,7 +65,8 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
 
     reply_markup = get_post_settings_kb(
         content_type=post_data.get('content_type', 'text'),
-        has_caption=bool(post_data.get('caption'))
+        has_caption=bool(post_data.get('caption')),
+        lang=lang
     )
 
     if not has_real_buttons:
@@ -84,13 +87,13 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
         reply_markup=reply_markup
     )
 
-@reply_router.message(PostCreation.configuring_post, F.text == "✏️ Edit Content")
+@reply_router.message(PostCreation.configuring_post, LocalizedText('btn_edit_content'))
 async def edit_content_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     await state.set_state(PostCreation.waiting_for_content)
     await message.answer(get_text('ask_for_new_content', lang), reply_markup=get_button_creation_cancel_kb(lang))
 
-@reply_router.message(PostCreation.configuring_post, F.text == "👁️‍🗨️ Preview")
+@reply_router.message(PostCreation.configuring_post, LocalizedText('btn_preview'))
 async def preview_post_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
@@ -102,7 +105,8 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
 
     reply_markup = get_post_settings_kb(
         content_type=post_data.get('content_type', 'text'),
-        has_caption=bool(post_data.get('caption'))
+        has_caption=bool(post_data.get('caption')),
+        lang=lang
     )
     await message.answer(
         get_text('preview_title', lang),
@@ -139,15 +143,15 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
             await message.bot.send_audio(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'document':
             await message.bot.send_document(chat_id, file_id, caption=caption, **media_kwargs)
-        elif content_type == 'video_note':
-            await message.bot.send_video_note(chat_id, file_id, reply_markup=keyboard)
-        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        # YANGI: Voice preview
         elif content_type == 'voice':
             await message.bot.send_voice(chat_id, file_id, caption=caption, **media_kwargs)
+        elif content_type == 'video_note':
+            await message.bot.send_video_note(chat_id, file_id, reply_markup=keyboard)
     except TelegramBadRequest as e:
         if "can't parse entities" in str(e).lower():
             error_mode = f"<code>{parse_mode or 'None'}</code>"
-            await message.answer(f"⚠️ <b>Xatolik:</b> Matn tanlangan {error_mode} formatiga mos kelmadi.")
+            await message.answer(get_text('parse_mode_error_preview', lang).format(error_mode=error_mode))
         else:
             logging.error(f"Previewda xatolik: {e}")
             await message.answer(get_text('preview_error', lang))
@@ -173,9 +177,10 @@ async def cancel_post_creation_handler(message: types.Message, state: FSMContext
 async def show_parse_mode_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     current_mode = data.get("post_data", {}).get("parse_mode")
+    lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
-        "Matn formatini tanlang:",
-        reply_markup=create_post_parse_mode_keyboard(current_mode, show_back_button=True)
+        get_text('select_text_format', lang),
+        reply_markup=create_post_parse_mode_keyboard(current_mode, show_back_button=True, lang=lang)
     )
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "set_parse_mode"))
@@ -206,24 +211,26 @@ async def set_parse_mode(callback: types.CallbackQuery, state: FSMContext, callb
         )
     # --- O'ZGARISH TUGADI ---
 
+    lang = await get_user_language(callback.from_user.id)
     if new_mode is None:
-        await callback.answer("✅ Format o'chirildi va saqlandi")
+        await callback.answer(get_text('parse_mode_removed', lang))
     else:
-        await callback.answer(f"✅ Format {new_mode} ga o'zgartirildi va saqlandi")
+        await callback.answer(get_text('parse_mode_selected', lang).format(mode=new_mode))
 
     content_type = post_data.get('content_type')
     show_back_button = (content_type == 'text')
 
-    await callback.message.edit_reply_markup(reply_markup=create_post_parse_mode_keyboard(new_mode, show_back_button=show_back_button))
+    await callback.message.edit_reply_markup(reply_markup=create_post_parse_mode_keyboard(new_mode, show_back_button=show_back_button, lang=lang))
 
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "show_url_preview"))
 async def show_url_preview_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     is_disabled = data.get("post_data", {}).get("disable_web_page_preview", False)
+    lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
-        "URL havolalari uchun oldindan ko'rishni sozlang:",
-        reply_markup=create_post_url_preview_keyboard(is_disabled)
+        get_text('url_preview_settings', lang),
+        reply_markup=create_post_url_preview_keyboard(is_disabled, lang=lang)
     )
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "set_url_preview"))
@@ -248,26 +255,29 @@ async def set_url_preview(callback: types.CallbackQuery, state: FSMContext, call
         )
     # --- O'ZGARISH TUGADI ---
 
-    status_text = "o'chirildi" if is_disabled else "yoqildi"
-    await callback.answer(f"✅ URL oldindan ko'rish {status_text} va saqlandi")
-    await callback.message.edit_reply_markup(reply_markup=create_post_url_preview_keyboard(is_disabled))
+    lang = await get_user_language(callback.from_user.id)
+    status_text = get_text('url_preview_disabled', lang) if is_disabled else get_text('url_preview_enabled', lang)
+    await callback.answer(status_text)
+    await callback.message.edit_reply_markup(reply_markup=create_post_url_preview_keyboard(is_disabled, lang=lang))
 
 
 @reply_router.callback_query(PostCreation.configuring_post, PostSettingsCallbackFactory.filter(F.action == "back_to_options"))
 async def back_to_options(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     post_data = data.get("post_data", {})
+    lang = await get_user_language(callback.from_user.id)
 
     keyboard = create_post_options_keyboard(
         content_type=post_data.get('content_type', 'text'),
         has_caption=bool(post_data.get('caption')),
         current_parse_mode=post_data.get('parse_mode'),
-        url_preview_disabled=post_data.get("disable_web_page_preview", False)
+        url_preview_disabled=post_data.get("disable_web_page_preview", False),
+        lang=lang
     )
     await callback.message.edit_text(
-        "Post uchun qo'shimchalar :",
+        get_text('post_additions', lang),
         reply_markup=keyboard
     )
     await callback.answer()
 
-#--- END OF FILE reply_handler.py ---
+#--- END OF FILE post_handlers/reply_handler.py ---

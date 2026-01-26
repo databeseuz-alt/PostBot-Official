@@ -6,8 +6,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
 
-from xdata_handlers.database import get_user_channels, remove_user_channel
+from xdata_handlers.database import get_user_channels, remove_user_channel, get_user_language
 from post_handlers.send_handler import cmd_add_channel
+from xdata_handlers.translator import get_text
 
 mychannels_router = Router()
 
@@ -23,9 +24,10 @@ async def get_my_channels_keyboard(user_id: int):
     """Foydalanuvchi kanallari ro'yxati uchun inline klaviatura yaratadi."""
     builder = InlineKeyboardBuilder()
     user_channels = await get_user_channels(user_id)
-
+    lang = await get_user_language(user_id)
+    
     builder.button(
-        text="➕ Yangi kanal qo'shish",
+        text=get_text('add_new_channel', lang),
         callback_data=MyChannelsCallback(action="add_new").pack()
     )
 
@@ -41,15 +43,15 @@ async def get_my_channels_keyboard(user_id: int):
 
     return builder.as_markup()
 
-def get_channel_manage_keyboard(channel_id: int):
+def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl'):
     """Tanlangan kanalni boshqarish uchun inline klaviatura yaratadi."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="🗑️ Kanalni o'chirish",
+        text=get_text('delete_channel', lang),
         callback_data=MyChannelsCallback(action="delete", channel_id=channel_id).pack()
     )
     builder.button(
-        text="◀️ Ortga",
+        text=get_text('btn_back', lang),
         callback_data=MyChannelsCallback(action="back_to_list").pack()
     )
     builder.adjust(1)
@@ -63,8 +65,9 @@ def get_channel_manage_keyboard(channel_id: int):
 async def cmd_my_channels(message: types.Message):
     """/mychannels buyrug'iga javob beradi va kanallar ro'yxatini ko'rsatadi."""
     keyboard = await get_my_channels_keyboard(message.from_user.id)
+    lang = await get_user_language(message.from_user.id)
     await message.answer(
-        "Iltimos tanlamoqchi bo'lgan kanalingiz ustiga bosing:",
+        get_text('select_channel', lang),
         reply_markup=keyboard
     )
 
@@ -86,10 +89,11 @@ async def handle_select_channel(callback: types.CallbackQuery, callback_data: My
                 break
 
     safe_channel_name = html.escape(channel_name)
+    lang = await get_user_language(callback.from_user.id)
 
     await callback.message.edit_text(
-        f"<b>{safe_channel_name}</b> ushbu kanal bilan nima qilmoqchisiz?",
-        reply_markup=get_channel_manage_keyboard(callback_data.channel_id)
+        get_text('channel_action', lang).format(channel_name=safe_channel_name),
+        reply_markup=get_channel_manage_keyboard(callback_data.channel_id, lang)
     )
     await callback.answer()
 
@@ -97,24 +101,26 @@ async def handle_select_channel(callback: types.CallbackQuery, callback_data: My
 async def handle_delete_channel(callback: types.CallbackQuery, callback_data: MyChannelsCallback):
     """Kanalni o'chirish tugmasi bosilganda uni bazadan o'chiradi."""
     success = await remove_user_channel(callback.from_user.id, callback_data.channel_id)
+    lang = await get_user_language(callback.from_user.id)
 
     if success:
-        await callback.answer("✅ Kanal muvaffaqiyatli o'chirildi!", show_alert=True)
+        await callback.answer(get_text('delete_channel_success', lang), show_alert=True)
         # Ro'yxatni yangilaymiz
         keyboard = await get_my_channels_keyboard(callback.from_user.id)
         await callback.message.edit_text(
-            "Iltimos tanlamoqchi bo'lgan kanalingiz ustiga bosing:",
+            get_text('select_channel', lang),
             reply_markup=keyboard
         )
     else:
-        await callback.answer("❌ Xatolik: Kanalni o'chirib bo'lmadi.", show_alert=True)
+        await callback.answer(get_text('delete_channel_error', lang), show_alert=True)
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "back_to_list"))
 async def handle_back_to_list(callback: types.CallbackQuery):
     """'Ortga' tugmasi bosilganda kanallar ro'yxatiga qaytaradi."""
     keyboard = await get_my_channels_keyboard(callback.from_user.id)
+    lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
-        "Iltimos tanlamoqchi bo'lgan kanalingiz ustiga bosing:",
+        get_text('select_channel', lang),
         reply_markup=keyboard
     )
     await callback.answer()

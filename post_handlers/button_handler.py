@@ -1,4 +1,4 @@
-#--- START OF FILE button_handler.py ---
+#--- START OF FILE post_handlers/button_handler.py ---
 
 import re
 import logging
@@ -49,9 +49,11 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
 
     # --- X A T O L I K   T U Z A T I L D I ---
     # `get_post_settings_kb` uchun kerakli argumentlarni `state`'dan olamiz
+    lang = await get_user_language(message.from_user.id)
     settings_keyboard = get_post_settings_kb(
         content_type=post_data.get('content_type', 'text'),
-        has_caption=bool(post_data.get('caption'))
+        has_caption=bool(post_data.get('caption')),
+        lang=lang
     )
 
     if answer_text:
@@ -111,7 +113,7 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             sent_message = await message.bot.send_document(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'video_note':
             sent_message = await message.bot.send_video_note(chat_id, file_id, reply_markup=new_keyboard)
-        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+        # YANGI: Voice (ovozli xabar) qayta yuborish
         elif content_type == 'voice':
             sent_message = await message.bot.send_voice(chat_id, file_id, caption=caption, **media_kwargs)
 
@@ -157,7 +159,7 @@ async def back_to_configuring_post(message: types.Message, state: FSMContext):
 
     answer_text = get_text('back_to_settings', lang)
     if current_state == PostCreation.waiting_for_content:
-        answer_text = "tahrirlash bekor qilindi ..."
+        answer_text = get_text('editing_canceled', lang)
 
     await redraw_post(message, state, answer_text)
 

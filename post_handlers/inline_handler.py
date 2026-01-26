@@ -1,10 +1,11 @@
-#--- START OF FILE inline_handler.py ---
+#--- START OF FILE post_handlers/inline_handler.py ---
 
 import logging
 from aiogram import Router, types, Bot
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
-from xdata_handlers.database import get_post_from_db
+from xdata_handlers.database import get_post_from_db, get_user_language
+from xdata_handlers.translator import get_text
 
 inline_router = Router()
 
@@ -16,6 +17,9 @@ inline_router = Router()
 async def inline_query_handler(query: types.InlineQuery, bot: Bot):
     post_code = query.query.strip()
     results = []
+    
+    # Get user language for localization
+    user_lang = await get_user_language(query.from_user.id) if query.from_user else 'uzl'
 
     def get_keyboard_as_dict(keyboard_markup):
         if not keyboard_markup:
@@ -26,10 +30,10 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
         results.append({
             "type": "article",
             "id": "help_msg",
-            "title": "Postni yuborish",
-            "description": "Iltimos, botdan olgan postingiz kodini kiriting.",
+            "title": get_text('inline_send_post', user_lang),
+            "description": get_text('inline_enter_post_code', user_lang),
             "input_message_content": {
-                "message_text": "Post yaratish uchun botga o'ting. Keyin uning kodini bu yerga joylang."
+                "message_text": get_text('inline_use_bot_instructions', user_lang)
             }
         })
         return await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=1)
@@ -54,8 +58,8 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
                 results.append({
                     "type": "article",
                     "id": post_code,
-                    "title": "Postni yuborish",
-                    "description": "Postni yuborish uchun shu yerga bosing",
+                    "title": get_text('inline_send_post', user_lang),
+                    "description": get_text('inline_click_to_send', user_lang),
                     "input_message_content": {
                         "message_text": content.get('text', ''),
                         "parse_mode": parse_mode,
@@ -66,51 +70,55 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
             elif content_type == 'photo' and file_id:
                 results.append({
                     "type": "photo", "id": post_code, "photo_file_id": file_id,
-                    "title": "Rasmli post", "caption": caption, "parse_mode": parse_mode,
+                    "title": get_text('inline_photo_post', user_lang), "caption": caption, "parse_mode": parse_mode,
                     "reply_markup": keyboard_dict
                 })
             elif content_type == 'video' and file_id:
                 results.append({
                     "type": "video", "id": post_code, "video_file_id": file_id,
-                    "title": "Videoli post", "caption": caption, "parse_mode": parse_mode,
+                    "title": get_text('inline_video_post', user_lang), "caption": caption, "parse_mode": parse_mode,
                     "reply_markup": keyboard_dict
                 })
             elif content_type == 'audio' and file_id:
                  results.append({
                     "type": "audio", "id": post_code, "audio_file_id": file_id,
-                    "title": content.get('title') or "Musiqa",
-                    "performer": content.get('performer') or "Noma'lum ijrochi",
+                    "title": content.get('title') or get_text('inline_music', user_lang),
+                    "performer": content.get('performer') or get_text('inline_unknown_artist', user_lang),
                     "caption": caption, "parse_mode": parse_mode, "reply_markup": keyboard_dict
                 })
             elif content_type == 'document' and file_id:
                 results.append({
                     "type": "document", "id": post_code, "document_file_id": file_id,
-                    "title": content.get('file_name') or "Hujjat",
+                    "title": content.get('file_name') or get_text('inline_document', user_lang),
                     "caption": caption, "parse_mode": parse_mode, "reply_markup": keyboard_dict
                 })
             elif content_type == 'video_note' and file_id:
                 results.append({
                     "type": "video", "id": post_code, "video_file_id": file_id,
-                    "title": "Aylana video", "caption": None, "parse_mode": parse_mode,
+                    "title": get_text('inline_video_note', user_lang), "caption": None, "parse_mode": parse_mode,
                     "reply_markup": keyboard_dict
                 })
-            # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
             elif content_type == 'voice' and file_id:
                 results.append({
-                    "type": "voice", "id": post_code, "voice_file_id": file_id,
-                    "title": "Ovozli xabar", "caption": caption, "parse_mode": parse_mode,
+                    "type": "voice", 
+                    "id": post_code, 
+                    "voice_file_id": file_id,
+                    "title": get_text('inline_voice_message', user_lang), 
+                    "caption": caption, 
+                    "parse_mode": parse_mode, 
                     "reply_markup": keyboard_dict
                 })
+
         except Exception as e:
             logging.error(f"Inline natija yasashda xatolik: {post_code} - {e}")
 
     if not results:
         results.append({
-            "type": "article", "id": "not_found", "title": "Post topilmadi",
-            "description": f"'{post_code}' kodli post mavjud emas.",
-            "input_message_content": {"message_text": f"'{post_code}' kodli postni topa olmadim."}
+            "type": "article", "id": "not_found", "title": get_text('inline_post_not_found', user_lang),
+            "description": get_text('inline_post_not_found_desc', user_lang).format(post_code=post_code),
+            "input_message_content": {"message_text": get_text('inline_post_not_found_message', user_lang).format(post_code=post_code)}
         })
 
     await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
 
-#--- END OF FILE inline_handler.py ---
+#--- END OF FILE post_handlers/inline_handler.py ---

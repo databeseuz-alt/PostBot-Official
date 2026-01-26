@@ -62,12 +62,13 @@ async def cmd_start(message: types.Message, state: FSMContext, bot: Bot):
 @start_router.callback_query(F.data == "check_subscription_again")
 async def check_subscription_again(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     is_member, text, keyboard = await check_user_membership(callback.from_user, bot)
+    lang = await get_user_language(callback.from_user.id)
 
     if is_member:
         await callback.answer()
         await show_main_menu(callback, state, bot)
     else:
-        await callback.answer("⚠️ Kanal(lar)ga a'zo bo'ling va qaytadan urining!", show_alert=True)
+        await callback.answer(get_text('join_channel_alert', lang), show_alert=True)
 
 #==================================================
 # --- A S O S I Y   M E N Y U   T U G M A L A R I   U C H U N   H A N D L E R L A R ---
@@ -108,17 +109,16 @@ async def start_post_editing_process(message: types.Message, state: FSMContext, 
         await message.answer(get_text('ask_for_edit_code', lang), reply_markup=get_cancel_kb(lang))
     else:
         bot_info = await bot.get_me()
-        posts_list_text = "<b>Saqlangan postlaringiz:</b>\n\n"
+        posts_list_text = get_text('saved_posts_header', lang)
         count = 1
         for post in saved_posts:
             safe_post_name = html.escape(post.get('name', ''))
             post_code = post['code']
-            posts_list_text += f"{count}. {safe_post_name}\n"
+            posts_list_text += f"\n{count}. {safe_post_name}\n"
             posts_list_text += f"<code>@{bot_info.username} {post_code}</code>\n"
-            posts_list_text += f"<code>/delete_post {post_code}</code>\n\n"
+            posts_list_text += f"<code>/delete_post {post_code}</code>\n"
             count += 1
-
-        posts_list_text += "Postingizni tahrirlash uchun post kodingizni kiriting!"
+        posts_list_text += "\n" + get_text('enter_post_code_to_edit', lang)
         await message.answer(posts_list_text, reply_markup=get_cancel_kb(lang))
 
     await state.set_state(PostCreation.waiting_for_edit_code)

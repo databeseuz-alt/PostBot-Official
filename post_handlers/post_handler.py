@@ -1,6 +1,7 @@
 #--- START OF FILE post_handler.py ---
 import logging
 import re
+import html
 from typing import List, Dict
 
 # DIQQAT: Ushbu funksiya ishlashi uchun 'beautifulsoup4' kutubxonasi kerak.
@@ -51,31 +52,83 @@ def clean_text_for_default_mode(text: str | None) -> str | None:
 
     return cleaned_text
 
-async def _get_permanent_file_id(bot: Bot, message: Message) -> str | None:
+def format_user_info(user: types.User, lang: str = 'uzl') -> str:
+    """Foydalanuvchi ma'lumotlarini formatlash."""
+    full_name = html.escape(user.full_name)
+    username = f"@{user.username}" if user.username else get_text('username_not_found', lang)
+    
+    return (
+        f"\n-------------------------------\n"
+        f"{get_text('user_info_name', lang)} <code>{full_name}</code>\n"
+        f"{get_text('user_info_id', lang)} <code>{user.id}</code>\n"
+        f"{get_text('user_info_username', lang)} <code>{username}</code>"
+    )
+
+async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') -> str | None:
     if not config.STORAGE_CHANNEL_ID:
         logging.error("STORAGE_CHANNEL_ID konfiguratsiyada topilmadi!")
         return None
 
+    user_info_text = format_user_info(message.from_user, lang)
+
     try:
-        if message.photo:
-            sent_message = await bot.send_photo(config.STORAGE_CHANNEL_ID, message.photo[-1].file_id)
+        # YANGI: Voice (ovozli xabar) uchun
+        if message.voice:
+            original_caption = message.caption or ""
+            new_caption = original_caption + user_info_text
+            if len(new_caption) > 1024:
+                new_caption = new_caption[:1024]
+            
+            # send_voice da caption parametri mavjud
+            sent_message = await bot.send_voice(
+                config.STORAGE_CHANNEL_ID, 
+                message.voice.file_id, 
+                caption=new_caption, 
+                parse_mode="HTML"
+            )
+            return sent_message.voice.file_id
+
+        elif message.photo:
+            original_caption = message.caption or ""
+            new_caption = original_caption + user_info_text
+            if len(new_caption) > 1024:
+                new_caption = new_caption[:1024]
+            
+            sent_message = await bot.send_photo(config.STORAGE_CHANNEL_ID, message.photo[-1].file_id, caption=new_caption, parse_mode="HTML")
             return sent_message.photo[-1].file_id
+
         elif message.video:
-            sent_message = await bot.send_video(config.STORAGE_CHANNEL_ID, message.video.file_id)
+            original_caption = message.caption or ""
+            new_caption = original_caption + user_info_text
+            if len(new_caption) > 1024:
+                new_caption = new_caption[:1024]
+
+            sent_message = await bot.send_video(config.STORAGE_CHANNEL_ID, message.video.file_id, caption=new_caption, parse_mode="HTML")
             return sent_message.video.file_id
+
         elif message.audio:
-            sent_message = await bot.send_audio(config.STORAGE_CHANNEL_ID, message.audio.file_id)
+            original_caption = message.caption or ""
+            new_caption = original_caption + user_info_text
+            if len(new_caption) > 1024:
+                new_caption = new_caption[:1024]
+
+            sent_message = await bot.send_audio(config.STORAGE_CHANNEL_ID, message.audio.file_id, caption=new_caption, parse_mode="HTML")
             return sent_message.audio.file_id
+
         elif message.document:
-            sent_message = await bot.send_document(config.STORAGE_CHANNEL_ID, message.document.file_id)
+            original_caption = message.caption or ""
+            new_caption = original_caption + user_info_text
+            if len(new_caption) > 1024:
+                new_caption = new_caption[:1024]
+
+            sent_message = await bot.send_document(config.STORAGE_CHANNEL_ID, message.document.file_id, caption=new_caption, parse_mode="HTML")
             return sent_message.document.file_id
+
         elif message.video_note:
             sent_message = await bot.send_video_note(config.STORAGE_CHANNEL_ID, message.video_note.file_id)
+            await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
             return sent_message.video_note.file_id
-        # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
-        elif message.voice:
-            sent_message = await bot.send_voice(config.STORAGE_CHANNEL_ID, message.voice.file_id)
-            return sent_message.voice.file_id
+
         return None
     except Exception as e:
         logging.error(f"Faylni saqlash kanaliga yuborishda xatolik: {e}")
@@ -94,9 +147,9 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
     lang = await get_user_language(message.from_user.id)
 
     if message.media_group_id:
-        return await message.answer("Albomlar hozircha qo'llab-quvvatlanmaydi.")
+        return await message.answer(get_text('albums_not_supported', lang))
 
-    # --- O'ZGARISH: 'voice' turi qo'shildi ---
+    # YANGI: 'voice' qo'shildi
     supported_types = ('text', 'photo', 'video', 'audio', 'document', 'video_note', 'voice')
     if message.content_type not in supported_types:
         return await message.answer(get_text('wrong_format', lang))
@@ -113,16 +166,13 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
 
     current_parse_mode = post_data.get('parse_mode')
 
-    # Tanlangan parse_mode ga qarab to'g'ri matn turini saqlaymiz
     text_content, caption_content = None, None
 
     if message.text is not None or message.caption is not None:
         if current_parse_mode == 'HTML':
-            # .html_text ham matn, ham izohlar uchun ishlaydi
             text_content = message.html_text
             caption_content = message.html_text
         elif current_parse_mode == 'MarkdownV2':
-            # .md_text ham matn, ham izohlar uchun ishlaydi
             text_content = message.md_text
             caption_content = message.md_text
         else: # None
@@ -133,7 +183,6 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             if message.caption:
                 caption_content = cleaned_text
 
-    # Eski entities ma'lumotlarini tozalaymiz va yangi matnni saqlaymiz
     post_data.pop('entities', None)
     post_data.pop('caption_entities', None)
 
@@ -155,7 +204,6 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             except Exception:
                 pass
 
-        # Yuborish uchun parametrlarni tayyorlaymiz. Endi faqat parse_mode ishlatiladi.
         message_kwargs = {
             "reply_markup": keyboard,
             "parse_mode": post_data.get('parse_mode'),
@@ -167,9 +215,17 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
         }
 
         if message.text is not None:
+            if config.STORAGE_CHANNEL_ID:
+                try:
+                    user_info_text = format_user_info(message.from_user, lang)
+                    text_to_send = (message.text or "") + user_info_text
+                    await bot.send_message(config.STORAGE_CHANNEL_ID, text_to_send, parse_mode="HTML")
+                except Exception as e:
+                    logging.error(f"Matnli postni kanalga yuborishda xatolik: {e}")
+
             preview_message = await message.answer(post_data['text'], **message_kwargs)
         else:
-            permanent_file_id = await _get_permanent_file_id(bot, message)
+            permanent_file_id = await _get_permanent_file_id(bot, message, lang)
             if not permanent_file_id:
                 return await message.answer(get_text('save_error', lang))
 
@@ -190,11 +246,11 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 preview_message = await bot.send_audio(message.chat.id, permanent_file_id, caption=caption_for_sending, **media_kwargs)
             elif message.document:
                 preview_message = await bot.send_document(message.chat.id, permanent_file_id, caption=caption_for_sending, **media_kwargs)
-            elif message.video_note:
-                preview_message = await bot.send_video_note(message.chat.id, permanent_file_id, reply_markup=keyboard)
-            # --- O'ZGARISH: Voice (ovozli xabar) qo'shildi ---
+            # YANGI: Voice uchun
             elif message.voice:
                 preview_message = await bot.send_voice(message.chat.id, permanent_file_id, caption=caption_for_sending, **media_kwargs)
+            elif message.video_note:
+                preview_message = await bot.send_video_note(message.chat.id, permanent_file_id, reply_markup=keyboard)
 
         if preview_message:
             post_data['message_id'] = preview_message.message_id
@@ -202,7 +258,8 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
 
             settings_kb_kwargs = {
                 "content_type": post_data['content_type'],
-                "has_caption": bool(post_data.get('caption'))
+                "has_caption": bool(post_data.get('caption')),
+                "lang": lang
             }
             reply_markup = get_post_settings_kb(**settings_kb_kwargs)
 
@@ -214,7 +271,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
     except TelegramBadRequest as e:
         if "can't parse entities" in str(e).lower():
             error_mode = f"<code>{current_parse_mode or 'None'}</code>"
-            await message.answer(f"⚠️ <b>Xatolik:</b> Siz yuborgan matn tanlangan {error_mode} formatiga mos kelmadi. Iltimos, belgilarni to'g'rilab, qaytadan yuboring.")
+            await message.answer(get_text('parse_mode_error_user', lang).format(error_mode=error_mode))
         else:
             logging.error(f"Postni qabul qilishda Telegram xatoligi: {e}")
             await message.answer(get_text('save_error', lang))

@@ -24,21 +24,21 @@ async def get_main_menu(lang: str, user_id: int):
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_post_settings_kb(content_type: str, has_caption: bool = False):
+def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl'):
     """Postni sozlash menyusi klaviaturasini yaratadi."""
     builder = ReplyKeyboardBuilder()
 
-    builder.add(KeyboardButton(text="👁️‍🗨️ Preview"))
+    builder.add(KeyboardButton(text=get_text('btn_preview', lang)))
 
     # --- Y A N G I   M A N T I Q ---
     # Options tugmasini faqat matn mavjud bo'lganda qo'shamiz
     if content_type == 'text' or has_caption:
-        builder.add(KeyboardButton(text="⚙️ Options"))
+        builder.add(KeyboardButton(text=get_text('btn_options', lang)))
 
-    builder.add(KeyboardButton(text="🔡 Get Buttons"))
-    builder.add(KeyboardButton(text="✏️ Edit Content"))
-    builder.add(KeyboardButton(text="❌ Cancel"))
-    builder.add(KeyboardButton(text="✅ Done"))
+    builder.add(KeyboardButton(text=get_text('btn_get_buttons', lang)))
+    builder.add(KeyboardButton(text=get_text('btn_edit_content', lang)))
+    builder.add(KeyboardButton(text=get_text('btn_cancel_full', lang)))
+    builder.add(KeyboardButton(text=get_text('btn_done', lang)))
 
     # Tugmalar soniga qarab klaviaturani moslashtiramiz
     if content_type == 'text' or has_caption:
@@ -70,6 +70,30 @@ def get_button_creation_cancel_kb(lang: str):
     """Faqat tugma yaratish jarayonini bekor qilish uchun klaviatura."""
     builder = ReplyKeyboardBuilder()
     builder.add(KeyboardButton(text=get_text('btn_back_from_button', lang)))
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_save_cancel_kb(lang: str):
+    """Post saqlash jarayonida bekor qilish uchun ortga tugmasi."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text=get_text('btn_back_from_save', lang)))
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_save_cancelled_kb(lang: str):
+    """Post saqlash bekor qilinganda ko'rsatiladigan klaviatura."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text=get_text('btn_create_another', lang)))
+    builder.add(KeyboardButton(text=get_text('btn_back', lang)))
+    builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True)
+
+
+def get_cancel_only_kb(lang: str):
+    """Faqat bekor qilish tugmasi."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text=get_text('btn_cancel', lang)))
+    builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
 
 #--- END OF FILE xreply_keyboard.py ---

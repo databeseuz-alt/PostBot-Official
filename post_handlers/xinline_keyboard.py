@@ -1,13 +1,15 @@
-#--- START OF FILE xinline_keyboard.py ---
+#--- START OF FILE post_handlers/xinline_keyboard.py ---
 
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from typing import List, Dict, Optional
 from aiogram.filters.callback_data import CallbackData
+from xdata_handlers.translator import get_text
+from xdata_handlers.database import get_post_name 
 
-#=============================================================================
-# --- K L A V I A T U R A   Y A R A T I SH ---
-#=============================================================================
+#==================================================
+# --- K L A V I A T U R A  Y A R A T I SH ---
+#==================================================
 
 class PostSettingsCallbackFactory(CallbackData, prefix="post_settings"):
     action: str
@@ -19,6 +21,11 @@ class PostSendCallbackFactory(CallbackData, prefix="post_send"):
     channel_id: Optional[int] = None
 
 class EditSendCallbackFactory(CallbackData, prefix="edit_send"):
+    action: str
+    post_code: str
+
+# YANGI: Postni saqlash/qayta nomlash uchun
+class SavePostCallbackFactory(CallbackData, prefix="save_post"):
     action: str
     post_code: str
 
@@ -86,21 +93,21 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
 
     return builder.as_markup()
 
-def create_post_options_keyboard(content_type: str, has_caption: bool, current_parse_mode: Optional[str], url_preview_disabled: bool):
+def create_post_options_keyboard(content_type: str, has_caption: bool, current_parse_mode: Optional[str], url_preview_disabled: bool, lang: str = 'uzl'):
     """Postning qo'shimcha sozlamalari uchun asosiy menyu."""
     builder = InlineKeyboardBuilder()
     button_count = 0
 
     if content_type == 'text' or has_caption:
         builder.button(
-            text="✍️ Matn formati",
+            text=get_text('btn_text_format', lang),
             callback_data=PostSettingsCallbackFactory(action="show_parse_mode").pack()
         )
         button_count += 1
 
     if content_type == 'text':
         builder.button(
-            text="🔗 URL Preview",
+            text=get_text('btn_url_preview', lang),
             callback_data=PostSettingsCallbackFactory(action="show_url_preview").pack()
         )
         button_count += 1
@@ -112,7 +119,7 @@ def create_post_options_keyboard(content_type: str, has_caption: bool, current_p
 
     return builder.as_markup()
 
-def create_post_parse_mode_keyboard(current_mode: Optional[str], show_back_button: bool = True):
+def create_post_parse_mode_keyboard(current_mode: Optional[str], show_back_button: bool = True, lang: str = 'uzl'):
     """Matn formatini tanlash klaviaturasi."""
     builder = InlineKeyboardBuilder()
 
@@ -129,52 +136,104 @@ def create_post_parse_mode_keyboard(current_mode: Optional[str], show_back_butto
         )
 
     if show_back_button:
-        builder.button(text="◀️ Ortga", callback_data=PostSettingsCallbackFactory(action="back_to_options").pack())
+        builder.button(text=get_text('btn_back', lang), callback_data=PostSettingsCallbackFactory(action="back_to_options").pack())
         builder.adjust(2, 1)
     else:
         builder.adjust(2)
 
     return builder.as_markup()
 
-def create_post_url_preview_keyboard(is_disabled: bool):
+def create_post_url_preview_keyboard(is_disabled: bool, lang: str = 'uzl'):
     """URL oldindan ko'rishni yoqish/o'chirish klaviaturasi."""
     builder = InlineKeyboardBuilder()
+    enable_text = get_text('btn_enable', lang)
+    disable_text = get_text('btn_disable', lang)
     builder.button(
-        text="✅ Yoqish" if is_disabled else "🔹 ✅ Yoqish",
+        text=enable_text if is_disabled else f"🔹 {enable_text}",
         callback_data=PostSettingsCallbackFactory(action="set_url_preview", value="false").pack()
     )
     builder.button(
-        text="❌ O'chirish" if not is_disabled else "🔹 ❌ O'chirish",
+        text=disable_text if not is_disabled else f"🔹 {disable_text}",
         callback_data=PostSettingsCallbackFactory(action="set_url_preview", value="true").pack()
     )
-    builder.button(text="◀️ Ortga", callback_data=PostSettingsCallbackFactory(action="back_to_options").pack())
+    builder.button(text=get_text('btn_back', lang), callback_data=PostSettingsCallbackFactory(action="back_to_options").pack())
     builder.adjust(2, 1)
     return builder.as_markup()
 
-#=============================================================================
-# POSTNI BOSHQARISH VA YUBORISH UCHUN KLAviATURALAR
-#=============================================================================
+#==================================================
+# --- K L A V I A T U R A  B O SH Q A R I SH ---
+#==================================================
 
-def get_post_management_keyboard(post_code: str):
-    """Post saqlangandan keyin 'Saqlash' va 'Yuborish' tugmalarini yaratadi."""
+async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
+    """
+    Post saqlangandan keyin 'Saqlash' yoki 'Tahrirlash' tugmalarini yaratadi.
+    Agar postda nom bo'lsa -> 'Tahrirlash', aks holda -> 'Saqlash'
+    """
     builder = InlineKeyboardBuilder()
-    builder.button(text="Saqlash", callback_data=f"save_post:{post_code}")
+    
+    # Bazadan post nomini tekshiramiz
+    post_name = await get_post_name(post_code)
+    
+    if post_name:
+        # Agar nom bo'lsa -> Tahrirlash (Edit save)
+        builder.button(
+            text=get_text('btn_edit_saved', lang),
+            callback_data=SavePostCallbackFactory(action="edit_save_menu", post_code=post_code).pack()
+        )
+    else:
+        # Agar nom bo'lmasa -> Saqlash
+        builder.button(
+            text=get_text('btn_save', lang), 
+            callback_data=SavePostCallbackFactory(action="start_save", post_code=post_code).pack()
+        )
+        
     builder.button(
-        text="Yuborish",
+        text=get_text('btn_send', lang),
         callback_data=PostSendCallbackFactory(action="start_sending", post_code=post_code).pack()
     )
     builder.adjust(2)
     return builder.as_markup()
 
-def get_edit_send_keyboard(post_code: str):
+def get_post_save_edit_keyboard(post_code: str, lang: str = 'uzl'):
+    """
+    'Tahrirlash' tugmasi bosilganda chiqadigan menyu:
+    [ Qayta nomlash ] [ O'chirish ]
+    """
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=get_text('btn_rename', lang),
+        callback_data=SavePostCallbackFactory(action="rename", post_code=post_code).pack()
+    )
+    builder.button(
+        text=get_text('btn_delete_saved', lang),
+        callback_data=SavePostCallbackFactory(action="delete_name", post_code=post_code).pack()
+    )
+    builder.adjust(2)
+    return builder.as_markup()
+
+def get_send_timing_keyboard(post_code: str, channel_id: int, lang: str = 'uzl'):
+    """Kanal tanlagandan keyin: Hozir yuborish yoki Rejalashtirish."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=get_text('btn_send_now', lang),
+        callback_data=PostSendCallbackFactory(action="confirm_prompt", post_code=post_code, channel_id=channel_id).pack()
+    )
+    builder.button(
+        text=get_text('btn_schedule', lang),
+        callback_data=PostSendCallbackFactory(action="schedule_for_channel", post_code=post_code, channel_id=channel_id).pack()
+    )
+    builder.adjust(2)
+    return builder.as_markup()
+
+def get_edit_send_keyboard(post_code: str, lang: str = 'uzl'):
     """Postni tahrirlash yoki yuborishni tanlash klaviaturasi."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text="📝 Tahrirlash",
+        text=get_text('btn_edit', lang),
         callback_data=EditSendCallbackFactory(action="edit", post_code=post_code).pack()
     )
     builder.button(
-        text="↗️ Yuborish",
+        text=get_text('btn_send_edit', lang),
         callback_data=PostSendCallbackFactory(action="start_sending", post_code=post_code).pack()
     )
     builder.adjust(2)
@@ -195,15 +254,14 @@ def get_channel_list_keyboard(channels: list[dict], post_code: str):
     builder.adjust(3)
     return builder.as_markup()
 
-def get_send_confirmation_keyboard(post_code: str, channel_id: int):
+def get_send_confirmation_keyboard(post_code: str, channel_id: int, lang: str = 'uzl'):
     """Postni yuborishni tasdiqlash klaviaturasini yaratadi."""
     builder = InlineKeyboardBuilder()
-    builder.button(
-        text="Yo'q ❌",
-        callback_data=PostSendCallbackFactory(action="start_sending", post_code=post_code).pack()
+    builder.button(text=get_text('btn_no', lang),
+        callback_data=PostSendCallbackFactory(action="back_to_channels", post_code=post_code).pack()
     )
     builder.button(
-        text="Ha ✅",
+        text=get_text('btn_yes', lang),
         callback_data=PostSendCallbackFactory(
             action="confirm_send",
             post_code=post_code,
@@ -213,10 +271,19 @@ def get_send_confirmation_keyboard(post_code: str, channel_id: int):
     builder.adjust(2)
     return builder.as_markup()
 
-def get_add_channel_prompt_keyboard():
+def get_add_channel_prompt_keyboard(lang: str = 'uzl'):
     """Foydalanuvchini kanal qo'shishga undovchi klaviatura."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="Kanal qo'shish", callback_data="add_channel_redirect")
+    builder.button(text=get_text('btn_add_channel', lang), callback_data="add_channel_redirect")
     return builder.as_markup()
 
-#--- END OF FILE xinline_keyboard.py ---
+def get_add_channel_with_post_keyboard(post_code: str, lang: str = 'uzl'):
+    """Post yuborish vaqtida kanal yo'q bo'lsa, post kodi bilan kanal qo'shish tugmasi."""
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=get_text('btn_add_channel_post', lang),
+        callback_data=PostSendCallbackFactory(action="add_channel_with_post", post_code=post_code).pack()
+    )
+    return builder.as_markup()
+
+#--- END OF FILE post_handlers/xinline_keyboard.py ---

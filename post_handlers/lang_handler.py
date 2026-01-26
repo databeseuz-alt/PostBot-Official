@@ -20,21 +20,19 @@ async def language_settings_handler(message: types.Message):
     lang = await get_user_language(message.from_user.id)
 
     builder = ReplyKeyboardBuilder()
-    # Birinchi qator: 5 ta til
     builder.row(
         KeyboardButton(text="🇺🇿 O'zbek"),
         KeyboardButton(text="🇺🇿 Ўзбек"),
-        KeyboardButton(text="🇬🇧 English"),
-        KeyboardButton(text="🇷🇺 Русский"),
-        KeyboardButton(text="🇰🇿 Қазақ")
+        KeyboardButton(text="🇹🇯 Tojik"),
+        KeyboardButton(text="🇹🇲 Turkman"),
+        KeyboardButton(text="🇬🇧 English")
     )
-    # Ikkinchi qator: 5 ta til (shu jumladan yangi qo'shilgan tojik va turkman)
     builder.row(
+        KeyboardButton(text="🇷🇺 Русский"),
+        KeyboardButton(text="🇰🇿 Қазақ"),
         KeyboardButton(text="🇦🇿 Azərca"),
         KeyboardButton(text="🇹🇷 Türkçe"),
-        KeyboardButton(text="🇰🇬 Кыргыз"),
-        KeyboardButton(text="🇹🇯 Тоҷики"),
-        KeyboardButton(text="🇹🇲 Türkmen")
+        KeyboardButton(text="🇰🇬 Кыргыз")
     )
     builder.row(KeyboardButton(text=get_text('btn_back', lang)))
     builder.adjust(5, 5, 1)
@@ -49,7 +47,7 @@ async def language_settings_handler(message: types.Message):
     "🇬🇧 English", "🇷🇺 Русский",
     "🇰🇿 Қазақ", "🇦🇿 Azərca",
     "🇹🇷 Türkçe", "🇰🇬 Кыргыз",
-    "🇹🇯 Тоҷики", "🇹🇲 Türkmen"
+    "🇹🇯 Tojik", "🇹🇲 Turkman"
 }))
 async def set_language_handler(message: types.Message, state: FSMContext, bot: Bot):
     lang_map = {
@@ -61,8 +59,8 @@ async def set_language_handler(message: types.Message, state: FSMContext, bot: B
         "🇦🇿 Azərca": "az",
         "🇹🇷 Türkçe": "tr",
         "🇰🇬 Кыргыз": "kg",
-        "🇹🇯 Тоҷики": "tg",
-        "🇹🇲 Türkmen": "tk"
+        "🇹🇯 Tojik": "tj",
+        "🇹🇲 Turkman": "tk"
     }
     lang_code = lang_map.get(message.text)
 

@@ -1,4 +1,4 @@
-#--- START OF FILE vpost_stats.py ---
+#--- START OF FILE post_handlers/vpost_states.py ---
 
 from aiogram.fsm.state import State, StatesGroup
 
@@ -17,12 +17,14 @@ class PostCreation(StatesGroup):
 
     # Postga nom berish
     waiting_for_post_name = State()
+    waiting_for_rename = State() # YANGI: Qayta nomlash uchun
 
 class PostSending(StatesGroup):
     # Kanal qo'shish jarayoni uchun
     waiting_for_channel_info = State()
     # Postni yuborish jarayoni uchun
     choosing_channel_to_send = State()
+    choosing_schedule_time = State() 
     confirming_post_send = State()
 
-#--- END OF FILE vpost_stats.py ---
+#--- END OF FILE post_handlers/vpost_states.py ---
