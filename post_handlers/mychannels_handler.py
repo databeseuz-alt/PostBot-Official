@@ -1,4 +1,3 @@
-#--- START OF FILE mychannels_handler.py ---
 import html
 from aiogram import F, Router, types
 from aiogram.filters import Command
@@ -12,9 +11,6 @@ from xdata_handlers.translator import get_text
 
 mychannels_router = Router()
 
-#==================================================
-# --- K L A V I A T U R A   Y A R A T I SH ---
-#==================================================
 
 class MyChannelsCallback(CallbackData, prefix="my_channels"):
     action: str
@@ -27,7 +23,7 @@ async def get_my_channels_keyboard(user_id: int):
     lang = await get_user_language(user_id)
     
     builder.button(
-        text=get_text('add_new_channel', lang),
+        text=get_text('add_new_channel_btn', lang),
         callback_data=MyChannelsCallback(action="add_new").pack()
     )
 
@@ -47,19 +43,16 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl'):
     """Tanlangan kanalni boshqarish uchun inline klaviatura yaratadi."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=get_text('delete_channel', lang),
+        text=get_text('delete_channel_btn', lang),
         callback_data=MyChannelsCallback(action="delete", channel_id=channel_id).pack()
     )
     builder.button(
-        text=get_text('btn_back', lang),
+        text=get_text('back_btn', lang),
         callback_data=MyChannelsCallback(action="back_to_list").pack()
     )
     builder.adjust(1)
     return builder.as_markup()
 
-#==================================================
-# --- A S O S I Y   H A N D L E R L A R ---
-#==================================================
 
 @mychannels_router.message(Command("mychannels"))
 async def cmd_my_channels(message: types.Message):
@@ -67,7 +60,7 @@ async def cmd_my_channels(message: types.Message):
     keyboard = await get_my_channels_keyboard(message.from_user.id)
     lang = await get_user_language(message.from_user.id)
     await message.answer(
-        get_text('select_channel', lang),
+        get_text('select_channel_msg', lang),
         reply_markup=keyboard
     )
 
@@ -92,7 +85,7 @@ async def handle_select_channel(callback: types.CallbackQuery, callback_data: My
     lang = await get_user_language(callback.from_user.id)
 
     await callback.message.edit_text(
-        get_text('channel_action', lang).format(channel_name=safe_channel_name),
+        get_text('channel_action_msg', lang).format(channel_name=safe_channel_name),
         reply_markup=get_channel_manage_keyboard(callback_data.channel_id, lang)
     )
     await callback.answer()
@@ -104,15 +97,14 @@ async def handle_delete_channel(callback: types.CallbackQuery, callback_data: My
     lang = await get_user_language(callback.from_user.id)
 
     if success:
-        await callback.answer(get_text('delete_channel_success', lang), show_alert=True)
-        # Ro'yxatni yangilaymiz
+        await callback.answer(get_text('delete_channel_success_msg', lang), show_alert=True)
         keyboard = await get_my_channels_keyboard(callback.from_user.id)
         await callback.message.edit_text(
-            get_text('select_channel', lang),
+            get_text('select_channel_msg', lang),
             reply_markup=keyboard
         )
     else:
-        await callback.answer(get_text('delete_channel_error', lang), show_alert=True)
+        await callback.answer(get_text('delete_channel_error_msg', lang), show_alert=True)
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "back_to_list"))
 async def handle_back_to_list(callback: types.CallbackQuery):
@@ -120,8 +112,7 @@ async def handle_back_to_list(callback: types.CallbackQuery):
     keyboard = await get_my_channels_keyboard(callback.from_user.id)
     lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
-        get_text('select_channel', lang),
+        get_text('select_channel_msg', lang),
         reply_markup=keyboard
     )
     await callback.answer()
-#--- END OF FILE mychannels_handler.py ---

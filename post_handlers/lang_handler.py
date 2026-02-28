@@ -1,82 +1,55 @@
-#--- START OF FILE lang_handler.py ---
 
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
+from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
 
 from xdata_handlers.database import set_user_language, get_user_language
 from xdata_handlers.translator import get_text
 from post_handlers.start_handler import cmd_start
 from post_handlers.localize_filter import LocalizedText
 
+from aiogram.filters import Command
+
 lang_router = Router()
 
-#=============================================================================
-# TILNI SOZLASH HANDLERLARI
-#=============================================================================
 
+@lang_router.message(Command("language"))
 @lang_router.message(LocalizedText('btn_language_settings'))
 async def language_settings_handler(message: types.Message):
     lang = await get_user_language(message.from_user.id)
 
-    builder = ReplyKeyboardBuilder()
-    builder.row(
-        KeyboardButton(text="🇺🇿 O'zbek"),
-        KeyboardButton(text="🇺🇿 Ўзбек"),
-        KeyboardButton(text="🇹🇯 Tojik"),
-        KeyboardButton(text="🇹🇲 Turkman"),
-        KeyboardButton(text="🇬🇧 English")
-    )
-    builder.row(
-        KeyboardButton(text="🇷🇺 Русский"),
-        KeyboardButton(text="🇰🇿 Қазақ"),
-        KeyboardButton(text="🇦🇿 Azərca"),
-        KeyboardButton(text="🇹🇷 Türkçe"),
-        KeyboardButton(text="🇰🇬 Кыргыз")
-    )
-    builder.row(KeyboardButton(text=get_text('btn_back', lang)))
-    builder.adjust(5, 5, 1)
+    builder = InlineKeyboardBuilder()
+    languages = [
+        ("🇺🇿 O'zbek", "lang:uzl"), ("🇺🇿 Ўзбек", "lang:uzk"),
+        ("🇹🇯 Tojik", "lang:tj"), ("🇹🇲 Turkman", "lang:tk"),
+        ("🇬🇧 English", "lang:en"), ("🇷🇺 Русский", "lang:ru"),
+        ("🇰🇿 Қазақ", "lang:kz"), ("🇦🇿 Azərca", "lang:az"),
+        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg")
+    ]
+    
+    for text, callback_data in languages:
+        builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
+    
+    builder.adjust(2)
 
     await message.answer(
         get_text('choose_language', lang),
-        reply_markup=builder.as_markup(resize_keyboard=True)
+        reply_markup=builder.as_markup()
     )
 
-@lang_router.message(F.text.in_({
-    "🇺🇿 O'zbek", "🇺🇿 Ўзбек",
-    "🇬🇧 English", "🇷🇺 Русский",
-    "🇰🇿 Қазақ", "🇦🇿 Azərca",
-    "🇹🇷 Türkçe", "🇰🇬 Кыргыз",
-    "🇹🇯 Tojik", "🇹🇲 Turkman"
-}))
-async def set_language_handler(message: types.Message, state: FSMContext, bot: Bot):
-    lang_map = {
-        "🇺🇿 O'zbek": "uzl",
-        "🇺🇿 Ўзбек": "uzk",
-        "🇬🇧 English": "en",
-        "🇷🇺 Русский": "ru",
-        "🇰🇿 Қазақ": "kz",
-        "🇦🇿 Azərca": "az",
-        "🇹🇷 Türkçe": "tr",
-        "🇰🇬 Кыргыз": "kg",
-        "🇹🇯 Tojik": "tj",
-        "🇹🇲 Turkman": "tk"
-    }
-    lang_code = lang_map.get(message.text)
+@lang_router.callback_query(F.data.startswith("lang:"))
+async def set_language_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    parts = callback.data.split(":")
+    lang_code = parts[1] if len(parts) > 1 else ""
+    
+    await set_user_language(
+        user_id=callback.from_user.id,
+        nickname=callback.from_user.full_name,
+        username=callback.from_user.username,
+        language=lang_code
+    )
+    
+    await callback.answer(get_text('lang_changed', lang_code))
+    await callback.message.delete()
+    await cmd_start(callback.message, state, bot)
 
-    if lang_code:
-        await set_user_language(
-            user_id=message.from_user.id,
-            full_name=message.from_user.full_name,
-            username=message.from_user.username,
-            lang_code=lang_code
-        )
-        await message.answer(get_text('lang_changed', lang_code))
-
-    await cmd_start(message, state, bot)
-
-@lang_router.message(LocalizedText('btn_back'))
-async def back_to_main_menu(message: types.Message, state: FSMContext, bot: Bot):
-    await cmd_start(message, state, bot)
-
-#--- END OF FILE lang_handler.py ---

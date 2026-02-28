@@ -1,52 +1,45 @@
-#--- START OF FILE start_handler.py ---
 import html
 from aiogram import F, Router, types, Bot
-from aiogram.filters import CommandStart, StateFilter
+from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 
 from admin_handlers.channel_handler import check_user_membership
 from xdata_handlers.translator import get_text
-from xdata_handlers.database import get_user_language, add_or_update_user, get_posts_by_user
-from post_handlers.xreply_keyboard import get_main_menu, get_cancel_kb
-from post_handlers.vpost_states import PostCreation, PostSending
+from xdata_handlers.database import get_user_language, add_or_update_user, get_posts_by_user, get_user_post_settings
+from post_handlers.xreply_keyboard import get_main_menu, get_cancel_reply_kb
+from post_handlers.post_handler import PostCreation
+from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
 start_router = Router()
 
-#==================================================
-# --- A S O S I Y   B U Y R U Q L A R   V A   N A V I G A T S I Y A ---
-#==================================================
 
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
-    # Har qanday holatni tozalaymiz, bu jarayonni bekor qiladi
     await state.clear()
     user = event.from_user
 
     await add_or_update_user(
         user_id=user.id,
-        full_name=user.full_name,
-        username=user.username,
-        admin_ids=config.ADMIN_IDS
+        nickname=user.full_name,
+        username=user.username
     )
 
     lang = await get_user_language(user.id)
-    safe_user_name = html.escape(user.full_name)
-    start_text = get_text('welcome', lang).format(user_name=safe_user_name)
+    safe_nickname = html.escape(user.full_name)
+    start_text = get_text('welcome_msg', lang).format(nickname=safe_nickname)
 
     main_menu_keyboard = await get_main_menu(lang=lang, user_id=user.id)
 
     if isinstance(event, types.Message):
-        # Yangi reply klaviatura avtomatik ravishda eskisini almashtiradi.
-        # Ortiqcha xabar yuborishga hojat yo'q.
-        await event.answer(start_text, reply_markup=main_menu_keyboard)
+        await event.reply(start_text, reply_markup=main_menu_keyboard)
     elif isinstance(event, types.CallbackQuery):
         await event.message.delete()
         await event.message.answer(start_text, reply_markup=main_menu_keyboard)
 
 
-@start_router.message(CommandStart(), F.forward_from.is_(None))
+@start_router.message(CommandStart(), StateFilter("*"), F.forward_from.is_(None))
 async def cmd_start(message: types.Message, state: FSMContext, bot: Bot):
     is_member, text, keyboard = await check_user_membership(message.from_user, bot)
 
@@ -59,6 +52,46 @@ async def cmd_start(message: types.Message, state: FSMContext, bot: Bot):
     await show_main_menu(message, state, bot)
 
 
+@start_router.message(Command("newpost"))
+async def cmd_newpost(message: types.Message, state: FSMContext, bot: Bot):
+    await start_post_creation(message, state, bot)
+
+
+@start_router.message(Command("mycodes"))
+async def cmd_mycodes(message: types.Message, state: FSMContext, bot: Bot):
+    """Foydalanuvchining post kodlarini ko'rsatadi."""
+    lang = await get_user_language(message.from_user.id)
+    user_posts = await get_posts_by_user(message.from_user.id)
+
+    if not user_posts:
+        await message.answer(get_text('mycodes_empty', lang), parse_mode="HTML")
+    else:
+        result_text = get_text('mycodes_msg', lang)
+        result_text += get_text('mycodes_header', lang)
+
+        count = 1
+        for post in user_posts:
+            post_name = post.get('name') or "Nomsiz post"
+            post_code = post.get('code', 'N/A')
+            item_text = get_text('mycodes_item', lang).format(
+                count=count,
+                post_name=html.escape(post_name),
+                post_code=post_code,
+                created_at="Yaqinda"
+            )
+            
+            if len(result_text) + len(item_text) + 50 > 4096:
+                result_text += f"\n\n📊 Jami: <b>{len(user_posts)}</b> ta post"
+                await message.answer(result_text, parse_mode="HTML")
+                result_text = get_text('mycodes_msg', lang)
+            
+            result_text += item_text
+            count += 1
+
+        result_text += f"\n\n📊 Jami: <b>{len(user_posts)}</b> ta post"
+        await message.answer(result_text, parse_mode="HTML")
+
+
 @start_router.callback_query(F.data == "check_subscription_again")
 async def check_subscription_again(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     is_member, text, keyboard = await check_user_membership(callback.from_user, bot)
@@ -68,64 +101,62 @@ async def check_subscription_again(callback: types.CallbackQuery, state: FSMCont
         await callback.answer()
         await show_main_menu(callback, state, bot)
     else:
-        await callback.answer(get_text('join_channel_alert', lang), show_alert=True)
+        await callback.answer(get_text('join_alert_msg', lang), show_alert=True)
 
-#==================================================
-# --- A S O S I Y   M E N Y U   T U G M A L A R I   U C H U N   H A N D L E R L A R ---
-#==================================================
 
-@start_router.message(LocalizedText('btn_create_post'), StateFilter(None))
-async def start_post_creation(message: types.Message, state: FSMContext, bot: Bot):
-    is_member, text, keyboard = await check_user_membership(message.from_user, bot)
-    if not is_member:
-        remover_message = await message.answer(".", reply_markup=ReplyKeyboardRemove())
-        await remover_message.delete()
-        await message.answer(text, reply_markup=keyboard)
-        return
+@start_router.callback_query(F.data == "create_post", StateFilter(None))
+@start_router.message(LocalizedText('new_post_btn'), StateFilter(None))
+async def start_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    user = event.from_user
+    is_member, text, keyboard = await check_user_membership(user, bot)
+    
+    if isinstance(event, types.CallbackQuery):
+        await event.answer()
+        if not is_member:
+            await event.message.answer(text, reply_markup=keyboard)
+            return
+    else:
+        if not is_member:
+            remover_message = await event.answer(".", reply_markup=ReplyKeyboardRemove())
+            await remover_message.delete()
+            await event.answer(text, reply_markup=keyboard)
+            return
 
     await state.clear()
-    lang = await get_user_language(message.from_user.id)
-    await message.answer(get_text('ask_for_content', lang), reply_markup=get_cancel_kb(lang))
+    lang = await get_user_language(user.id)
+    
+    user_settings = await get_user_post_settings(user.id)
+    ai_assistant_enabled = user_settings.get('ai_assistant_enabled', False)
+    
+    content_text = get_text('content_msg', lang)
+    if ai_assistant_enabled:
+        content_text += get_text('ai_assistant_hint_msg', lang)
+
+    if isinstance(event, types.CallbackQuery):
+        content_message = await event.message.answer(content_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+    else:
+        content_message = await event.answer(content_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+
+    await state.update_data(content_message_id=content_message.message_id)
+
     await state.set_state(PostCreation.waiting_for_content)
 
 
-@start_router.message(LocalizedText('btn_edit_post'), StateFilter(None))
-async def start_post_editing_process(message: types.Message, state: FSMContext, bot: Bot):
-    is_member, text, keyboard = await check_user_membership(message.from_user, bot)
-    if not is_member:
-        remover_message = await message.answer(".", reply_markup=ReplyKeyboardRemove())
-        await remover_message.delete()
-        await message.answer(text, reply_markup=keyboard)
-        return
-
-    await state.clear()
-    lang = await get_user_language(message.from_user.id)
-
-    user_posts = await get_posts_by_user(message.from_user.id)
-
-    saved_posts = [post for post in user_posts if post.get('name')]
-
-    if not saved_posts:
-        await message.answer(get_text('ask_for_edit_code', lang), reply_markup=get_cancel_kb(lang))
+@start_router.callback_query(F.data == "edit_post", StateFilter(None))
+@start_router.message(LocalizedText('edit_post_btn'), StateFilter(None))
+async def start_post_editing_process(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    user = event.from_user
+    lang = await get_user_language(user.id)
+    
+    # Tahrirlash bo'limi vaqtinchalik o'chirilgan
+    disabled_text = "⏳ <b>Tahrirlash bo'limi vaqtinchalik o'chirilgan</b>\n\nKuting, tez orada qayta ishga tushadi!"
+    
+    if isinstance(event, types.CallbackQuery):
+        await event.answer()
+        await event.message.answer(disabled_text, parse_mode="HTML")
     else:
-        bot_info = await bot.get_me()
-        posts_list_text = get_text('saved_posts_header', lang)
-        count = 1
-        for post in saved_posts:
-            safe_post_name = html.escape(post.get('name', ''))
-            post_code = post['code']
-            posts_list_text += f"\n{count}. {safe_post_name}\n"
-            posts_list_text += f"<code>@{bot_info.username} {post_code}</code>\n"
-            posts_list_text += f"<code>/delete_post {post_code}</code>\n"
-            count += 1
-        posts_list_text += "\n" + get_text('enter_post_code_to_edit', lang)
-        await message.answer(posts_list_text, reply_markup=get_cancel_kb(lang))
+        await event.answer(disabled_text, parse_mode="HTML")
 
-    await state.set_state(PostCreation.waiting_for_edit_code)
-
-#==================================================
-# --- U M U M I Y   B E K O R   Q I L I SH   H A N D L E R I ---
-#==================================================
 
 @start_router.message(
     StateFilter(
@@ -138,21 +169,8 @@ async def start_post_editing_process(message: types.Message, state: FSMContext, 
         PostSending.waiting_for_channel_info,
         PostSending.choosing_channel_to_send
     ),
-    LocalizedText('btn_cancel')
+    LocalizedText('cancel_btn')
 )
 async def cancel_action(message: types.Message, state: FSMContext, bot: Bot):
-    is_member, check_text, check_keyboard = await check_user_membership(message.from_user, bot)
-    if not is_member:
-        await state.clear()
-        lang = await get_user_language(message.from_user.id)
-        await message.answer(get_text('action_canceled', lang), reply_markup=ReplyKeyboardRemove())
-        await message.answer(check_text, reply_markup=check_keyboard)
-        return
-
     await state.clear()
-    lang = await get_user_language(message.from_user.id)
-    await message.answer(
-        get_text('action_canceled', lang),
-        reply_markup=await get_main_menu(lang=lang, user_id=message.from_user.id)
-    )
-#--- END OF FILE start_handler.py ---
+    await cmd_start(message, state, bot)
