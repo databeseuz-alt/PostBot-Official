@@ -1,4 +1,3 @@
-#--- START OF FILE block_handler.py ---
 import logging
 from typing import Callable, Dict, Any, Awaitable
 
@@ -9,11 +8,8 @@ from aiogram.types import TelegramObject, Message, CallbackQuery, InlineKeyboard
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
 
-# --- O'ZGARTIRISH: Aylanma importni oldini olish uchun IsAdmin ni vfilters.py dan olamiz ---
-# Agar vfilters.py hali yaratilmagan bo'lsa, avval uni yaratish kerak bo'ladi.
-# Hozircha sizning kodingizdagi kabi qoldiraman, lekin bu aylanma importga sabab bo'lishi mumkin.
 from admin_handlers.admin_handler import IsAdmin
-from admin_handlers.vadmin_states import AdminStates
+from admin_handlers.admin_handler import AdminStates
 from xdata_handlers import config
 from xdata_handlers.database import (
     is_user_blocked, add_or_update_user, get_user_language, block_user,
@@ -28,9 +24,6 @@ from admin_handlers.xinline_keyboard import (
 
 block_router = Router()
 
-# =============================================================================
-# BLOKLASH BO'LIMINING ASOSIY HANDLERLARI
-# =============================================================================
 
 @block_router.callback_query(F.data == "admin:blocked_users_menu", IsAdmin())
 async def blocked_users_menu_handler(callback: types.CallbackQuery, state: FSMContext):
@@ -56,8 +49,8 @@ async def block_user_start_handler(callback: types.CallbackQuery, state: FSMCont
 
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="◀️ Asosiy panel", callback_data="admin:back_to_main_menu"),
-        InlineKeyboardButton(text="◀️ Orqaga", callback_data="admin:blocked_users_menu")
+        InlineKeyboardButton(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu"),
+        InlineKeyboardButton(text="🔙 Orqaga", callback_data="admin:blocked_users_menu")
     )
     builder.adjust(2)
     cancel_kb = builder.as_markup()
@@ -89,12 +82,12 @@ async def block_user_query_received(message: types.Message, state: FSMContext):
     if user_id_to_block in config.ADMIN_IDS:
         return await message.answer("Siz adminni bloklay olmaysiz!")
 
-    if await is_user_blocked(user_id_to_block, admin_ids=config.ADMIN_IDS):
+    if await is_user_blocked(user_id_to_block):
         return await message.answer("Bu foydalanuvchi allaqachon bloklangan.")
 
-    if await block_user(user_id_to_block, admin_ids=config.ADMIN_IDS, admin_id=message.from_user.id):
-        full_name = user_data.get('full_name', 'Noma\'lum')
-        await message.answer(f"✅ Foydalanuvchi <b>{full_name}</b> (<code>{user_id_to_block}</code>) muvaffaqiyatli bloklandi!")
+    if await block_user(user_id_to_block):
+        display_name = user_data.get('nickname') or 'Noma\'lum'
+        await message.answer(f"✅ Foydalanuvchi <b>{display_name}</b> (<code>{user_id_to_block}</code>) muvaffaqiyatli bloklandi!")
 
         await state.clear()
         await message.answer(
@@ -132,7 +125,7 @@ async def unblock_confirm_handler(callback: types.CallbackQuery, state: FSMConte
         await callback.answer("Foydalanuvchi bazadan topilmadi!", show_alert=True)
         return await show_blocked_list_handler(callback, state)
 
-    display_name = user_info.get('full_name') or f"Noma'lum ({user_id})"
+    display_name = user_info.get('nickname') or f"Noma'lum ({user_id})"
 
     try:
         await callback.message.edit_text(
@@ -157,39 +150,15 @@ async def view_blocked_user_handler(callback: types.CallbackQuery, state: FSMCon
         await callback.answer("Foydalanuvchi ma'lumotlari topilmadi!", show_alert=True)
         return await show_blocked_list_handler(callback, state)
 
-    name = block_info.get('full_name', 'Noma\'lum')
+    name = block_info.get('nickname') or 'Noma\'lum'
     username = block_info.get('username')
     username_text = f"@{username}" if username else "mavjud emas"
-    blocked_at = block_info.get('blocked_at')
-    
-    date_str = "Noma'lum"
-    if blocked_at:
-        # User requested date to be copyable (in code tags)
-        d_str = blocked_at.strftime("%H:%M %d.%m.%Y")
-        date_str = f"<code>{d_str}</code>"
-        
-    blocked_by_id = block_info.get('blocked_by')
-    admin_info = "Noma'lum"
-    
-    if blocked_by_id:
-        # Admin ma'lumotlarini olishga harakat qilamiz
-        admin_data = await get_user_info_from_db(blocked_by_id)
-        admin_username_val = admin_data.get('username') if admin_data else None
-
-        if admin_username_val:
-             admin_info = f"<b>@{admin_username_val}</b> <code>{blocked_by_id}</code>"
-        else:
-             admin_info = f"<b>👤 ADMIN</b> <code>{blocked_by_id}</code>"
 
     text = (
-        f"<b> 🆔 FOYDALANUVCHI MA'LUMOTI </b>\n\n"
+        f"<b>🆔 FOYDALANUVCHI MA'LUMOTI</b>\n\n"
         f"Foydalanuvchi: <code>{name}</code>\n"
         f"Telegram ID: <code>{user_id}</code>\n"
-        f"Usernamesi: <code>{username_text}</code>\n\n"
-        f"Blok statusi: 🔴 to'liq bloklangan\n"
-        f"Qachon bloklangan: {date_str}\n"
-        f"<blockquote> {admin_info}\n"
-        f"tomonidan botdan bloklandi. </blockquote>"
+        f"Username: <code>{username_text}</code>"
     )
     
     try:
@@ -213,9 +182,6 @@ async def unblock_do_handler(callback: types.CallbackQuery, state: FSMContext):
     await callback.answer(f"Foydalanuvchi {user_id} blokdan chiqarildi!", show_alert=True)
     await show_blocked_list_handler(callback, state)
 
-# =============================================================================
-# MIDDLEWARE: FOYDALANUVCHILARNI BLOKLASH UCHUN TEKSHIRISH
-# =============================================================================
 
 class BlockUserMiddleware(BaseMiddleware):
     async def __call__(
@@ -230,20 +196,20 @@ class BlockUserMiddleware(BaseMiddleware):
         if user and not user.is_bot and chat and chat.type == 'private':
             await add_or_update_user(
                 user_id=user.id,
-                full_name=user.full_name,
-                username=user.username,
-                admin_ids=config.ADMIN_IDS
+                nickname=user.full_name,
+                username=user.username
             )
 
-        # XATOLIK TUZATILDI: Asinxron funksiyalarga `await` qo'shildi
-        if user and await is_user_blocked(user.id, admin_ids=config.ADMIN_IDS):
+        if user and await is_user_blocked(user.id):
             logging.warning(f"[BLOCK_CHECK] Foydalanuvchi ID: {user.id} BLOKLANGAN. So'rov to'xtatildi.")
             lang = await get_user_language(user.id)
-            if isinstance(event, CallbackQuery):
-                await event.answer(get_text('you_are_blocked', lang), show_alert=True)
-            elif isinstance(event, Message):
-                await event.answer(get_text('you_are_blocked', lang))
+            
+            from aiogram.types import Update
+            if isinstance(event, Update):
+                if event.callback_query:
+                    await event.callback_query.answer(get_text('you_are_blocked_msg', lang), show_alert=True)
+                elif event.message:
+                    await event.message.answer(get_text('you_are_blocked_msg', lang))
             return
 
         return await handler(event, data)
-#--- END OF FILE block_handler.py ---

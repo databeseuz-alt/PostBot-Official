@@ -1,4 +1,3 @@
-#--- START OF FILE statsmiddleware.py ---
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, User
@@ -17,17 +16,9 @@ class UserActivityMiddleware(BaseMiddleware):
         event: TelegramObject,
         data: Dict[str, Any]
     ) -> Any:
-        # data lug'atidan 'event_from_user' kalitini topishga harakat qilamiz.
-        # Bu kalit aiogram tomonidan deyarli barcha foydalanuvchi bilan bog'liq
-        # event'larga avtomatik qo'shiladi.
         user: User | None = data.get('event_from_user')
 
-        # Agar user obyekti mavjud bo'lsa (ya'ni, bu foydalanuvchidan kelgan so'rov bo'lsa)
         if user:
-            # Ma'lumotlar bazasidagi funksiyani chaqirib, faollikni qayd etamiz
-            # va usernamesini yangilaymiz.
             await database.record_user_activity(user_id=user.id, username=user.username)
 
-        # Middleware o'z ishini tugatgach, event'ni keyingi handler'larga o'tkazib yuboradi.
         return await handler(event, data)
-#--- END OF FILE statsmiddleware.py ---

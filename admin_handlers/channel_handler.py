@@ -1,4 +1,3 @@
-#--- START OF FILE channel_handler.py ---
 import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
@@ -7,13 +6,10 @@ from aiogram.types import ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
 
 from admin_handlers.admin_handler import IsAdmin
-from admin_handlers.vadmin_states import AdminStates
+from admin_handlers.admin_handler import AdminStates
 from xdata_handlers import config
 from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_channel_list_keyboard
 
-# =============================================================================
-# FOYDALANUVCHI A'ZOLIGINI TEKSHIRISH FUNKSIYASI
-# =============================================================================
 
 async def check_user_membership(user: types.User, bot: Bot):
     """Foydalanuvchining barcha majburiy kanallarga a'zoligini tekshiradi."""
@@ -28,31 +24,39 @@ async def check_user_membership(user: types.User, bot: Bot):
         return True, None, None
 
     lang = await get_user_language(user.id)
+    not_joined_channels = []
 
     for channel in channels:
         try:
             member = await bot.get_chat_member(chat_id=int(channel['id']), user_id=user.id)
             if member.status in ['left', 'kicked']:
-                text = get_text('join_required_channels', lang)
-                builder = InlineKeyboardBuilder()
-                for ch in channels:
-                    link = f"https://t.me/{ch['username']}" if ch.get('username') else await bot.export_chat_invite_link(int(ch['id']))
-                    if link:
-                        btn_text = get_text('subscribe_button', lang).format(title=ch['title'])
-                        builder.button(text=btn_text, url=link)
-
-                builder.button(text=get_text('btn_joined', lang), callback_data="check_subscription_again")
-                builder.adjust(1)
-                return False, text, builder.as_markup()
+                not_joined_channels.append(channel)
         except Exception as e:
-            logging.error(f"A'zolikni tekshirishda xato: {e}. User: {user.id}, Kanal: {channel.get('id')}")
-            continue
+            logging.error(f"A'zolikni tekshirishda xato (Bot admin emasmi?): {e}. User: {user.id}, Kanal: {channel.get('id')}")
+            not_joined_channels.append(channel)
+
+    if not_joined_channels:
+        text = get_text('join_required_msg', lang)
+        builder = InlineKeyboardBuilder()
+        for ch in not_joined_channels:
+            if ch.get('username'):
+                link = f"https://t.me/{ch['username'].replace('@', '')}"
+            else:
+                try:
+                    link = await bot.export_chat_invite_link(int(ch['id']))
+                except Exception:
+                    link = None
+            
+            if link:
+                btn_text = get_text('subscribe_btn', lang).format(title=ch['title'])
+                builder.button(text=btn_text, url=link)
+
+        builder.button(text=get_text('joined_btn', lang), callback_data="check_subscription_again")
+        builder.adjust(1)
+        return False, text, builder.as_markup()
 
     return True, None, None
 
-# =============================================================================
-# ROUTER: ADMIN UCHUN KANALNI BOSHQARISH MENYUSI
-# =============================================================================
 
 channel_router = Router()
 
@@ -76,11 +80,10 @@ async def show_channel_list(callback: types.CallbackQuery, state: FSMContext):
 async def add_channel_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(AdminStates.waiting_for_channel_forward)
 
-    # Navigatsiya tugmalari qo'shilgan klaviatura
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text="◀️ Asosiy panel", callback_data="admin:back_to_main_menu"),
-        InlineKeyboardButton(text="◀️ Orqaga", callback_data="admin:channel_menu")
+        InlineKeyboardButton(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu"),
+        InlineKeyboardButton(text="🔙 Orqaga", callback_data="admin:channel_menu")
     )
 
     await callback.message.edit_text(
@@ -115,7 +118,6 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
     await state.clear()
     await message.answer(f"✅ <b>Muvaffaqiyatli!</b>\n<b>{chat_info.title}</b> kanali majburiy a'zolik ro'yxatiga qo'shildi.", reply_markup=ReplyKeyboardRemove())
 
-    # Asosiy menyuga qaytaramiz
     await message.answer(
         "📢 Majburiy a'zolik uchun kanalni boshqarish bo'limi.",
         reply_markup=get_channel_main_menu_keyboard()
@@ -148,6 +150,4 @@ async def remove_channel_from_list(callback: types.CallbackQuery, state: FSMCont
 
     await remove_required_channel(channel_id_to_remove)
     await callback.answer("✅ Kanal ro'yxatdan o'chirildi!", show_alert=True)
-    # Ro'yxatni yangilash uchun show_channel_list funksiyasini chaqiramiz
     await show_channel_list(callback, state)
-#--- END OF FILE channel_handler.py ---

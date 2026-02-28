@@ -1,4 +1,3 @@
-#--- START OF FILE security_handler.py ---
 import html
 from typing import Callable, Dict, Any, Awaitable
 from datetime import datetime, timedelta
@@ -10,9 +9,6 @@ from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_user_language, get_now
 from xdata_handlers import config
 
-#==================================================
-# --- M I D D L E W A R E :   F L O O D   V A   S P A M D A N   H I M O Y A L A SH ---
-#==================================================
 
 USER_DATA = {}
 
@@ -33,7 +29,6 @@ class AntiFloodMiddleware(BaseMiddleware):
             return await handler(event, data)
 
         user_id = event.from_user.id
-        # Vaqtni har doim Toshkent vaqti bilan olamiz
         current_time = get_now()
         bot: Bot = data.get('bot')
         lang = await get_user_language(user_id)
@@ -74,12 +69,12 @@ class AntiFloodMiddleware(BaseMiddleware):
             ban_message = get_text('spam_ban_user', lang).format(minutes=BAN_DURATION_MINUTES)
             await event.answer(ban_message)
 
-            safe_full_name = html.escape(event.from_user.full_name)
+            safe_nickname = html.escape(event.from_user.full_name)
             safe_spam_message = html.escape(event.text or "")
 
             admin_notification = (
                 f"🚫 <b>Foydalanuvchi spam uchun vaqtinchalik bloklandi!</b>\n\n"
-                f"<b>Foydalanuvchi:</b> {safe_full_name}\n"
+                f"<b>Foydalanuvchi:</b> {safe_nickname}\n"
                 f"<b>ID:</b> <code>{user_id}</code>\n"
                 f"<b>Username:</b> @{event.from_user.username or 'N/A'}\n"
                 f"<b>Blok muddati:</b> {BAN_DURATION_MINUTES} daqiqa\n"
@@ -93,4 +88,3 @@ class AntiFloodMiddleware(BaseMiddleware):
             return
 
         return await handler(event, data)
-#--- END OF FILE security_handler.py ---
