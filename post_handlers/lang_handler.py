@@ -24,7 +24,10 @@ async def language_settings_handler(message: types.Message):
         ("🇹🇯 Tojik", "lang:tj"), ("🇹🇲 Turkman", "lang:tk"),
         ("🇬🇧 English", "lang:en"), ("🇷🇺 Русский", "lang:ru"),
         ("🇰🇿 Қазақ", "lang:kz"), ("🇦🇿 Azərca", "lang:az"),
-        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg")
+        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg"),
+        ("🇸🇦 العربية", "lang:ar"), ("🇪🇸 Español", "lang:es"),
+        ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
+        ("🇮🇹 Italiano", "lang:it")
     ]
     
     for text, callback_data in languages:
