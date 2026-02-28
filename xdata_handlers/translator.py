@@ -1,4 +1,3 @@
-#--- START OF FILE translator.py ---
 
 import json
 from typing import Dict
@@ -6,9 +5,6 @@ import os
 from pathlib import Path
 import logging
 
-#=============================================================================
-# TARJIMALARNI YUKLASH VA BOSHQARISH
-#=============================================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 translations: Dict[str, Dict[str, str]] = {}
@@ -27,12 +23,15 @@ def load_translations():
             file_path = os.path.join(locales_dir, filename)
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    translations[lang_code] = json.load(f)
+                    content = f.read()
+                    import re
+                    content = re.sub(r'^\s*//.*$', '', content, flags=re.MULTILINE)
+                    translations[lang_code] = json.loads(content)
                     logging.info(f"'{lang_code}' tili muvaffaqiyatli yuklandi.")
             except FileNotFoundError:
                 logging.warning(f"Tarjima fayli topilmadi: {file_path}")
-            except json.JSONDecodeError:
-                logging.error(f"JSON faylni o'qishda xatolik: {file_path}")
+            except json.JSONDecodeError as e:
+                logging.error(f"JSON faylni o'qishda xatolik: {file_path} - {e}")
 
 def get_text(key: str, lang: str = "uzl") -> str:
     """
@@ -40,20 +39,58 @@ def get_text(key: str, lang: str = "uzl") -> str:
     Agar tarjima topilmasa, standart til (uzl) bo'yicha qidiradi.
     Agar u ham topilmasa, kalitning o'zini qaytaradi.
     """
-    # Agar so'ralgan til mavjud bo'lmasa, standart tilga o'tamiz
     if lang not in translations:
         lang = "uzl"
 
-    # Avval so'ralgan (yoki standart) tildan matnni qidiramiz
     text = translations.get(lang, {}).get(key)
 
-    # Agar matn topilmasa va joriy til standart tildan farqli bo'lsa, standart tildan qidirib ko'ramiz
     if text is None and lang != "uzl":
         text = translations.get("uzl", {}).get(key)
 
-    # Agar hali ham topilmasa, kalitning o'zini qaytaramiz
     return text if text is not None else f"_{key}_"
+
+
+def safe_format(text: str, **kwargs) -> str:
+    """
+    Matnni formatlashda xavfsiz usul. Agar formatlashda xatolik yuz bersa,
+    asl matnni qaytaradi.
+    """
+    try:
+        return text.format(**kwargs)
+    except (KeyError, ValueError) as e:
+        logging.warning(f"Translation format error for key: {e}, text: {text[:50]}...")
+        try:
+            return text.format(**{k: '' for k in kwargs})
+        except:
+            return text
+
+def save_translation(lang_code: str, key: str, new_text: str) -> bool:
+    """Tarjimani o'zgartiradi va faylga saqlaydi (JSON)."""
+    locales_dir = os.path.join(BASE_DIR, "language_packs")
+    file_path = os.path.join(locales_dir, f"{lang_code}.json")
+
+    if lang_code not in translations:
+        translations[lang_code] = {}
+    translations[lang_code][key] = new_text
+
+    try:
+        if os.path.exists(file_path):
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        else:
+            data = {}
+        
+        data[key] = new_text
+
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        
+        logging.info(f"Tarjima yangilandi: {key} -> {new_text} ({lang_code})")
+        return True
+    except Exception as e:
+        logging.error(f"Tarjimani saqlashda xatolik: {e}")
+        return False
+
 
 load_translations()
 
-#--- END OF FILE translator.py ---
