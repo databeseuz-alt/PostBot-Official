@@ -1,0 +1,13 @@
+aiogram
+python-dotenv
+flask
+beautifulsoup4
+aiohttp
+psycopg2-binary
+gunicorn
+apscheduler
+pytz
+Pillow
+requests
+google-genai
+matplotlib
