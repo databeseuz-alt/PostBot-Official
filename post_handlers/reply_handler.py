@@ -167,22 +167,14 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
                 reply_markup=new_keyboard
             )
         elif content_type == 'location':
-            await callback.bot.edit_message_text(
-                chat_id=chat_id,
-                message_id=message_id,
-                text=f"📍 Joylashuv\n\nKenglik: {post_data.get('latitude')}\nUzunlik: {post_data.get('longitude')}",
-                parse_mode=parse_mode,
-                reply_markup=new_keyboard
-            )
-        elif content_type == 'poll':
-            # Pollni tahrirlab bo'lmaydi, shuning uchun qayta yuborish kerak
+            # Locationni tahrirlab bo'lmaydi, shuning uchun qayta yuborish kerak
             try:
                 await callback.bot.delete_message(chat_id, message_id)
             except Exception:
                 pass
             await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
-        elif content_type == 'dice':
-            # Dice ni tahrirlab bo'lmaydi, shuning uchun qayta yuborish kerak
+        elif content_type in ['poll', 'dice']:
+            # Poll va Dice ni tahrirlab bo'lmaydi, shuning uchun qayta yuborish kerak
             try:
                 await callback.bot.delete_message(chat_id, message_id)
             except Exception:
@@ -710,7 +702,7 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
             await message.bot.edit_message_text(
                 chat_id=chat_id,
                 message_id=message_id,
-                text=caption,
+                text=caption or post_data.get('text', ''),
                 parse_mode=parse_mode,
                 reply_markup=new_keyboard
             )
@@ -1254,48 +1246,4 @@ async def cancel_post_creation_callback(callback: types.CallbackQuery, state: FS
     await callback.answer()
 
 
-@reply_router.callback_query(PostCreation.configuring_post, F.data == "done_post_creation")
-async def done_post_creation_callback(callback: types.CallbackQuery, state: FSMContext):
-    """Post tayyor - saqlash yoki yuborish"""
-    lang = await get_user_language(callback.from_user.id)
-    data = await state.get_data()
-    post_data = data.get("post_data", {})
-    
-    from post_handlers.xinline_keyboard import get_post_management_keyboard
-    from xdata_handlers.database import save_post_to_db
-    import uuid
-    
-    # Postni saqlash
-    post_code = str(uuid.uuid4())[:8]
-    user_id = callback.from_user.id
-    
-    buttons_matrix = data.get("buttons_matrix", [])
-    
-    await save_post_to_db(
-        post_code=post_code,
-        user_id=user_id,
-        content_type=post_data.get('content_type'),
-        file_id=post_data.get('file_id'),
-        caption=post_data.get('caption'),
-        parse_mode=post_data.get('parse_mode', 'HTML'),
-        buttons_matrix=buttons_matrix,
-        post_name=post_data.get('post_name'),
-        has_spoiler=post_data.get('has_spoiler', False),
-        is_paid=post_data.get('is_paid', False),
-        paid_price=post_data.get('paid_price'),
-        watermark_enabled=post_data.get('watermark_enabled', False),
-        watermark_text=post_data.get('watermark_text'),
-        watermark_position=post_data.get('watermark_position'),
-        watermark_type=post_data.get('watermark_type'),
-        disable_web_page_preview=post_data.get('disable_web_page_preview', False),
-        show_caption_above_media=post_data.get('show_caption_above_media', False),
-        poll_data=post_data.get('poll_data')
-    )
-    
-    keyboard = await get_post_management_keyboard(post_code, lang)
-    
-    await callback.message.edit_text(
-        get_text('post_saved_msg', lang).format(post_code=post_code),
-        reply_markup=keyboard
-    )
-    await callback.answer()
+

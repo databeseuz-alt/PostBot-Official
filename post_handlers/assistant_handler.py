@@ -47,12 +47,13 @@ def markdown_to_html(text: str) -> str:
     
     text = re.sub(r'^(\d+)\.\s+(.*)$', r'\1. \2', text, flags=re.MULTILINE)
     
-    text = re.sub(r'^---$', '<hr>', text, flags=re.MULTILINE)
-    text = re.sub(r'^\*\*\*$', '<hr>', text, flags=re.MULTILINE)
+    text = re.sub(r'^---$', '───────────────', text, flags=re.MULTILINE)
+    text = re.sub(r'^\*\*\*$', '───────────────', text, flags=re.MULTILINE)
     
     text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)
     
-    text = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2" alt="\1">', text)
+    # Remove images - Telegram HTML doesn't support <img>
+    text = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'\1 (\2)', text)
     
     lines = text.split('\n')
     result_lines = []

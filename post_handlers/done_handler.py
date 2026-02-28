@@ -131,6 +131,33 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
                 emoji=post_data.get('dice_emoji', '🎲'),
                 reply_markup=preview_keyboard
             )
+        elif content_type == 'location':
+            preview_message = await bot.send_location(
+                chat_id,
+                latitude=post_data.get('latitude'),
+                longitude=post_data.get('longitude'),
+                reply_markup=preview_keyboard
+            )
+        elif content_type == 'paid_media':
+            from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
+            media_types = post_data.get('paid_media_types', [])
+            file_ids = post_data.get('paid_media_file_ids', [])
+            input_media_list = []
+            for m_type, f_id in zip(media_types, file_ids):
+                if m_type == 'photo':
+                    input_media_list.append(InputPaidMediaPhoto(media=f_id))
+                else:
+                    input_media_list.append(InputPaidMediaVideo(media=f_id))
+            
+            preview_message = await bot.send_paid_media(
+                chat_id=chat_id,
+                star_count=post_data.get('paid_price', 1),
+                media=input_media_list,
+                caption=post_data.get('caption'),
+                parse_mode=parse_mode,
+                show_caption_above_media=post_data.get('show_caption_above_media', False),
+                reply_markup=preview_keyboard
+            )
     except Exception as e:
         logging.error(f"Post preview yuborishda xatolik: {e}")
     
@@ -162,24 +189,43 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
     PostCreation.configuring_post,
     LocalizedText('edit_confirm_btn')
 )
-async def done_post_creation(message: types.Message, state: FSMContext, bot: Bot):
-    lang = await get_user_language(message.from_user.id)
-    is_member, check_text, check_keyboard = await check_user_membership(message.from_user, bot)
+@done_router.callback_query(
+    PostCreation.configuring_post,
+    F.data == "done_post_creation"
+)
+async def done_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    user = event.from_user
+    chat_id = event.chat.id if isinstance(event, types.Message) else event.message.chat.id
+    
+    lang = await get_user_language(user.id)
+    is_member, check_text, check_keyboard = await check_user_membership(user, bot)
 
     if not is_member:
         await state.clear()
-        await message.answer(
-            get_text('join_channel_to_continue', lang),
-            reply_markup=ReplyKeyboardRemove()
-        )
-        await message.answer(check_text, reply_markup=check_keyboard)
+        if isinstance(event, types.Message):
+            await event.answer(
+                get_text('join_channel_to_continue', lang),
+                reply_markup=ReplyKeyboardRemove()
+            )
+            await event.answer(check_text, reply_markup=check_keyboard)
+        else:
+            await event.message.answer(
+                get_text('join_channel_to_continue', lang),
+                reply_markup=ReplyKeyboardRemove()
+            )
+            await event.message.answer(check_text, reply_markup=check_keyboard)
+            await event.answer()
         return
+
     data = await state.get_data()
     post_data = data.get("post_data", {})
     buttons_matrix = data.get("buttons_matrix", [])
 
     if not post_data:
-        return await message.answer(get_text('save_error', lang))
+        if isinstance(event, types.Message):
+            return await event.answer(get_text('save_error', lang))
+        else:
+            return await event.message.answer(get_text('save_error', lang))
 
     editing_post_code = data.get("editing_post_code")
     if editing_post_code:
@@ -187,30 +233,42 @@ async def done_post_creation(message: types.Message, state: FSMContext, bot: Bot
         post_code_for_user = editing_post_code if success else None
     else:
         post_code_for_user = await add_post_to_db(
-            message.from_user.id,
+            user.id,
             post_data,
             buttons_matrix,
             admin_ids=config.ADMIN_IDS
         )
 
     if not post_code_for_user:
-        return await message.answer(get_text('save_error', lang))
+        if isinstance(event, types.Message):
+            return await event.answer(get_text('save_error', lang))
+        else:
+            return await event.message.answer(get_text('save_error', lang))
 
     await state.clear()
     
     try:
-        await message.delete()
+        if isinstance(event, types.Message):
+            await event.delete()
+        else:
+            await event.message.delete()
     except Exception:
         pass
     
-    remover_message = await message.answer(get_text('post_saved_to_db', lang), reply_markup=ReplyKeyboardRemove())
+    if isinstance(event, types.Message):
+        remover_message = await event.answer(get_text('post_saved_to_db', lang), reply_markup=ReplyKeyboardRemove())
+    else:
+        remover_message = await event.message.answer(get_text('post_saved_to_db', lang), reply_markup=ReplyKeyboardRemove())
     
     try:
         await remover_message.delete()
     except Exception:
         pass
     
-    await send_post_preview(message.chat.id, post_code_for_user, lang, bot)
+    if isinstance(event, types.CallbackQuery):
+        await event.answer()
+    
+    await send_post_preview(chat_id, post_code_for_user, lang, bot)
 
 
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "start_save"))
@@ -419,12 +477,12 @@ async def back_to_main_menu_handler(message: types.Message, state: FSMContext, b
 @done_router.callback_query(F.data == "done_create_another")
 async def done_create_another_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     await callback.answer()
-    await start_post_creation(callback.message, state, bot)
+    await start_post_creation(callback, state, bot)
 
 @done_router.callback_query(F.data == "done_back")
 async def done_back_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     await callback.answer()
-    await cmd_start(callback.message, state, bot)
+    await cmd_start(callback, state, bot)
 
 @done_router.callback_query(F.data == "print_settings")
 async def print_settings_handler(callback: types.CallbackQuery, state: FSMContext):

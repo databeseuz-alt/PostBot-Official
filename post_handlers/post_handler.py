@@ -480,7 +480,7 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
         'content_type': 'paid_media',
         'paid_media_types': media_types,
         'paid_media_file_ids': file_ids,
-        'caption': message.caption.html_text if message.caption else None,
+        'caption': message.html_text if message.caption else None,
         'parse_mode': 'HTML',
         'is_paid': True,
         'chat_id': message.chat.id,
@@ -493,7 +493,7 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
     # Media ko'rsatish
     media_text = f"📦 Pulli media ({len(file_ids)} ta fayl)"
     if message.caption:
-        media_text += f"\n\n{message.caption.html_text}"
+        media_text += f"\n\n{message.html_text}"
     
     settings_kb_kwargs = {
         "content_type": 'paid_media',
@@ -525,7 +525,7 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
             chat_id=message.chat.id,
             star_count=paid_price,
             media=input_media_list,
-            caption=message.caption.html_text if message.caption else None,
+            caption=message.html_text if message.caption else None,
             parse_mode='HTML',
             show_caption_above_media=post_data.get('show_caption_above_media', False),
             reply_markup=keyboard

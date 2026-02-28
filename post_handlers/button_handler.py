@@ -111,41 +111,51 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             sent_message = await message.bot.send_animation(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'sticker':
             sent_message = await message.bot.send_sticker(chat_id, file_id, reply_markup=new_keyboard)
-        elif content_type == 'poll':
-            sent_message = await message.bot.send_poll(
-                chat_id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
-                reply_markup=new_keyboard
-            )
-        elif content_type == 'dice':
-            sent_message = await message.bot.send_dice(
-                chat_id,
-                emoji=post_data.get('dice_emoji', '🎲'),
-                reply_markup=new_keyboard
-            )
-        elif content_type == 'location':
-            sent_message = await message.bot.send_location(
-                chat_id,
-                latitude=post_data.get('latitude'),
-                longitude=post_data.get('longitude'),
-                reply_markup=new_keyboard
-            )
-        elif content_type == 'poll':
-            sent_message = await message.bot.send_poll(
-                chat_id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
+        elif content_type in ['poll', 'dice', 'location']:
+            # Ushbu turlar uchun alohida yuborish metodlari (poll, dice, location)
+            if content_type == 'poll':
+                sent_message = await message.bot.send_poll(
+                    chat_id,
+                    question=post_data.get('poll_question', ''),
+                    options=post_data.get('poll_options', []),
+                    is_anonymous=post_data.get('poll_is_anonymous', True),
+                    allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
+                    correct_option_id=post_data.get('poll_correct_option_id'),
+                    type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
+                    explanation=post_data.get('poll_explanation'),
+                    reply_markup=new_keyboard
+                )
+            elif content_type == 'dice':
+                sent_message = await message.bot.send_dice(
+                    chat_id,
+                    emoji=post_data.get('dice_emoji', '🎲'),
+                    reply_markup=new_keyboard
+                )
+            elif content_type == 'location':
+                sent_message = await message.bot.send_location(
+                    chat_id,
+                    latitude=post_data.get('latitude'),
+                    longitude=post_data.get('longitude'),
+                    reply_markup=new_keyboard
+                )
+        elif content_type == 'paid_media':
+            from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
+            media_types = post_data.get('paid_media_types', [])
+            file_ids = post_data.get('paid_media_file_ids', [])
+            input_media_list = []
+            for m_type, f_id in zip(media_types, file_ids):
+                if m_type == 'photo':
+                    input_media_list.append(InputPaidMediaPhoto(media=f_id))
+                else:
+                    input_media_list.append(InputPaidMediaVideo(media=f_id))
+            
+            sent_message = await message.bot.send_paid_media(
+                chat_id=chat_id,
+                star_count=post_data.get('paid_price', 1),
+                media=input_media_list,
+                caption=caption,
+                parse_mode=parse_mode,
+                show_caption_above_media=post_data.get('show_caption_above_media', False),
                 reply_markup=new_keyboard
             )
 

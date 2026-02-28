@@ -33,23 +33,33 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
     main_menu_keyboard = await get_main_menu(lang=lang, user_id=user.id)
 
     if isinstance(event, types.Message):
-        await event.reply(start_text, reply_markup=main_menu_keyboard)
+        await event.answer(start_text, reply_markup=main_menu_keyboard)
     elif isinstance(event, types.CallbackQuery):
-        await event.message.delete()
+        try:
+            await event.message.delete()
+        except Exception:
+            pass
         await event.message.answer(start_text, reply_markup=main_menu_keyboard)
 
 
 @start_router.message(CommandStart(), StateFilter("*"), F.forward_from.is_(None))
-async def cmd_start(message: types.Message, state: FSMContext, bot: Bot):
-    is_member, text, keyboard = await check_user_membership(message.from_user, bot)
+async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    is_member, text, keyboard = await check_user_membership(event.from_user, bot)
 
     if not is_member:
-        remover_message = await message.answer(".", reply_markup=ReplyKeyboardRemove())
-        await remover_message.delete()
-        await message.answer(text, reply_markup=keyboard)
+        if isinstance(event, types.Message):
+            remover_message = await event.answer(".", reply_markup=ReplyKeyboardRemove())
+            await remover_message.delete()
+            await event.answer(text, reply_markup=keyboard)
+        elif isinstance(event, types.CallbackQuery):
+            await event.message.answer(text, reply_markup=keyboard)
+            try:
+                await event.message.delete()
+            except Exception:
+                pass
         return
 
-    await show_main_menu(message, state, bot)
+    await show_main_menu(event, state, bot)
 
 
 @start_router.message(Command("newpost"))

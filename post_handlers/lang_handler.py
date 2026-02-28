@@ -53,6 +53,5 @@ async def set_language_handler(callback: types.CallbackQuery, state: FSMContext,
     )
     
     await callback.answer(get_text('lang_changed', lang_code))
-    await callback.message.delete()
-    await cmd_start(callback.message, state, bot)
+    await cmd_start(callback, state, bot)
 
