@@ -200,24 +200,28 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('settings_btn'))
 async def options_menu_handler(message: types.Message, state: FSMContext):
+    """Sozlamalar tugmasi bosilganda media sozlamalari reply keyboardini ko'rsatish"""
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(message.from_user.id)
 
-    if 'last_options_message_id' in data:
-        with suppress(TelegramBadRequest):
-            await message.bot.delete_message(message.chat.id, data['last_options_message_id'])
-
+    has_spoiler = post_data.get('has_spoiler', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_caption = bool(post_data.get('caption'))
     content_type = post_data.get('content_type', 'text')
 
-    keyboard = create_post_options_keyboard(
-        content_type=content_type,
-        lang=lang
+    await state.set_state(PostCreation.waiting_for_media_settings)
+    
+    await message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_kb(
+            lang=lang, 
+            has_spoiler=has_spoiler, 
+            show_caption_above=show_caption_above, 
+            has_caption=has_caption,
+            content_type=content_type
+        )
     )
-    text = get_text('post_settings_msg', lang)
-
-    options_msg = await message.answer(text, reply_markup=keyboard)
-    await state.update_data(last_options_message_id=options_msg.message_id)
 
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('get_buttons_btn'))
@@ -594,7 +598,15 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
     show_caption_above = post_data.get('show_caption_above_media', False)
     
     has_caption = bool(post_data.get('caption'))
-    settings_keyboard = get_media_settings_inline_kb(lang, has_spoiler=has_spoiler, is_paid=is_paid, show_caption_above=show_caption_above, has_caption=has_caption)
+    
+    # Inline keyboard o'rniga Reply keyboard ishlatamiz
+    settings_keyboard = get_media_settings_kb(
+        lang=lang, 
+        has_spoiler=has_spoiler, 
+        show_caption_above=show_caption_above, 
+        has_caption=has_caption,
+        content_type=content_type
+    )
 
     # Post mavjudligini tekshirish
     if not chat_id or not message_id:
@@ -607,13 +619,16 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
         
         # Menyuni ostida ko'rsatish
         final_text = answer_text if answer_text else get_text('media_settings_msg', lang)
-        if hide_reply_keyboard or hide_inline_keyboard:
-            await message.answer(final_text)
-        else:
-            await message.answer(final_text, reply_markup=settings_keyboard)
         
-        # State ni to'g'ri holatga o'rnatish
-        await state.set_state(PostCreation.configuring_post)
+        # Reply keyboardni doim ko'rsatamiz (agar hide_reply_keyboard False bo'lsa)
+        if not hide_reply_keyboard:
+            await message.answer(final_text, reply_markup=settings_keyboard)
+        else:
+            await message.answer(final_text)
+        
+        # Sobiq: configure_post ga qaytib ketmasa kerak, chunki biz Settings menyumiz
+        # Lekin agar qaysidir handler bizni bu yerga Configuring_post'dan yuborgan bo'lsa...
+        # Hozircha waiting_for_media_settings da qolamiz.
         return
 
     content_type = post_data.get('content_type')
@@ -887,9 +902,10 @@ async def open_position_settings(message: Message, state: FSMContext):
     is_paid = post_data.get('is_paid', False)
     
     has_caption = bool(post_data.get('caption'))
+    content_type = post_data.get('content_type', 'photo')
     await message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(lang, has_spoiler=has_spoiler, is_paid=is_paid, show_caption_above=current_position, has_caption=has_caption)
+        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=current_position, has_caption=has_caption, content_type=content_type)
     )
 
 
@@ -927,9 +943,10 @@ async def toggle_position(message: Message, state: FSMContext):
     is_paid = post_data.get('is_paid', False)
     
     has_caption = bool(post_data.get('caption'))
+    content_type = post_data.get('content_type', 'photo')
     await message.answer(
         success_text,
-        reply_markup=get_media_settings_inline_kb(lang, has_spoiler=has_spoiler, is_paid=is_paid, show_caption_above=new_position, has_caption=has_caption)
+        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=new_position, has_caption=has_caption, content_type=content_type)
     )
     
     # Postni ham yangilash
@@ -965,6 +982,14 @@ async def toggle_spoiler(message: Message, state: FSMContext):
 
 
 @reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('paid_media_btn')
+)
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('paid_media_enabled_btn')
+)
+@reply_router.message(
     PostCreation.waiting_for_media_settings,
     LocalizedText('paid_media_btn')
 )
@@ -973,7 +998,7 @@ async def toggle_spoiler(message: Message, state: FSMContext):
     LocalizedText('paid_media_enabled_btn')
 )
 async def toggle_paid_media(message: Message, state: FSMContext):
-    """Pulli mediani yoqish/o'chirish (narx so'ramasdan toggle qilish)"""
+    """Pulli mediani yoqish/o'chirish"""
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
     post_data = data.get("post_data", {})
@@ -983,7 +1008,7 @@ async def toggle_paid_media(message: Message, state: FSMContext):
     
     post_data['is_paid'] = new_paid
     if new_paid and not post_data.get('paid_price'):
-        post_data['paid_price'] = 1 # Standart 1 star
+        post_data['paid_price'] = 1 
         
     await state.update_data(post_data=post_data)
     
@@ -992,7 +1017,70 @@ async def toggle_paid_media(message: Message, state: FSMContext):
     else:
         success_text = get_text('paid_media_disabled_msg', lang)
     
-    await redraw_post_with_settings(message, state, success_text)
+    # Kelib chiqish nuqtasiga qarab klaviaturani yangilash
+    current_state = await state.get_state()
+    if current_state == PostCreation.configuring_post:
+        # Asosiy menyuda bo'lsak, asosiy menyuni qayta chiqaramiz
+        has_caption = bool(post_data.get('caption'))
+        content_type = post_data.get('content_type', 'text')
+        await message.answer(
+            success_text,
+            reply_markup=get_post_settings_kb(content_type, has_caption, lang, is_paid=new_paid)
+        )
+    else:
+        # Settings menyusida bo'lsak (eskicha), o'sha yerda qolamiz
+        await redraw_post_with_settings(message, state, success_text)
+
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('poll_settings_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('poll_settings_btn')
+)
+async def open_poll_settings_reply(message: Message, state: FSMContext):
+    """Poll sozlamalarini ochish"""
+    # Callback handlerini chaqiramiz
+    # Eslatma: post_poll_settings_callback parametri callback bo'lgani uchun 
+    # biz unga messageni callback kabi uzatolmaymiz (callback.message o'rniga message ishlatish kerak bo'ladi)
+    # Shuning uchun kodni takrorlamaslik uchun uni biroz o'zgartiramiz:
+    lang = await get_user_language(message.from_user.id)
+    
+    builder = InlineKeyboardBuilder()
+    builder.button(text="❓ Oddiy so'rovnoma", callback_data="create_poll:regular")
+    builder.button(text="❓ Quiz", callback_data="create_poll:quiz")
+    builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
+    builder.adjust(2, 1)
+    
+    await message.answer(
+        "<b>❓ Viktorina turini tanlang:</b>",
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('location_settings_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('location_settings_btn')
+)
+async def open_location_settings_reply(message: Message, state: FSMContext):
+    """Location sozlamalarini ochish"""
+    lang = await get_user_language(message.from_user.id)
+    await message.answer("📍 Joylashuv sozlamalari yaqin orada qo'shiladi.")
+
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('watermark_btn')
+)
+async def open_watermark_settings_reply(message: Message, state: FSMContext):
+    """Watermark sozlamalarini ochish"""
+    from post_handlers.watermark_handler import watermark_settings_handler
+    # watermark_settings_handler ko'p hollarda reply keyboard handlers sifatida ishlaydi
+    await watermark_settings_handler(message, state)
 
 
 @reply_router.message(
@@ -1127,10 +1215,11 @@ async def back_from_media_settings(message: Message, state: FSMContext):
     
     content_type = post_data.get('content_type', 'text')
     has_caption = bool(post_data.get('caption'))
+    is_paid = post_data.get('is_paid', False)
     
     await message.answer(
         get_text('back_to_settings_msg', lang),
-        reply_markup=get_post_settings_kb(content_type, has_caption, lang)
+        reply_markup=get_post_settings_kb(content_type, has_caption, lang, is_paid=is_paid)
     )
 
 

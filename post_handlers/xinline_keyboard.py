@@ -454,54 +454,27 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
 
 
 def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
-    """Media sozlamalari uchun inline klaviatura - barcha kontent turlari uchun"""
+    """Media sozlamalari uchun inline klaviatura - faqat position, spoiler va watermark"""
     builder = InlineKeyboardBuilder()
     
-    # Faqat photo, video, animation uchun caption position sozlamasi
-    if has_caption and content_type in ['photo', 'video', 'animation']:
-        # Joylashuv tugmasi - aks holatni ko'rsatish
-        if show_caption_above:
-            position_text = get_text('position_below_btn', lang)
-        else:
-            position_text = get_text('position_above_btn', lang)
+    # 1. Caption position (Yuqoriga/Pastga)
+    if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
+        position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
         builder.button(text=position_text, callback_data="media_toggle_position")
     
-    # Faqat photo, video, animation uchun spoiler va paid media sozlamalari
+    # 2. Spoiler
     if content_type in ['photo', 'video', 'animation']:
-        # Pulli media tugmasi (chap tomonda)
-        paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
-        builder.button(text=paid_text, callback_data="media_toggle_paid")
-        
-        # Spoiler yoki Narx tugmasi (o'ng tomonda)
-        if is_paid:
-            # Pulli bo'lsa narxni sozlashga o'tish
-            price_text = get_text('paid_media_price_btn', lang)
-            builder.button(text=price_text, callback_data="media_set_price")
-        else:
-            # Aks holda spoiler
-            spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
-            builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
-    else:
-        # Boshqa kontent turlari uchun maxsus sozlamalar
-        if content_type == 'poll':
-            builder.button(text=get_text('poll_settings_btn', lang), callback_data="poll_settings")
-        elif content_type == 'location':
-            builder.button(text=get_text('location_settings_btn', lang), callback_data="location_settings")
-        elif content_type == 'dice':
-            builder.button(text=get_text('dice_settings_btn', lang), callback_data="dice_settings")
+        spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
+        builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
     
-    # Orqaga tugmasi
+    # 3. Watermark
+    builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
+    
+    # 4. Orqaga
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
     
-    # Layout ni sozlash
-    if has_caption and content_type in ['photo', 'video', 'animation']:
-        # Caption position, Paid+Spoiler, Back
-        builder.adjust(1, 2, 1, 1)
-    elif content_type in ['photo', 'video', 'animation']:
-        # Paid+Spoiler, Back
-        builder.adjust(2, 1, 1)
-    else:
-        builder.adjust(1, 1)
+    # Layout: 2, 2
+    builder.adjust(2, 2)
         
     return builder.as_markup()
 

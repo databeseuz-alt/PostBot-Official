@@ -347,7 +347,8 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
     settings_kb_kwargs = {
         "content_type": 'poll',
         "has_caption": False,
-        "lang": lang
+        "lang": lang,
+        "is_paid": post_data.get('is_paid', False)
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
     
@@ -422,7 +423,8 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
     settings_kb_kwargs = {
         "content_type": 'location',
         "has_caption": False,
-        "lang": lang
+        "lang": lang,
+        "is_paid": post_data.get('is_paid', False)
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
     
@@ -498,7 +500,8 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
     settings_kb_kwargs = {
         "content_type": 'paid_media',
         "has_caption": bool(message.caption),
-        "lang": lang
+        "lang": lang,
+        "is_paid": True # Pulli media bo'lgani uchun har doim True
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
     
@@ -586,7 +589,8 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
     settings_kb_kwargs = {
         "content_type": 'dice',
         "has_caption": False,
-        "lang": lang
+        "lang": lang,
+        "is_paid": post_data.get('is_paid', False)
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
     
@@ -755,7 +759,8 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
         settings_kb_kwargs = {
             "content_type": post_data['content_type'],
             "has_caption": bool(post_data.get('caption')),
-            "lang": lang
+            "lang": lang,
+            "is_paid": post_data.get('is_paid', False)
         }
         reply_markup = get_post_settings_kb(**settings_kb_kwargs)
         

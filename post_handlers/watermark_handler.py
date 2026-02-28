@@ -12,6 +12,7 @@ from aiogram.filters.callback_data import CallbackData
 
 from post_handlers.post_handler import PostCreation
 from post_handlers.xinline_keyboard import get_media_settings_inline_kb
+from post_handlers.xreply_keyboard import get_media_settings_kb, get_post_settings_kb
 from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
@@ -1032,12 +1033,18 @@ async def back_to_media_settings(callback: types.CallbackQuery, state: FSMContex
     has_caption = bool(post_data.get('caption'))
     content_type = post_data.get('content_type', 'photo')
     
-    await state.set_state(PostCreation.configuring_post)
+    await state.set_state(PostCreation.waiting_for_media_settings)
     
-    await callback.message.edit_text(
+    # Inline xabarni o'chirish va yangi reply keyboard yuborish
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    await callback.message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang, has_spoiler, is_paid, show_caption_above, has_caption, content_type
+        reply_markup=get_media_settings_kb(
+            lang, has_spoiler, show_caption_above, has_caption, content_type
         )
     )
     await callback.answer()
@@ -1045,38 +1052,37 @@ async def back_to_media_settings(callback: types.CallbackQuery, state: FSMContex
 
 @watermark_router.callback_query(F.data == "back_to_post_settings")
 async def back_to_post_settings(callback: types.CallbackQuery, state: FSMContext):
-    """Post sozlamalariga qaytish"""
-    from post_handlers.xinline_keyboard import create_post_options_keyboard
+    """Post sozlamalariga (asosiy menyuga) qaytish"""
+    from post_handlers.xreply_keyboard import get_post_settings_kb
     
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
     
     content_type = post_data.get('content_type', 'text')
+    has_caption = bool(post_data.get('caption'))
+    is_paid = post_data.get('is_paid', False)
     
     await state.set_state(PostCreation.configuring_post)
     
-    keyboard = create_post_options_keyboard(content_type=content_type, lang=lang)
+    # Inline xabarni o'chirish
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
     
-    if keyboard:
-        await callback.message.edit_text(
-            get_text('post_settings_msg', lang),
-            reply_markup=keyboard
-        )
-    else:
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-    
+    await callback.message.answer(
+        get_text('back_to_settings_msg', lang),
+        reply_markup=get_post_settings_kb(content_type, has_caption, lang, is_paid=is_paid)
+    )
     await callback.answer()
 
 
-# Watermark tugmasi uchun callback
-@watermark_router.callback_query(F.data == "watermark_settings")
-async def open_watermark_settings(callback: types.CallbackQuery, state: FSMContext):
+# Watermark tugmasi uchun callback va message handler
+async def watermark_settings_handler(event: types.Message | types.CallbackQuery, state: FSMContext):
     """Watermark sozlamalarini ochish - to'g'ridan-to'g'ri matn so'rash"""
-    lang = await get_user_language(callback.from_user.id)
+    lang = await get_user_language(event.from_user.id)
+    bot = event.bot if isinstance(event, types.Message) else event.message.bot
     
     # To'g'ridan-to'g'ri matn kiritishni so'rash
     await state.set_state(PostCreation.waiting_for_watermark_text)
@@ -1084,11 +1090,18 @@ async def open_watermark_settings(callback: types.CallbackQuery, state: FSMConte
     builder = InlineKeyboardBuilder()
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
     
-    await callback.message.edit_text(
-        get_text('watermark_enter_text', lang),
-        reply_markup=builder.as_markup()
-    )
-    await callback.answer()
+    text = get_text('watermark_enter_text', lang)
+    reply_markup = builder.as_markup()
+    
+    if isinstance(event, types.CallbackQuery):
+        await event.message.edit_text(text, reply_markup=reply_markup)
+        await event.answer()
+    else:
+        await event.answer(text, reply_markup=reply_markup)
+
+@watermark_router.callback_query(F.data == "watermark_settings")
+async def open_watermark_settings(callback: types.CallbackQuery, state: FSMContext):
+    await watermark_settings_handler(callback, state)
 
 
 # Postga watermark qo'shish uchun helper funksiya

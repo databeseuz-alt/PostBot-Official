@@ -10,84 +10,72 @@ async def get_main_menu(lang: str, user_id: int):
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False):
+def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
     builder = ReplyKeyboardBuilder()
 
-    builder.add(KeyboardButton(text=get_text('preview_btn', lang)))
+    # Birinchi qator: 4 ta asosiy tugma
+    builder.add(KeyboardButton(text=get_text('preview_btn', lang))) # Ko'rish
+    builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
+    builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
 
-    # Sozlamalar tugmasi barcha kontent turlari uchun ko'rsatiladi
-    builder.add(KeyboardButton(text=get_text('settings_btn', lang)))
+    # Dinamik tugma (Paid Media / Poll Settings / Location Settings)
+    if content_type in ['photo', 'video', 'animation', 'paid_media']:
+        paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
+        builder.add(KeyboardButton(text=paid_text))
+    elif content_type == 'poll':
+        builder.add(KeyboardButton(text=get_text('poll_settings_btn', lang)))
+    elif content_type == 'location':
+        builder.add(KeyboardButton(text=get_text('location_settings_btn', lang)))
+    else:
+        # Agar dinamik tugma bo'lmasa, Tahrirlash tugmasini bu yerga chiqaramiz
+        builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
-    builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang)))
-    builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
-    
-    builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
+    # Ikkinchi qator: 2 ta tugma
+    # Agar Tahrirlash birinchi qatorda bo'lmasa, uni bu yerga qo'shamiz
+    if content_type in ['photo', 'video', 'animation', 'poll', 'location', 'paid_media']:
+        builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
+    # Tayyor / Tasdiqlash
     if is_editing:
         builder.add(KeyboardButton(text=get_text('edit_confirm_btn', lang)))
     else:
         builder.add(KeyboardButton(text=get_text('done_btn', lang)))
 
-    # Layout: 4 ta, 2 ta
-    builder.adjust(4, 2)
+    # Bekor qilish tugmasi (oxirida)
+    builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
+
+    # Layout: 4, 3 (chunki Cancel ham bor) - User 4, 2 deganida birinchi qatorda 4 ta bo'lishini nazarda tutgan
+    # 7 ta tugma bo'lsa: 4, 2, 1 ko'rinishida chiqadi
+    builder.adjust(4, 2, 1)
 
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_media_settings_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
-    """Media sozlamalari uchun klaviatura - barcha kontent turlari uchun"""
+def get_media_settings_kb(lang: str, has_spoiler: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
+    """Media sozlamalari uchun klaviatura - faqat 2 ta media sozlamasi va Watermark"""
     builder = ReplyKeyboardBuilder()
     
-    # Faqat photo, video, animation uchun caption position sozlamasi
-    if has_caption and content_type in ['photo', 'video', 'animation']:
-        if show_caption_above:
-            position_text = get_text('position_above_btn', lang)
-        else:
-            position_text = get_text('position_below_btn', lang)
+    # 1. Caption position (Yuqoriga/Pastga)
+    if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
+        position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
         builder.add(KeyboardButton(text=position_text))
     
-    # Faqat photo, video, animation uchun spoiler sozlamasi
+    # 2. Spoiler
     if content_type in ['photo', 'video', 'animation']:
-        # Pulli media tugmasi (chap tomonda)
-        paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
-        builder.add(KeyboardButton(text=paid_text))
-        
-        # Spoiler yoki Narx tugmasi (o'ng tomonda)
-        if is_paid:
-            # Agar pulli bo'lsa, narxni sozlash tugmasi chiqadi
-            price_text = get_text('paid_media_price_btn', lang)
-            builder.add(KeyboardButton(text=price_text))
-        else:
-            # Aks holda spoiler tugmasi
-            spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
-            builder.add(KeyboardButton(text=spoiler_text))
-    else:
-        # Boshqa kontent turlari uchun faqat minimal sozlamalar
-        if content_type == 'poll':
-            # Poll uchun javob sozlamalari
-            builder.add(KeyboardButton(text=get_text('poll_settings_btn', lang)))
-        elif content_type == 'location':
-            # Location uchun ko'rsatish sozlamalari
-            builder.add(KeyboardButton(text=get_text('location_settings_btn', lang)))
+        spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
+        builder.add(KeyboardButton(text=spoiler_text))
     
-    # Orqaga tugmasi
+    # 3. Watermark
+    builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
+    
+    # 4. Orqaga
     builder.add(KeyboardButton(text=get_text('back_btn', lang)))
     
-    # Layout ni sozlash
-    if has_caption and content_type in ['photo', 'video', 'animation']:
-        # Position (1), Spoiler/Price + Paid (2), Back (1)
-        builder.adjust(1, 2, 1)
-    elif content_type in ['photo', 'video', 'animation']:
-        # Spoiler/Price + Paid (2), Back (1)
-        builder.adjust(2, 1)
-    else:
-        # Boshqa turlari uchun: Settings (1-2), Back (1)
-        if content_type in ['poll', 'location']:
-            builder.adjust(2, 1)
-        else:
-            builder.adjust(1, 1)
+    # Layout: 2, 2
+    builder.adjust(2, 2)
         
     return builder.as_markup(resize_keyboard=True)
+
 
 
 # Eski get_position_kb funksiyasini o'chiramiz yoki yangi versiyaga almashtiramiz
