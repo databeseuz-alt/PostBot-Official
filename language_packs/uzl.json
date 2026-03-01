@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Pulli media yoqildi!</b>\n\nNarx: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Pulli media o'chirildi!</b>",
     "media_settings_btn": "🖼 Media sozlamalari",
+    "select_settings_msg": "<b>⚙️ Sozlamalar</b>\n\nQuyidagi sozlamalardan birini tanlang:",
     "media_settings_msg": "<b>🖼 Media sozlamalari</b>\n\nQuyidagi parametrlarni o'zgartirishingiz mumkin:",
     "position_msg": "<b>📍 Post joylashuvi</b>\n\nPost kanalda qanday joylashishini tanlang:",
     "position_above_info": "⬆️ <b>Yuqoriga</b> - Matn medianing ustida ko'rinadi",

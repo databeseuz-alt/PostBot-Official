@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Kostenpflichtige Medien aktiviert!</b>\n\nPreis: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Kostenpflichtige Medien deaktiviert!</b>",
     "media_settings_btn": "🖼 Medien-Einstellungen",
+    "select_settings_msg": "<b>⚙️ Einstellungen</b>\n\nWähle eine der folgenden Einstellungen:",
     "media_settings_msg": "<b>🖼 Medien-Einstellungen</b>\n\nDu kannst die folgenden Parameter ändern:",
     "position_msg": "<b>📍 Post-Position</b>\n\nWähle aus, wie der Post im Kanal erscheinen soll:",
     "position_above_info": "⬆️ <b>Oben</b> - Der Text steht über den Medien",

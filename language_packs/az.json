@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Pullu media yandırıldı!</b>\n\nQiymət: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Pullu media söndürüldü!</b>",
     "media_settings_btn": "🖼 Media parametrləri",
+    "select_settings_msg": "<b>⚙️ Parametrlər</b>\n\nAşağıdakı parametrlərdən birini seçin:",
     "media_settings_msg": "<b>🖼 Media parametrləri</b>\n\nAşağıdakı tənzimləmələri dəyişə bilərsiniz:",
     "position_msg": "<b>📍 Yazının mövqeyi</b>\n\nYazının kanalda necə görünəcəyini seçin:",
     "position_above_info": "⬆️ <b>Üstdə</b> - Mətn medianın üzərində olacaq",

@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Ücretli medya açıldı!</b>\n\nFiyat: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Ücretli medya kapatıldı!</b>",
     "media_settings_btn": "🖼 Medya ayarları",
+    "select_settings_msg": "<b>⚙️ Ayarlar</b>\n\nAşağıdaki ayarlardan birini seçin:",
     "media_settings_msg": "<b>🖼 Medya ayarları</b>\n\nAşağıdaki parametreleri değiştirebilirsiniz:",
     "position_msg": "<b>📍 Gönderi konumu</b>\n\nGönderinin kanalda nasıl görüneceğini seçin:",
     "position_above_info": "⬆️ <b>Üstte</b> - Metin medyanın üzerinde görünür",

@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Tölegli mediýa açyldy!</b>\n\nBahasy: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Tölegli mediýa öçürildi!</b>",
     "media_settings_btn": "🖼 Mediýa sazlamalary",
+    "select_settings_msg": "<b>⚙️ Sazlamalar</b>\n\nAşakdaky sazlamalardan birini saýlaň:",
     "media_settings_msg": "<b>🖼 Mediýa sazlamalary</b>\n\nAşakdaky parametrleri üýtgedip bilersiňiz:",
     "position_msg": "<b>📍 Postuň orny</b>\n\nPostuň kanalda nähili görünjekdigini saýlaň:",
     "position_above_info": "⬆️ <b>Ýokarda</b> - Tekst mediýanyň üstünde bolar",

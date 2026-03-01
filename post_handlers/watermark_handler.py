@@ -197,8 +197,8 @@ def get_watermark_settings_inline_kb(lang: str, current_position: str = "bottom_
     scale_text = get_text('watermark_scale_btn', lang)
     builder.button(text=f"{scale_text}: {int(scale*100)}%", callback_data=WatermarkCallbackFactory(action="select_scale"))
     
-    # Orqaga
-    builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
+    # Orqaga - sozlamalar menyusiga qaytish
+    builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
     
     builder.adjust(2, 2, 2, 1)
     return builder.as_markup()
@@ -1056,6 +1056,28 @@ async def back_to_post_settings(callback: types.CallbackQuery, state: FSMContext
         get_text('back_to_settings_msg', lang),
         reply_markup=get_post_settings_kb(content_type, has_caption, lang, is_paid=is_paid)
     )
+    await callback.answer()
+
+
+@watermark_router.callback_query(F.data == "back_to_settings_menu")
+async def back_to_settings_menu_from_watermark(callback: types.CallbackQuery, state: FSMContext):
+    """Watermark sozlamalaridan sozlamalar menyusiga qaytish"""
+    from post_handlers.xinline_keyboard import get_settings_menu_inline_kb
+    
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    lang = await get_user_language(callback.from_user.id)
+    
+    content_type = post_data.get('content_type', 'photo')
+    
+    await state.set_state(PostCreation.waiting_for_media_settings)
+    
+    # Sozlamalar menyusini ko'rsatish
+    await callback.message.edit_text(
+        get_text('select_settings_msg', lang),
+        reply_markup=get_settings_menu_inline_kb(lang=lang, content_type=content_type)
+    )
+    
     await callback.answer()
 
 

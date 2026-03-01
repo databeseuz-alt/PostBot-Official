@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Média payant activé !</b>\n\nPrix : {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Média payant désactivé !</b>",
     "media_settings_btn": "🖼 Paramètres média",
+    "select_settings_msg": "<b>⚙️ Paramètres</b>\n\nSélectionnez l'un des paramètres suivants :",
     "media_settings_msg": "<b>🖼 Paramètres média</b>\n\nVous pouvez modifier les paramètres suivants :",
     "position_msg": "<b>📍 Position du post</b>\n\nChoisissez comment le post apparaîtra dans le canal :",
     "position_above_info": "⬆️ <b>Dessus</b> - Le texte sera au-dessus du média",

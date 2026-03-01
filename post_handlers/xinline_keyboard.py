@@ -408,8 +408,8 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
         paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
         builder.button(text=paid_text, callback_data="media_toggle_paid")
     
-    # 3-qator: Orqaga
-    builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
+    # 3-qator: Orqaga - sozlamalar menyusiga qaytish
+    builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
     
     # Layout: caption bo'lsa 1, 2, 1; bo'lmasa 2, 1
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:

@@ -206,6 +206,7 @@
     "paid_media_enabled_msg": "<b>✅ Paid media enabled!</b>\n\nPrice: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Paid media disabled!</b>",
     "media_settings_btn": "🖼 Media Settings",
+    "select_settings_msg": "<b>⚙️ Settings</b>\n\nSelect one of the following settings:",
     "media_settings_msg": "<b>🖼 Media Settings</b>\n\nYou can change the following settings:",
     "position_msg": "<b>📍 Post Position</b>\n\nChoose how the post should be positioned in the channel:",
     "position_above_info": "⬆️ <b>Above</b> - Text will be above the media",
