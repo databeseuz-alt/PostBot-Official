@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Lavori di manutenzione",
     "maintenance_mode_on": "✅ Modalità manutenzione attivata!",
     "maintenance_mode_off": "❌ Modalità manutenzione disattivata!",
-    "maintenance_warning_msg": "Attenzione! Sono in corso lavori di manutenzione nel bot. Per favore, riprova tra poco."
+    "maintenance_warning_msg": "Attenzione! Sono in corso lavori di manutenzione nel bot. Per favore, riprova tra poco.",
+    "no_buttons_added_msg": "<b>🔢 Nessun pulsante aggiunto ancora</b>\n\nPer aggiungere un pulsante, premi il pulsante ➕ Aggiungi pulsante sotto il post. I pulsanti che crei appariranno qui.",
+    "your_buttons_list_msg": "<b>🔢 I tuoi pulsanti</b>",
+    "button_type_text_btn_sub": "per gli abbonati",
+    "button_type_text_btn_nonsub": "per i non abbonati",
+    "button_value_none": "senza valore"
 }

@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Maintenance",
     "maintenance_mode_on": "✅ Mode maintenance activé !",
     "maintenance_mode_off": "❌ Mode maintenance désactivé !",
-    "maintenance_warning_msg": "Attention ! Des travaux de maintenance sont en cours sur le bot. Veuillez réessayer dans quelques minutes."
+    "maintenance_warning_msg": "Attention ! Des travaux de maintenance sont en cours sur le bot. Veuillez réessayer dans quelques minutes.",
+    "no_buttons_added_msg": "<b>🔢 Aucun bouton ajouté pour le moment</b>\n\nPour ajouter un bouton, appuie sur le bouton ➕ Ajouter un bouton sous le post. Les boutons que tu crées apparaîtront ici.",
+    "your_buttons_list_msg": "<b>🔢 Tes boutons</b>",
+    "button_type_text_btn_sub": "pour les abonnés",
+    "button_type_text_btn_nonsub": "pour les non-abonnés",
+    "button_value_none": "sans valeur"
 }

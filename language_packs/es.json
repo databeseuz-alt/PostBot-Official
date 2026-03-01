@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Mantenimiento",
     "maintenance_mode_on": "✅ ¡Modo mantenimiento activado!",
     "maintenance_mode_off": "❌ ¡Modo mantenimiento desactivado!",
-    "maintenance_warning_msg": "¡Atención! Hay trabajos de mantenimiento en el bot. Por favor, inténtalo de nuevo en unos minutos."
+    "maintenance_warning_msg": "¡Atención! Hay trabajos de mantenimiento en el bot. Por favor, inténtalo de nuevo en unos minutos.",
+    "no_buttons_added_msg": "<b>🔢 Aún no se han añadido botones</b>\n\nPara añadir un botón, presiona el botón ➕ Añadir botón debajo de la publicación. Los botones que crees aparecerán aquí.",
+    "your_buttons_list_msg": "<b>🔢 Tus botones</b>",
+    "button_type_text_btn_sub": "para suscriptores",
+    "button_type_text_btn_nonsub": "para no suscriptores",
+    "button_value_none": "sin valor"
 }

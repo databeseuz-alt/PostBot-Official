@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Maintenance",
     "maintenance_mode_on": "✅ Maintenance mode enabled!",
     "maintenance_mode_off": "❌ Maintenance mode disabled!",
-    "maintenance_warning_msg": "Attention! The bot is undergoing maintenance. Please try again later."
+    "maintenance_warning_msg": "Attention! The bot is undergoing maintenance. Please try again later.",
+    "no_buttons_added_msg": "<b>🔢 No buttons added yet</b>\n\nTo add a button, press the ➕ Add button below the post. Your created buttons will appear here.",
+    "your_buttons_list_msg": "<b>🔢 Your buttons</b>",
+    "button_type_text_btn_sub": "for subscribers",
+    "button_type_text_btn_nonsub": "for non-subscribers",
+    "button_value_none": "no value"
 }

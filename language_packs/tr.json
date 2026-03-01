@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Bakım Çalışmaları",
     "maintenance_mode_on": "✅ Bakım modu etkinleştirildi!",
     "maintenance_mode_off": "❌ Bakım modu devre dışı bırakıldı!",
-    "maintenance_warning_msg": "Dikkat! Botta bakım çalışmaları yapılmaktadır, lütfen biraz sonra tekrar deneyin."
+    "maintenance_warning_msg": "Dikkat! Botta bakım çalışmaları yapılmaktadır, lütfen biraz sonra tekrar deneyin.",
+    "no_buttons_added_msg": "<b>🔢 Henüz buton eklenmedi</b>\n\nButon eklemek için gönderinin altındaki ➕ Buton ekle düğmesine basın. Oluşturduğunuz butonlar burada görünecektir.",
+    "your_buttons_list_msg": "<b>🔢 Butonlarınız</b>",
+    "button_type_text_btn_sub": "aboneler için",
+    "button_type_text_btn_nonsub": "abone olmayanlar için",
+    "button_value_none": "değersiz"
 }

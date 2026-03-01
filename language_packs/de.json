@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Wartungsarbeiten",
     "maintenance_mode_on": "✅ Wartungsmodus aktiviert!",
     "maintenance_mode_off": "❌ Wartungsmodus deaktiviert!",
-    "maintenance_warning_msg": "Achtung! Es finden Wartungsarbeiten am Bot statt. Bitte versuche es in Kürze erneut."
+    "maintenance_warning_msg": "Achtung! Es finden Wartungsarbeiten am Bot statt. Bitte versuche es in Kürze erneut.",
+    "no_buttons_added_msg": "<b>🔢 Noch keine Schaltflächen hinzugefügt</b>\n\nUm eine Schaltfläche hinzuzufügen, drücke die ➕ Schaltfläche unter dem Beitrag. Deine erstellten Schaltflächen werden hier angezeigt.",
+    "your_buttons_list_msg": "<b>🔢 Deine Schaltflächen</b>",
+    "button_type_text_btn_sub": "für Abonnenten",
+    "button_type_text_btn_nonsub": "für Nicht-Abonnenten",
+    "button_value_none": "wertlos"
 }

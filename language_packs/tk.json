@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Tehniki işler",
     "maintenance_mode_on": "✅ Tehniki iş tertibi işledildi!",
     "maintenance_mode_off": "❌ Tehniki iş tertibi öçürildi!",
-    "maintenance_warning_msg": "Üns beriň! Botda tehniki işler geçirilýär. Biraz salymdan täzeden synanyşyp görüň."
+    "maintenance_warning_msg": "Üns beriň! Botda tehniki işler geçirilýär. Biraz salymdan täzeden synanyşyp görüň.",
+    "no_buttons_added_msg": "<b>🔢 Düwme goşulmady</b>\n\nDüwme goşmak üçin poştyň aşagyndaky ➕ Düwme goşmak düwmesine basyň. Döreden düwmeleriňiz şu ýerde görkeziler.",
+    "your_buttons_list_msg": "<b>🔢 Siziň düwmeleriňiz</b>",
+    "button_type_text_btn_sub": "abunaçylar üçin",
+    "button_type_text_btn_nonsub": "abuna bolmadyklar üçin",
+    "button_value_none": "bahasy ýok"
 }

@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Tuzatish ishlari",
     "maintenance_mode_on": "✅ Tuzatish rejimi yoqildi!",
     "maintenance_mode_off": "❌ Tuzatish rejimi o'chirildi!",
-    "maintenance_warning_msg": "diqqat foydalanuvchi botda tuzatish ishlari ketmoqda iltimos bir ozdan so'ng qayta harakat qiling"
+    "maintenance_warning_msg": "diqqat foydalanuvchi botda tuzatish ishlari ketmoqda iltimos bir ozdan so'ng qayta harakat qiling",
+    "no_buttons_added_msg": "<b>🔢 Tugmalar hali qo'shilmagan</b>\n\nTugma qo'shish uchun postning ostidagi ➕ Tugma qo'shish tugmasini bosing. Yaratgan tugmalaringiz shu yerda chiqadi.",
+    "your_buttons_list_msg": "<b>🔢 Sizning tugmalaringiz</b>",
+    "button_type_text_btn_sub": "obuna uchun",
+    "button_type_text_btn_nonsub": "begona uchun",
+    "button_value_none": "qiymatsiz"
 }

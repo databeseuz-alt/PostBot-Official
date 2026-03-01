@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 أعمال صيانة",
     "maintenance_mode_on": "✅ تم تفعيل وضع الصيانة!",
     "maintenance_mode_off": "❌ تم تعطيل وضع الصيانة!",
-    "maintenance_warning_msg": "تنبيه! هناك أعمال صيانة في البوت. يرجى المحاولة مرة أخرى بعد قليل."
+    "maintenance_warning_msg": "تنبيه! هناك أعمال صيانة في البوت. يرجى المحاولة مرة أخرى بعد قليل.",
+    "no_buttons_added_msg": "<b>🔢 لم تتم إضافة أزرار بعد</b>\n\nلإضافة زر، اضغط على زر ➕ إضافة زر أسفل المنشور. ستظهر الأزرار التي تنشئها هنا.",
+    "your_buttons_list_msg": "<b>🔢 أزرارك</b>",
+    "button_type_text_btn_sub": "للمشتركين",
+    "button_type_text_btn_nonsub": "لغير المشتركين",
+    "button_value_none": "بدون قيمة"
 }

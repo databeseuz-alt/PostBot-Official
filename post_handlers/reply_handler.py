@@ -536,13 +536,48 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
         await message.answer(get_text('post_not_found', lang))
         return
     
-    chat_id = post_data.get('chat_id')
-    message_id = post_data.get('message_id')
+    # Tugmalarni tekshirish
+    has_buttons = False
+    button_list = []
     
-    # Create button management message with instructions
-    instructions = get_text('your_buttons_msg', lang) + "\n\n" + get_text('add_inline_btn', lang) + " - tugmasini bosing"
+    for row in buttons_matrix:
+        for btn in row:
+            if btn and not btn.get('is_placeholder'):
+                has_buttons = True
+                button_list.append(btn)
     
-    await message.answer(instructions)
+    if not has_buttons:
+        # Tugmalar yo'q
+        instructions = get_text('no_buttons_added_msg', lang)
+        await message.answer(instructions)
+        return
+    
+    # Tugmalar mavjud - ro'yxatni yaratish
+    response_text = get_text('your_buttons_list_msg', lang) + "\n\n"
+    count = 1
+    
+    for btn in button_list:
+        btn_text = btn.get('text', 'Tugma')
+        btn_type = btn.get('type', 'url')
+        
+        if btn_type == 'text_btn':
+            # Matnli tugma
+            sub_content = btn.get('sub_content', '')
+            nonsub_content = btn.get('nonsub_content', '')
+            response_text += f"{count}. {btn_text} :\n"
+            response_text += f"{get_text('button_type_text_btn_sub', lang)} = {sub_content}\n"
+            response_text += f"{get_text('button_type_text_btn_nonsub', lang)} = {nonsub_content}\n"
+        elif btn_type == 'reaction':
+            # Reaksiya tugma
+            response_text += f"{count}. {btn_text} = {get_text('button_value_none', lang)}\n"
+        else:
+            # URL tugma
+            btn_url = btn.get('url', 'URL mavjud emas')
+            response_text += f"{count}. {btn_text} = {btn_url}\n"
+        
+        count += 1
+    
+    await message.answer(response_text)
 
 
 @reply_router.message(

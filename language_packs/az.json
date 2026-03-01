@@ -323,5 +323,10 @@
     "maintenance_mode_btn": "🔧 Təmir İşləri",
     "maintenance_mode_on": "✅ Təmir rejimi aktivləşdirildi!",
     "maintenance_mode_off": "❌ Təmir rejimi deaktiv edildi!",
-    "maintenance_warning_msg": "Diqqət! Botda təmir işləri gedir. Xahiş edirik, bir qədər sonra yenidən cəhd edin."
+    "maintenance_warning_msg": "Diqqət! Botda təmir işləri gedir. Xahiş edirik, bir qədər sonra yenidən cəhd edin.",
+    "no_buttons_added_msg": "<b>🔢 Düymələr hələ əlavə edilməyib</b>\n\nDüymə əlavə etmək üçün postun altındakı ➕ Düymə əlavə et düyməsini basın. Yaratdığınız düymələr burada görünəcək.",
+    "your_buttons_list_msg": "<b>🔢 Düymələriniz</b>",
+    "button_type_text_btn_sub": "abunəçilər üçün",
+    "button_type_text_btn_nonsub": "abunə olmayanlar üçün",
+    "button_value_none": "dəyərsiz"
 }
