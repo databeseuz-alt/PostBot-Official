@@ -1,10 +1,12 @@
 
+import logging
 from aiogram import F, Router, types
 from aiogram.filters import StateFilter
 
 from xdata_handlers.database import get_user_language
 from post_handlers.localize_filter import LocalizedText
 
+logger = logging.getLogger(__name__)
 analytics_router = Router()
 
 

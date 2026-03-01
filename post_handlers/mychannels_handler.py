@@ -1,4 +1,5 @@
 import html
+import logging
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -9,6 +10,7 @@ from xdata_handlers.database import get_user_channels, remove_user_channel, get_
 from post_handlers.send_handler import cmd_add_channel
 from xdata_handlers.translator import get_text
 
+logger = logging.getLogger(__name__)
 mychannels_router = Router()
 
 

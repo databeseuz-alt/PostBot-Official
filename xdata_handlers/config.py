@@ -1,4 +1,7 @@
 import os
+import logging
+import sys
+from datetime import datetime
 from dotenv import load_dotenv
 
 
@@ -33,4 +36,40 @@ Qoidalar:
 Maqsad: Foydalanuvchi sening javobingni olib, o'zgarishsiz darhol kanalga joylay olishi kerak.
 """
 
-LOGGING_LEVEL = "INFO"
+LOGGING_LEVEL = os.getenv("LOGGING_LEVEL", "INFO")
+LOGS_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'logs')
+os.makedirs(LOGS_DIR, exist_ok=True)
+
+def setup_logging():
+    """Logging konfiguratsiyasini sozlash"""
+    log_format = '%(asctime)s | %(levelname)-8s | %(name)-30s | %(message)s'
+    date_format = '%Y-%m-%d %H:%M:%S'
+    
+    # Asosiy logger
+    logger = logging.getLogger()
+    logger.setLevel(getattr(logging, LOGGING_LEVEL.upper()))
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(getattr(logging, LOGGING_LEVEL.upper()))
+    console_handler.setFormatter(logging.Formatter(log_format, date_format))
+    logger.addHandler(console_handler)
+    
+    # File handler
+    log_file = os.path.join(LOGS_DIR, f"bot_{datetime.now().strftime('%Y%m%d')}.log")
+    file_handler = logging.FileHandler(log_file, encoding='utf-8')
+    file_handler.setLevel(getattr(logging, LOGGING_LEVEL.upper()))
+    file_handler.setFormatter(logging.Formatter(log_format, date_format))
+    logger.addHandler(file_handler)
+    
+    # Error file handler
+    error_log_file = os.path.join(LOGS_DIR, f"bot_errors_{datetime.now().strftime('%Y%m%d')}.log")
+    error_handler = logging.FileHandler(error_log_file, encoding='utf-8')
+    error_handler.setLevel(logging.ERROR)
+    error_handler.setFormatter(logging.Formatter(log_format, date_format))
+    logger.addHandler(error_handler)
+    
+    return logger
+
+# Logging instance yaratish
+logger = setup_logging()

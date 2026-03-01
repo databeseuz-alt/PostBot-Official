@@ -1,5 +1,6 @@
 import asyncio
 import re
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -15,6 +16,7 @@ from admin_handlers.xreply_keyboard import get_ad_post_settings_kb, get_admin_ba
 from post_handlers.xinline_keyboard import generate_preview_keyboard
 from admin_handlers.xinline_keyboard import get_main_admin_keyboard
 
+logger = logging.getLogger(__name__)
 ad_router = Router()
 URL_PATTERN = re.compile(r"^(https?://)?([\w-]{1,32}\.[\w-]{1,32})[^\s@]*$")
 

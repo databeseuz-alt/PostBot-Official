@@ -1,4 +1,5 @@
 
+import logging
 from typing import Union, Dict, Any
 
 from aiogram.filters import Filter
@@ -6,6 +7,7 @@ from aiogram.types import Message
 
 from xdata_handlers.translator import translations
 
+logger = logging.getLogger(__name__)
 
 class LocalizedText(Filter):
     """

@@ -1,3 +1,4 @@
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -20,6 +21,7 @@ from admin_handlers.admin_handler import IsAdmin
 from post_handlers.xreply_keyboard import get_main_menu, get_cancel_kb
 from xdata_handlers.translator import get_text
 
+logger = logging.getLogger(__name__)
 ad_router = Router()
 
 

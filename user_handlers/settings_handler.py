@@ -1,3 +1,4 @@
+import logging
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -8,6 +9,7 @@ from xdata_handlers.database import (
 )
 from post_handlers.xinline_keyboard import get_ai_assistant_keyboard
 
+logger = logging.getLogger(__name__)
 settings_router = Router()
 
 

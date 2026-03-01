@@ -1,9 +1,12 @@
+import logging
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware, types
 from aiogram.types import TelegramObject, Update
 from xdata_handlers.database import is_maintenance_mode, get_user_language
 from xdata_handlers.translator import get_text
 from xdata_handlers import config
+
+logger = logging.getLogger(__name__)
 
 class MaintenanceMiddleware(BaseMiddleware):
     async def __call__(

@@ -1,4 +1,5 @@
 import traceback
+import logging
 from aiogram import Router, types
 from aiogram.exceptions import TelegramAPIError
 
@@ -10,6 +11,7 @@ from aiohttp.client_exceptions import (
 
 from xdata_handlers.database import log_user_error
 
+logger = logging.getLogger(__name__)
 error_router = Router()
 
 @error_router.errors()
@@ -31,6 +33,9 @@ async def error_handler(exception: types.ErrorEvent):
         user_id = exception.update.callback_query.from_user.id
     elif exception.update.inline_query and exception.update.inline_query.from_user:
         user_id = exception.update.inline_query.from_user.id
+
+    # Logging xatoni log faylga yozish
+    logger.error(f"Xatolik yuz berdi | User ID: {user_id} | Exception: {exception.exception}", exc_info=True)
 
     try:
         await log_user_error(user_id=user_id, error_text=error_message[:4000])

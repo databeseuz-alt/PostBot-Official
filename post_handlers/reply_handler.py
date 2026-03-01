@@ -1,3 +1,4 @@
+import logging
 from contextlib import suppress
 from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
@@ -19,6 +20,7 @@ from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
 
+logger = logging.getLogger(__name__)
 reply_router = Router()
 
 

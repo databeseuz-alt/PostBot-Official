@@ -1,6 +1,7 @@
 
 import html
 import asyncio
+import logging
 from contextlib import suppress
 from aiogram import F, Router, types, Bot
 from aiogram.types import BufferedInputFile
@@ -26,6 +27,7 @@ from xdata_handlers.translator import get_text
 from post_handlers.xreply_keyboard import get_post_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
 from post_handlers.localize_filter import LocalizedText
 
+logger = logging.getLogger(__name__)
 
 async def schedule_message_deletion(bot: Bot, chat_id: int, message_id: int, delete_after_seconds: int):
     """Xabarni ketma-ket sozlangan vaqtdan so'ng o'chiradi."""

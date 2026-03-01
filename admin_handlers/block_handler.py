@@ -1,3 +1,4 @@
+import logging
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware, F, Router, types, Bot
@@ -21,6 +22,7 @@ from admin_handlers.xinline_keyboard import (
     get_unblock_confirmation_keyboard, get_blocked_user_detail_keyboard
 )
 
+logger = logging.getLogger(__name__)
 block_router = Router()
 
 
@@ -86,6 +88,7 @@ async def block_user_query_received(message: types.Message, state: FSMContext):
 
     if await block_user(user_id_to_block):
         display_name = user_data.get('nickname') or 'Noma\'lum'
+        logger.warning(f"Foydalanuvchi bloklandi | User ID: {user_id_to_block}, Name: {display_name}, Admin: {message.from_user.id}")
         await message.answer(f"✅ Foydalanuvchi <b>{display_name}</b> (<code>{user_id_to_block}</code>) muvaffaqiyatli bloklandi!")
 
         await state.clear()

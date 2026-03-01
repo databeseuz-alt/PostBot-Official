@@ -1,10 +1,12 @@
 
+import logging
 from aiogram import Router, types, Bot
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
 from xdata_handlers.database import get_post_from_db, get_user_language
 from xdata_handlers.translator import get_text
 
+logger = logging.getLogger(__name__)
 inline_router = Router()
 
 

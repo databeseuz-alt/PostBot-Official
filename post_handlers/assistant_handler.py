@@ -1,6 +1,7 @@
 
 import asyncio
 import re
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -14,6 +15,7 @@ from xdata_handlers.database import get_user_language, save_prompt, get_user_pro
 from xdata_handlers.translator import get_text
 from xdata_handlers import config
 
+logger = logging.getLogger(__name__)
 ai_assistant_router = Router()
 
 def markdown_to_html(text: str) -> str:

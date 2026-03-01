@@ -1,4 +1,5 @@
 import html
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -14,6 +15,7 @@ from xdata_handlers.translator import get_text
 from post_handlers.send_handler import start_sending_handler
 from post_handlers.start_handler import start_post_editing_process
 
+logger = logging.getLogger(__name__)
 edit_post_router = Router()
 
 

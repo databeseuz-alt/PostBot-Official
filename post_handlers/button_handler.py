@@ -1,5 +1,6 @@
 
 import re
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
@@ -15,6 +16,7 @@ from xdata_handlers.translator import get_text
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
+logger = logging.getLogger(__name__)
 button_router = Router()
 
 URL_PATTERN = re.compile(

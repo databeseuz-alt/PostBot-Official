@@ -1,3 +1,4 @@
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
@@ -8,6 +9,8 @@ from admin_handlers.admin_handler import IsAdmin
 from admin_handlers.admin_handler import AdminStates
 from xdata_handlers import config
 from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_channel_list_keyboard
+
+logger = logging.getLogger(__name__)
 
 
 async def check_user_membership(user: types.User, bot: Bot):

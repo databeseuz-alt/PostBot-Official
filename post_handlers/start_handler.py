@@ -1,4 +1,5 @@
 import html
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -14,6 +15,7 @@ from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
+logger = logging.getLogger(__name__)
 start_router = Router()
 
 

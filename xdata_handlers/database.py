@@ -3,6 +3,7 @@ import json
 import secrets
 import string
 import os
+import logging
 from datetime import datetime, timedelta, timezone
 import asyncio
 from typing import Optional, List, Dict, Any
@@ -10,6 +11,8 @@ from collections import Counter
 from dotenv import dotenv_values
 
 from xdata_handlers import config
+
+logger = logging.getLogger(__name__)
 TASHKENT_TZ = timezone(timedelta(hours=5))
 
 def _get_database_url() -> str | None:

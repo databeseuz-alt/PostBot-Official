@@ -1,5 +1,6 @@
 import json
 import html
+import logging
 from datetime import datetime
 from aiogram import F, Router, types, Bot
 from aiogram.types import BufferedInputFile, ReplyKeyboardRemove
@@ -25,6 +26,7 @@ from admin_handlers.xinline_keyboard import (
 from post_handlers.xinline_keyboard import generate_preview_keyboard
 from xdata_handlers.translator import get_text
 
+logger = logging.getLogger(__name__)
 db_router = Router()
 
 

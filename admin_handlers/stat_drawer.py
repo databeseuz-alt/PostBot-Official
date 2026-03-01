@@ -1,7 +1,10 @@
 #--- START OF FILE admin_handlers/stat_drawer.py ---
 import io
 import math
+import logging
 from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger(__name__)
 
 class StatDrawer:
     def __init__(self):

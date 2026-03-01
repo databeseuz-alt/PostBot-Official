@@ -1,3 +1,4 @@
+import logging
 from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -12,6 +13,7 @@ from post_handlers.localize_filter import LocalizedText
 from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
 
+logger = logging.getLogger(__name__)
 media_router = Router()
 
 

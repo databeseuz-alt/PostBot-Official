@@ -1,9 +1,11 @@
 
 import json
+import logging
 from typing import Dict
 import os
 from pathlib import Path
 
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 translations: Dict[str, Dict[str, str]] = {}
@@ -13,8 +15,10 @@ def load_translations():
     locales_dir = os.path.join(BASE_DIR, "language_packs")
 
     if not os.path.exists(locales_dir):
+        logger.warning(f"Tarjima papkasi topilmadi: {locales_dir}")
         return
 
+    loaded_count = 0
     for filename in os.listdir(locales_dir):
         if filename.endswith(".json"):
             lang_code = filename[:-5] # .json kengaytmasini olib tashlaymiz
@@ -25,10 +29,13 @@ def load_translations():
                     import re
                     content = re.sub(r'^\s*//.*$', '', content, flags=re.MULTILINE)
                     translations[lang_code] = json.loads(content)
+                    loaded_count += 1
             except FileNotFoundError:
-                pass
-            except json.JSONDecodeError:
-                pass
+                logger.warning(f"Tarjima fayli topilmadi: {file_path}")
+            except json.JSONDecodeError as e:
+                logger.error(f"Tarjima faylini o'qishda xatolik ({filename}): {e}")
+    
+    logger.info(f"{loaded_count} ta til yuklandi")
 
 def get_text(key: str, lang: str = "uzl") -> str:
     """

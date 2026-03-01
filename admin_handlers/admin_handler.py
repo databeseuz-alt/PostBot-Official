@@ -1,3 +1,4 @@
+import logging
 from aiogram import F, Router, types
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
@@ -10,6 +11,7 @@ from xdata_handlers.database import is_maintenance_mode, set_maintenance_mode
 
 from aiogram.fsm.state import State, StatesGroup
 
+logger = logging.getLogger(__name__)
 admin_router = Router()
 
 class IsAdmin(Filter):
@@ -46,6 +48,7 @@ class AdminGuideSettings(StatesGroup):
 @admin_router.message(Command("admin"), IsAdmin())
 async def admin_panel_handler(message: types.Message, state: FSMContext):
     await state.clear()
+    logger.info(f"Admin panel ochdi | User ID: {message.from_user.id}, Username: @{message.from_user.username}")
 
     remover_message = await message.answer(
         "Admin paneli ochilmoqda...",

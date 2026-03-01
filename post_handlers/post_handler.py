@@ -1,5 +1,6 @@
 import re
 import html
+import logging
 from typing import List, Dict
 
 try:
@@ -20,6 +21,7 @@ from xdata_handlers.database import get_user_language, get_user_post_settings
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
 
+logger = logging.getLogger(__name__)
 post_router = Router()
 
 class PostCreation(StatesGroup):

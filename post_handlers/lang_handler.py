@@ -1,4 +1,5 @@
 
+import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
@@ -10,6 +11,7 @@ from post_handlers.localize_filter import LocalizedText
 
 from aiogram.filters import Command
 
+logger = logging.getLogger(__name__)
 lang_router = Router()
 
 

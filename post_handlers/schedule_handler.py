@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 import re
 
@@ -13,6 +14,8 @@ from xdata_handlers.translator import get_text
 from post_handlers.send_handler import PostSending
 from post_handlers.xinline_keyboard import PostSendCallbackFactory, get_post_management_keyboard, generate_final_keyboard
 import pytz
+
+logger = logging.getLogger(__name__)
 
 LANG_TZ_MAP = {
     'uzl': 'Asia/Tashkent',

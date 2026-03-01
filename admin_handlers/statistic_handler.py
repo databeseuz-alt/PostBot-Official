@@ -1,5 +1,6 @@
 import io
 import math
+import logging
 from PIL import Image, ImageDraw, ImageFont
 
 from aiogram import F, Router, types
@@ -21,6 +22,7 @@ from admin_handlers.xinline_keyboard import (
     get_back_navigation_keyboard
 )
 
+logger = logging.getLogger(__name__)
 statistic_router = Router()
 
 
