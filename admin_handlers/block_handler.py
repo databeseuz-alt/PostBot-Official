@@ -1,4 +1,3 @@
-import logging
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware, F, Router, types, Bot
@@ -201,7 +200,6 @@ class BlockUserMiddleware(BaseMiddleware):
             )
 
         if user and await is_user_blocked(user.id):
-            logging.warning(f"[BLOCK_CHECK] Foydalanuvchi ID: {user.id} BLOKLANGAN. So'rov to'xtatildi.")
             lang = await get_user_language(user.id)
             
             from aiogram.types import Update

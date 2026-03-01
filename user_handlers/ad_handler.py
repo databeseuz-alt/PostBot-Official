@@ -1,4 +1,3 @@
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -87,15 +86,14 @@ async def process_first_ad_content(message: types.Message, state: FSMContext, bo
                     chat_id=admin_id,
                     reply_markup=get_reply_to_user_keyboard(user_id)
                 )
-            except Exception as e:
-                logging.error(f"Adminga reklama yuborishda xatolik (admin_id: {admin_id}): {e}")
+            except Exception:
+                pass
         
         await state.clear()
         lang = await get_user_language(user_id)
         await message.answer(get_text('ad_sent_msg', lang))
 
-    except Exception as e:
-        logging.error(f"Reklama yuborishda xatolik: {e}")
+    except Exception:
         lang = await get_user_language(user_id)
         await message.answer(get_text('error_msg', lang))
 
@@ -141,8 +139,7 @@ async def send_message_from_admin(message: types.Message, state: FSMContext, bot
             reply_markup=get_reply_to_admin_keyboard(admin_id)
         )
         await message.answer(get_text('admin_reply_success_msg', lang), reply_markup=ReplyKeyboardRemove())
-    except Exception as e:
-        logging.error(f"Admindan ({admin_id}) foydalanuvchiga ({recipient_user_id}) javob yuborishda xatolik: {e}")
+    except Exception:
         await message.answer(get_text('admin_reply_error_msg', lang), reply_markup=ReplyKeyboardRemove())
     finally:
         await state.clear()
@@ -191,8 +188,7 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
             get_text('admin_receive_msg', lang),
             reply_markup=await get_main_menu(lang, message.from_user.id)
         )
-    except Exception as e:
-        logging.error(f"Foydalanuvchidan ({message.from_user.id}) adminga ({admin_id}) javob yuborishda xatolik: {e}")
+    except Exception:
         await message.answer(get_text('admin_reply_error_msg', lang), reply_markup=await get_main_menu(lang, message.from_user.id))
     finally:
         await state.clear()

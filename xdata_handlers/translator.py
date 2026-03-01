@@ -3,7 +3,6 @@ import json
 from typing import Dict
 import os
 from pathlib import Path
-import logging
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,7 +13,6 @@ def load_translations():
     locales_dir = os.path.join(BASE_DIR, "language_packs")
 
     if not os.path.exists(locales_dir):
-        logging.error(f"Tarjimalar papkasi topilmadi: {locales_dir}")
         return
 
     for filename in os.listdir(locales_dir):
@@ -27,11 +25,10 @@ def load_translations():
                     import re
                     content = re.sub(r'^\s*//.*$', '', content, flags=re.MULTILINE)
                     translations[lang_code] = json.loads(content)
-                    logging.info(f"'{lang_code}' tili muvaffaqiyatli yuklandi.")
             except FileNotFoundError:
-                logging.warning(f"Tarjima fayli topilmadi: {file_path}")
-            except json.JSONDecodeError as e:
-                logging.error(f"JSON faylni o'qishda xatolik: {file_path} - {e}")
+                pass
+            except json.JSONDecodeError:
+                pass
 
 def get_text(key: str, lang: str = "uzl") -> str:
     """
@@ -57,8 +54,7 @@ def safe_format(text: str, **kwargs) -> str:
     """
     try:
         return text.format(**kwargs)
-    except (KeyError, ValueError) as e:
-        logging.warning(f"Translation format error for key: {e}, text: {text[:50]}...")
+    except (KeyError, ValueError):
         try:
             return text.format(**{k: '' for k in kwargs})
         except:
@@ -85,10 +81,8 @@ def save_translation(lang_code: str, key: str, new_text: str) -> bool:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
         
-        logging.info(f"Tarjima yangilandi: {key} -> {new_text} ({lang_code})")
         return True
-    except Exception as e:
-        logging.error(f"Tarjimani saqlashda xatolik: {e}")
+    except Exception:
         return False
 
 

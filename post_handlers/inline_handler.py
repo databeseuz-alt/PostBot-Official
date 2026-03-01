@@ -1,5 +1,4 @@
 
-import logging
 from aiogram import Router, types, Bot
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
@@ -183,8 +182,8 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
                     "reply_markup": keyboard_dict
                 })
 
-        except Exception as e:
-            logging.error(f"Inline natija yasashda xatolik: {post_code} - {e}")
+        except Exception:
+            pass
 
     if not results:
         results.append({

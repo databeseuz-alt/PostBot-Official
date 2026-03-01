@@ -1,4 +1,3 @@
-import logging
 import os
 import tempfile
 from io import BytesIO
@@ -288,7 +287,6 @@ async def apply_watermark_to_image(image_bytes: bytes, watermark_text: str, posi
     try:
         from PIL import Image, ImageDraw, ImageFont
     except ImportError:
-        logging.error("Pillow kutubxonasi o'rnatilmagan! pip install Pillow")
         return image_bytes
     
     try:
@@ -372,8 +370,7 @@ async def apply_watermark_to_image(image_bytes: bytes, watermark_text: str, posi
         
         return output.getvalue()
         
-    except Exception as e:
-        logging.error(f"Watermark qo'shishda xatolik: {e}")
+    except Exception:
         return image_bytes
 
 
@@ -386,7 +383,6 @@ async def apply_image_watermark_to_image(main_image_bytes: bytes, watermark_imag
     try:
         from PIL import Image
     except ImportError:
-        logging.error("Pillow kutubxonasi o'rnatilmagan!")
         return main_image_bytes
     
     try:
@@ -442,8 +438,7 @@ async def apply_image_watermark_to_image(main_image_bytes: bytes, watermark_imag
         
         return output.getvalue()
         
-    except Exception as e:
-        logging.error(f"Rasm watermark qo'shishda xatolik: {e}")
+    except Exception:
         return main_image_bytes
 
 
@@ -452,9 +447,7 @@ async def apply_watermark_to_video(video_bytes: bytes, watermark_text: str, posi
     Videoga watermark qo'shish
     FFmpeg talab qilinadi
     """
-    # Video uchun FFmpeg kerak - bu funksiya keyinroq implement qilinadi
-    # Hozircha faqat log yozamiz
-    logging.warning("Video watermark hozircha qo'llab-quvvatlanmaydi")
+    # Video watermark hozircha qo'llab-quvvatlanmaydi
     return video_bytes
 
 
@@ -504,8 +497,7 @@ async def process_media_with_watermark(bot: Bot, file_id: str, watermark_text: s
         finally:
             os.unlink(tmp_path)
             
-    except Exception as e:
-        logging.error(f"Media watermark qilishda xatolik: {e}")
+    except Exception:
         return None
 
 
@@ -636,8 +628,8 @@ async def set_watermark_text(message: Message, state: FSMContext):
             post_data = data.get("post_data", {})
             chat_id = post_data.get('chat_id')
             message_id = post_data.get('message_id')
-        except Exception as e:
-            logging.error(f"Postni qayta yuborishda xatolik: {e}")
+        except Exception:
+            pass
     
     # Agar post mavjud bo'lsa, watermark sozlamalarini uning tagidan chiqaramiz
     if chat_id and message_id:
@@ -646,8 +638,8 @@ async def set_watermark_text(message: Message, state: FSMContext):
                 msg,
                 reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type=watermark_type)
             )
-        except Exception as e:
-            logging.error(f"Watermark sozlamalarini chiqarishda xatolik: {e}")
+        except Exception:
+            pass
     else:
         # Agar post topilmasa, oddiy xabar
         await message.answer(
@@ -755,8 +747,8 @@ async def set_watermark_image(message: Message, state: FSMContext):
             post_data = data.get("post_data", {})
             chat_id = post_data.get('chat_id')
             message_id = post_data.get('message_id')
-        except Exception as e:
-            logging.error(f"Postni qayta yuborishda xatolik: {e}")
+        except Exception:
+            pass
     
     # Agar post mavjud bo'lsa, watermark sozlamalarini uning tagidan chiqaramiz
     if chat_id and message_id:
@@ -765,8 +757,8 @@ async def set_watermark_image(message: Message, state: FSMContext):
                 get_text('watermark_image_saved', lang),
                 reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type='image')
             )
-        except Exception as e:
-            logging.error(f"Watermark sozlamalarini chiqarishda xatolik: {e}")
+        except Exception:
+            pass
     else:
         # Agar post topilmasa, oddiy xabar
         await message.answer(
@@ -823,8 +815,8 @@ async def set_watermark_position(callback: types.CallbackQuery, callback_data: W
             get_text('watermark_info', lang),
             reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
         )
-    except Exception as e:
-        logging.info(f"Xabarni tahrirlashda xatolik: {e}")
+    except Exception:
+        pass
 
 
 @watermark_router.callback_query(WatermarkCallbackFactory.filter(F.action == "select_transparency"))
@@ -875,8 +867,8 @@ async def set_watermark_transparency(callback: types.CallbackQuery, callback_dat
             get_text('watermark_info', lang),
             reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
         )
-    except Exception as e:
-        logging.info(f"Xabarni tahrirlashda xatolik: {e}")
+    except Exception:
+        pass
 
 
 @watermark_router.callback_query(WatermarkCallbackFactory.filter(F.action == "select_rotation"))
@@ -906,9 +898,6 @@ async def set_watermark_rotation(callback: types.CallbackQuery, callback_data: W
     post_data['watermark_rotation'] = rotation
     await state.update_data(post_data=post_data)
     
-    # DEBUG
-    logging.info(f"set_rotation called with rotation={rotation}")
-    
     await callback.answer(get_text('watermark_rotation_saved', lang))
     
     # Watermark qo'llash va postni qayta chizish
@@ -930,9 +919,8 @@ async def set_watermark_rotation(callback: types.CallbackQuery, callback_data: W
             get_text('watermark_info', lang),
             reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
         )
-    except Exception as e:
-        # Agar xabar o'zgarmagan bo'lsa yoki boshqa xatolik
-        logging.info(f"Xabarni tahrirlashda xatolik: {e}")
+    except Exception:
+        pass
 
 
 @watermark_router.callback_query(WatermarkCallbackFactory.filter(F.action == "select_scale"))
@@ -983,8 +971,8 @@ async def set_watermark_scale(callback: types.CallbackQuery, callback_data: Wate
             get_text('watermark_info', lang),
             reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
         )
-    except Exception as e:
-        logging.info(f"Xabarni tahrirlashda xatolik: {e}")
+    except Exception:
+        pass
 
 
 @watermark_router.callback_query(WatermarkCallbackFactory.filter(F.action == "back_to_settings"))
@@ -1008,8 +996,8 @@ async def back_to_watermark_settings(callback: types.CallbackQuery, state: FSMCo
             get_text('watermark_info', lang),
             reply_markup=get_watermark_settings_inline_kb(lang, current_position, watermark_text, transparency, rotation, scale, watermark_type)
         )
-    except Exception as e:
-        logging.info(f"Xabarni tahrirlashda xatolik: {e}")
+    except Exception:
+        pass
     await callback.answer()
 
 

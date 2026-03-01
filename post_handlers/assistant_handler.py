@@ -1,5 +1,4 @@
 
-import logging
 import asyncio
 import re
 from aiogram import F, Router, types, Bot
@@ -184,16 +183,13 @@ async def call_gemini_api(history: list[dict]) -> str | None:
         else:
             return "AI javob bera olmadi."
     except ImportError:
-        logging.error("google-genai kutubxonasi o'rnatilmagan. 'pip install google-genai' buyrug'i bilan o'rnating.")
         return "AI kutubxonasi o'rnatilmagan. Iltimos, admin bilan bog'laning."
-    except Exception as e:
-        logging.error(f"Gemini API chaqirishda xatolik: {e}")
+    except Exception:
         return "AI bilan bog'lanishda xatolik yuz berdi. Iltimos, keyinroq urinib ko'ring."
 
 @ai_assistant_router.callback_query(F.data == "ai_assistant")
 async def ai_assistant_start(callback: types.CallbackQuery, state: FSMContext):
     """AI-assistent tugmasi bosilganda."""
-    logging.info(f"ai_assistant callback received from user {callback.from_user.id}")
     await callback.answer("AI-assistentga o'tilmoqda...")
     lang = await get_user_language(callback.from_user.id)
     
@@ -209,9 +205,8 @@ async def ai_assistant_start(callback: types.CallbackQuery, state: FSMContext):
             get_text('ai_assistant_msg', lang),
             reply_markup=get_ai_assistant_reply_keyboard(lang)
         )
-        logging.info(f"ai_assistant: Successfully showed AI assistant menu for user {callback.from_user.id}")
-    except Exception as e:
-        logging.error(f"ai_assistant: Error showing AI assistant menu for user {callback.from_user.id}: {e}", exc_info=True)
+    except Exception:
+        pass
 
 @ai_assistant_router.message(
     StateFilter(
@@ -245,7 +240,6 @@ async def ai_assistant_button_handler(message: types.Message, state: FSMContext,
 @ai_assistant_router.message(AIAssistant.waiting_for_user_message, LocalizedText('back_btn'))
 async def ai_assistant_back_reply(message: types.Message, state: FSMContext):
     """Reply klaviaturadagi 'Orqaga' tugmasi uchun."""
-    logging.info(f"ai_assistant_back_reply received from user {message.from_user.id}")
     
     data = await state.get_data()
     previous_state = data.get('previous_state')
@@ -331,13 +325,10 @@ async def ai_assistant_prompts_message_handler(message: types.Message, state: FS
 @ai_assistant_router.callback_query(F.data == "ai_assistant_back")
 async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext):
     """Orqaga tugmasi bosilganda."""
-    logging.info(f"ai_assistant_back callback received from user {callback.from_user.id}")
     await callback.answer("Orqaga qaytmoqda...")
     
     data = await state.get_data()
     previous_state = data.get('previous_state')
-    
-    logging.info(f"ai_assistant_back: Previous state is {previous_state} for user {callback.from_user.id}")
     
     lang = await get_user_language(callback.from_user.id)
     
@@ -346,7 +337,6 @@ async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext):
         
         if previous_state:
             await state.set_state(previous_state)
-            logging.info(f"ai_assistant_back: Restored previous state {previous_state} for user {callback.from_user.id}")
             
             previous_state_str = str(previous_state)
             
@@ -354,34 +344,28 @@ async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext):
                 from post_handlers.xreply_keyboard import get_cancel_reply_kb
                 content_text = get_text('content_msg', lang)
                 await callback.message.answer(content_text, reply_markup=get_cancel_reply_kb(lang, True))  # AI assistant is enabled if user was in AI flow
-                logging.info(f"ai_assistant_back: Returned to content menu for user {callback.from_user.id}")
             elif 'AIAssistant' in previous_state_str and 'waiting_for_user_message' in previous_state_str:
                 await callback.message.answer(
                     get_text('ai_assistant_msg', lang),
                     reply_markup=get_ai_assistant_keyboard(lang)
                 )
-                logging.info(f"ai_assistant_back: Returned to AI assistant menu for user {callback.from_user.id}")
             else:
                 await callback.message.answer(
                     get_text('cancel_success_msg', lang),
                     reply_markup=await get_main_menu(lang=lang, user_id=callback.from_user.id)
                 )
-                logging.info(f"ai_assistant_back: Returned to main menu for user {callback.from_user.id}")
         else:
             await state.clear()
-            logging.info(f"ai_assistant_back: No previous state, cleared state for user {callback.from_user.id}")
             await callback.message.answer(
                 get_text('cancel_success_msg', lang),
                 reply_markup=await get_main_menu(lang=lang, user_id=callback.from_user.id)
             )
         
-        logging.info(f"ai_assistant_back: Successfully returned for user {callback.from_user.id}")
-    except Exception as e:
-        logging.error(f"ai_assistant_back: Error for user {callback.from_user.id}: {e}", exc_info=True)
+    except Exception:
+        pass
 
 async def ai_assistant_prompts(callback: types.CallbackQuery, state: FSMContext):
     """Promptlar tugmasi bosilganda."""
-    logging.info(f"ai_prompts callback received from user {callback.from_user.id}")
     await callback.answer("Promptlar menyusi...")
     lang = await get_user_language(callback.from_user.id)
     
@@ -418,9 +402,8 @@ async def ai_assistant_prompts(callback: types.CallbackQuery, state: FSMContext)
             )
         
         await state.set_state(AIAssistant.waiting_for_prompt_to_save)
-        logging.info(f"ai_prompts: Successfully showed prompts menu for user {callback.from_user.id}")
-    except Exception as e:
-        logging.error(f"ai_prompts: Error showing prompts menu for user {callback.from_user.id}: {e}", exc_info=True)
+    except Exception:
+        pass
 
 @ai_assistant_router.message(AIAssistant.waiting_for_prompt_to_save, F.text)
 async def save_prompt_handler(message: types.Message, state: FSMContext):

@@ -1,4 +1,3 @@
-import logging
 import html
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command
@@ -240,8 +239,7 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             await bot.send_message(chat_id, get_text('parse_mode_error', lang).format(parse_mode=error_mode))
         else:
             await bot.send_message(chat_id, get_text('post_display_error', lang))
-    except Exception as e:
-        logging.error(f"Tahrirlash uchun postni yuborishda xatolik: {e}")
+    except Exception:
         await bot.send_message(chat_id, get_text('post_display_error', lang))
 
 
@@ -438,8 +436,7 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
                 parse_mode="HTML"
             )
             
-        except Exception as e:
-            logging.error(f"Forward xabarni qayta ishlashda xatolik: {e}")
+        except Exception:
             await message.answer(
                 "❌ Xabarni qayta ishlashda xatolik yuz berdi.\n\n"
                 "Iltimos, post kodini qo'lda kiriting.",

@@ -1,6 +1,5 @@
 
 import re
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
@@ -65,9 +64,9 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             pass
         return
     except TelegramBadRequest:
-        logging.warning(f"Klaviaturani o'zgartirib bo'lmadi, postni qayta yuborish...")
-    except Exception as e:
-        logging.error(f"Klaviaturani tahrirlashda kutilmagan xatolik: {e}")
+        pass
+    except Exception:
+        pass
 
     try:
         await message.bot.delete_message(chat_id, message_id)
@@ -162,8 +161,8 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
         if sent_message:
             post_data['message_id'] = sent_message.message_id
             await state.update_data(post_data=post_data)
-    except Exception as e:
-        logging.error(f"Postni zaxira usulida qayta yuborishda xatolik: {e}")
+    except Exception:
+        pass
 
 
 
@@ -560,8 +559,8 @@ async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
                 chat_member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
                 if chat_member.status in ['left', 'kicked']:
                     is_member = False
-            except Exception as e:
-                logging.warning(f"Lokal a'zolikni tekshirishda xatolik: {e}")
+            except Exception:
+                pass
 
     if is_member:
         text = content.get('content_sub', "")

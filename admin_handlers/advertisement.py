@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import re
 from aiogram import F, Router, types, Bot
 from aiogram.filters import StateFilter
@@ -83,8 +82,8 @@ async def redraw_ad_post(bot: Bot, chat_id: int, state: FSMContext, answer_text:
         elif content_type == 'video_note':
             sent_message = await bot.send_video_note(chat_id, post_data.get('file_id'), reply_markup=keyboard)
 
-    except Exception as e:
-        logging.error(f"Reklamani qayta chizishda xatolik: {e}")
+    except Exception:
+        pass
 
     if sent_message:
         await state.update_data(last_ad_post_id=sent_message.message_id)

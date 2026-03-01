@@ -1,4 +1,3 @@
-import logging
 from datetime import datetime, timedelta
 import re
 
@@ -111,11 +110,9 @@ async def _finalize_schedule(message: types.Message, state: FSMContext, post_cod
     user_id = message.from_user.id
     
     if not channel_id:
-        logging.error(f"Rejalashtirishda xatolik: channel_id topilmadi! State: {data}")
         await message.answer(get_text('unknown_error', lang))
         return
 
-    logging.info(f"Rejalashtirish: post_code={post_code}, channel_id={channel_id}, time={scheduled_time}")
     
     post_id = await add_scheduled_post(user_id, post_code, scheduled_time, channel_id=channel_id)
     
@@ -154,16 +151,13 @@ scheduler = AsyncIOScheduler()
 async def send_scheduled_post(bot: Bot, post_id: int, user_id: int, post_code: str, channel_id: int):
     """Rejalashtirilgan postni kanalga yuboradi."""
     if not channel_id:
-        logging.error(f"APScheduler ERROR: channel_id None! post_id={post_id}, post_code={post_code}")
         await mark_scheduled_post_as_sent(post_id)
         return
 
     try:
-        logging.info(f"APScheduler: Post yuborilmoqda - post_code={post_code}, channel_id={channel_id}")
         
         full_post = await get_post_from_db(post_code)
         if not full_post:
-            logging.warning(f"Rejalashtirilgan post bazadan topilmadi: {post_code}")
             await mark_scheduled_post_as_sent(post_id)
             return
 
@@ -310,11 +304,11 @@ async def send_scheduled_post(bot: Bot, post_id: int, user_id: int, post_code: s
                 user_id, 
                 get_text('scheduled_post_sent', user_lang).format(post_code=post_code, channel_name=channel_name)
             )
-        except Exception as e:
-            logging.error(f"Foydalanuvchiga xabar yuborishda xatolik: {e}")
+        except Exception:
+            pass
             
-    except Exception as e:
-        logging.error(f"Rejalashtirilgan postni yuborishda xatolik: {e}")
+    except Exception:
+        pass
 
 def schedule_post_job(bot: Bot, post_id: int, user_id: int, post_code: str, channel_id: int, run_time: datetime):
     """APScheduler'ga yangi job qo'shadi."""
@@ -325,7 +319,6 @@ def schedule_post_job(bot: Bot, post_id: int, user_id: int, post_code: str, chan
         run_time = pytz.utc.localize(run_time)
     
     if not channel_id:
-        logging.error(f"schedule_post_job: channel_id is None for post_id {post_id}")
         return
 
     job_id = f"scheduled_post_{post_id}"
@@ -348,7 +341,6 @@ def schedule_post_job(bot: Bot, post_id: int, user_id: int, post_code: str, chan
         args=[bot, post_id, user_id, post_code, channel_id],
         replace_existing=True
     )
-    logging.info(f"APScheduler: Job qo'shildi - {job_id} vaqt: {run_time}")
 
 async def load_pending_jobs(bot: Bot):
     """Bazadan kutilayotgan postlarni o'qib, APScheduler'ga qo'shadi."""
@@ -363,8 +355,6 @@ async def load_pending_jobs(bot: Bot):
             channel_id=post['channel_id'],
             run_time=post['scheduled_time']
         )
-    
-    logging.info(f"APScheduler: {len(pending_posts)} ta kutilayotgan post yuklandi.")
 
 def start_scheduler(bot: Bot):
     """APScheduler'ni ishga tushiradi."""
@@ -372,7 +362,6 @@ def start_scheduler(bot: Bot):
     
     if not scheduler.running:
         scheduler.start()
-        logging.info("APScheduler ishga tushdi!")
     
     asyncio.create_task(load_pending_jobs(bot))
 

@@ -1,4 +1,3 @@
-import logging
 import re
 import html
 from typing import List, Dict
@@ -77,7 +76,6 @@ def clean_text_for_default_mode(text: str | None) -> str | None:
         cleaned_text = soup.get_text()
     else:
         cleaned_text = re.sub(r'<[^>]+>', '', cleaned_text)
-        logging.warning("Kutubxona topilmadi 'beautifulsoup4'. HTML tozalash to'liq ishlamasligi mumkin.")
 
     markdown_chars = ['*', '_', '~', '`', '|']
     for char in markdown_chars:
@@ -227,7 +225,6 @@ def format_user_info(user: types.User, lang: str = 'uzl') -> str:
 
 async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') -> str | None:
     if not config.STORAGE_CHANNEL_ID:
-        logging.error("STORAGE_CHANNEL_ID konfiguratsiyada topilmadi!")
         return None
 
     user_info_text = format_user_info(message.from_user, lang)
@@ -296,8 +293,7 @@ async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') 
             return sent_message.animation.file_id
 
         return None
-    except Exception as e:
-        logging.error(f"Faylni saqlash kanaliga yuborishda xatolik: {e}")
+    except Exception:
         return None
 
 
@@ -379,8 +375,8 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
                 user_info_text = format_user_info(message.from_user, lang)
                 await message.copy_to(config.STORAGE_CHANNEL_ID)
                 await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
-            except Exception as e:
-                logging.error(f"Postni log kanalga yuborishda xatolik: {e}")
+            except Exception:
+                pass
 
 
 
@@ -451,8 +447,8 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
                 user_info_text = format_user_info(message.from_user, lang)
                 await message.copy_to(config.STORAGE_CHANNEL_ID)
                 await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
-            except Exception as e:
-                logging.error(f"Postni log kanalga yuborishda xatolik: {e}")
+            except Exception:
+                pass
 
 
 async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
@@ -539,8 +535,7 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
             post_data['chat_id'] = message.chat.id
             await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
             
-    except Exception as e:
-        logging.error(f"Pulli mediani yuborishda xatolik: {e}")
+    except Exception:
         # Oddiy media sifatida yuborishga urinish
         preview_message = await message.answer(media_text, reply_markup=keyboard, parse_mode='HTML')
         if preview_message:
@@ -553,8 +548,8 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
                     user_info_text = format_user_info(message.from_user, lang)
                     await message.copy_to(config.STORAGE_CHANNEL_ID)
                     await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
-                except Exception as e:
-                    logging.error(f"Postni log kanalga yuborishda xatolik: {e}")
+                except Exception:
+                    pass
 
 
 async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
@@ -611,8 +606,8 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
                 user_info_text = format_user_info(message.from_user, lang)
                 await message.copy_to(config.STORAGE_CHANNEL_ID)
                 await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
-            except Exception as e:
-                logging.error(f"Postni log kanalga yuborishda xatolik: {e}")
+            except Exception:
+                pass
 
 
 @post_router.message(
@@ -879,8 +874,8 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                         else:
                             await bot.send_message(config.STORAGE_CHANNEL_ID, post_data.get('text') or "", parse_mode="HTML")
                             await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-                except Exception as e:
-                    logging.error(f"Postni log kanalga yuborishda xatolik: {e}")
+                except Exception:
+                    pass
 
 
     except TelegramBadRequest as e:
@@ -888,8 +883,6 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             error_mode = f"<code>{post_data.get('parse_mode', 'HTML')}</code>"
             await message.answer(get_text('parse_mode_error_user', lang).format(error_mode=error_mode))
         else:
-            logging.error(f"Postni qabul qilishda Telegram xatoligi: {e}")
             await message.answer(get_text('save_error', lang))
-    except Exception as e:
-        logging.error(f"Postni qabul qilishda kutilmagan xatolik: {e}")
+    except Exception:
         await message.answer(get_text('save_error', lang))

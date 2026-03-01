@@ -1,4 +1,3 @@
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
@@ -31,8 +30,7 @@ async def check_user_membership(user: types.User, bot: Bot):
             member = await bot.get_chat_member(chat_id=int(channel['id']), user_id=user.id)
             if member.status in ['left', 'kicked']:
                 not_joined_channels.append(channel)
-        except Exception as e:
-            logging.error(f"A'zolikni tekshirishda xato (Bot admin emasmi?): {e}. User: {user.id}, Kanal: {channel.get('id')}")
+        except Exception:
             not_joined_channels.append(channel)
 
     if not_joined_channels:

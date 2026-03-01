@@ -1,5 +1,4 @@
 import asyncio
-import logging
 import threading
 import os
 from flask import Flask
@@ -63,11 +62,6 @@ async def set_bot_commands(bot: Bot):
     await bot.set_my_commands(commands)
     
 async def main():
-    logging.basicConfig(
-        level=config.LOGGING_LEVEL,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        force=True
-    )
     await init_db()
     load_translations()
 
@@ -116,7 +110,6 @@ async def main():
     from post_handlers.schedule_handler import start_scheduler
     start_scheduler(bot)
 
-    logging.info("Bot ishga tushmoqda (Polling)...")
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
@@ -128,6 +121,6 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logging.info("Bot to'xtatildi.")
-    except Exception as e:
-        logging.error(f"Botda kutilmagan xatolik: {e}", exc_info=True)
+        pass
+    except Exception:
+        pass

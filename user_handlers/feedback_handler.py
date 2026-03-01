@@ -1,4 +1,3 @@
-import logging
 import html
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command, StateFilter
@@ -62,7 +61,6 @@ async def cmd_feedback_admin(message: types.Message):
 )
 async def process_first_feedback(message: types.Message, state: FSMContext, bot: Bot):
     if not config.FEEDBACK_RECIPIENT_ID:
-        logging.warning("FEEDBACK_RECIPIENT_ID topilmadi. Fikr-mulohaza yuborilmadi.")
         lang = await get_user_language(message.from_user.id)
         await message.answer(get_text('error_technical', lang))
         return
@@ -89,8 +87,7 @@ async def process_first_feedback(message: types.Message, state: FSMContext, bot:
         )
         await state.clear()
 
-    except Exception as e:
-        logging.error(f"Fikr-mulohazani adminga yuborishda xatolik: {e}")
+    except Exception:
         lang = await get_user_language(message.from_user.id)
         await message.answer(get_text('feedback_error_msg', lang))
 
@@ -140,8 +137,7 @@ async def send_message_from_admin(message: types.Message, state: FSMContext, bot
             reply_markup=get_feedback_reply_to_admin_keyboard()
         )
         await message.answer(get_text('admin_reply_success_msg', lang), reply_markup=ReplyKeyboardRemove())
-    except Exception as e:
-        logging.error(f"Admindan ({message.from_user.id}) foydalanuvchiga ({recipient_user_id}) javob yuborishda xatolik: {e}")
+    except Exception:
         await message.answer(get_text('admin_reply_error_msg', lang), reply_markup=ReplyKeyboardRemove())
     finally:
         await state.clear()
@@ -191,8 +187,7 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
             get_text('admin_receive_msg', lang),
             reply_markup=await get_main_menu(lang, message.from_user.id)
         )
-    except Exception as e:
-        logging.error(f"Foydalanuvchidan adminga javob yuborishda xatolik: {e}")
+    except Exception:
         lang = await get_user_language(message.from_user.id)
         await message.answer(get_text('admin_reply_error_msg', lang), reply_markup=await get_main_menu(lang, message.from_user.id))
     finally:

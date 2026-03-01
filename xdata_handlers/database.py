@@ -3,7 +3,6 @@ import json
 import secrets
 import string
 import os
-import logging
 from datetime import datetime, timedelta, timezone
 import asyncio
 from typing import Optional, List, Dict, Any
@@ -43,8 +42,8 @@ async def is_maintenance_mode() -> bool:
             if result:
                 return result[0] == 'on'
             return False
-        except Exception as e:
-            logging.error(f"Maintenance mode tekshirishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -65,8 +64,8 @@ async def set_maintenance_mode(status: bool) -> bool:
             """, (val,))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Maintenance mode o'rnatishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -102,8 +101,8 @@ async def set_user_language(user_id: int, nickname: str = None, username: str = 
             """, (user_id, nickname, username, language))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Foydalanuvchi tilini o'rnatishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -127,8 +126,8 @@ async def get_all_active_users(admin_ids: List[int] = None) -> List[int]:
                 cursor.execute("SELECT user_id FROM users WHERE COALESCE(is_blocked, 0) = 0")
             rows = cursor.fetchall()
             return [int(r[0]) for r in rows]
-        except Exception as e:
-            logging.error(f"Aktiv foydalanuvchilarni olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -160,8 +159,8 @@ async def get_blocked_users_with_info(admin_ids: List[int] = None) -> List[Dict]
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Bloklangan foydalanuvchilarni olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -197,8 +196,8 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
                         language = EXCLUDED.language;
                 """, (user_id, nickname, username, language))
             conn.commit()
-        except Exception as e:
-            logging.error(f"Foydalanuvchini qo'shishda xatolik: {e}")
+        except Exception:
+            pass
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
@@ -219,8 +218,8 @@ async def get_user_language(user_id: int) -> str:
             cursor.execute("SELECT language FROM users WHERE user_id = %s", (user_id,))
             result = cursor.fetchone()
             return result[0] if result else 'uz'
-        except Exception as e:
-            logging.error(f"Foydalanuvchi tilini olishda xatolik: {e}")
+        except Exception:
+            
             return 'uz'
         finally:
             if conn: conn.close()
@@ -236,8 +235,8 @@ async def is_user_blocked(user_id: int) -> bool:
             cursor.execute("SELECT is_blocked FROM users WHERE user_id = %s", (user_id,))
             result = cursor.fetchone()
             return bool(result[0]) if result else False
-        except Exception as e:
-            logging.error(f"Foydalanuvchi blokini tekshirishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -253,8 +252,8 @@ async def block_user(user_id: int) -> bool:
             cursor.execute("UPDATE users SET is_blocked = 1 WHERE user_id = %s", (user_id,))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Foydalanuvchini bloklayotganda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -270,8 +269,8 @@ async def unblock_user(user_id: int) -> bool:
             cursor.execute("UPDATE users SET is_blocked = 0 WHERE user_id = %s", (user_id,))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Foydalanuvchini blokdan chiqarayotganda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -296,8 +295,8 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
             """, (user_id, channel_id, channel_name, send_posts))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Kanal qo'shishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -325,8 +324,8 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Foydalanuvchi kanallarini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -342,8 +341,8 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
             cursor.execute("DELETE FROM channels WHERE user_id = %s AND channel_id = %s", (user_id, channel_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Kanalni o'chirishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -370,8 +369,8 @@ async def get_user_bot_settings(user_id: int) -> Dict:
             return {
                 'ai_assistant_enabled': False
             }
-        except Exception as e:
-            logging.error(f"Bot sozlamalarini olishda xatolik: {e}")
+        except Exception:
+            
             return {
                 'ai_assistant_enabled': False
             }
@@ -397,8 +396,8 @@ async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = No
             """, (user_id, ai_assistant_enabled))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Bot sozlamalarini yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -421,8 +420,8 @@ async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datet
             post_id = cursor.fetchone()[0]
             conn.commit()
             return post_id
-        except Exception as e:
-            logging.error(f"Rejalashtirilgan post qo'shishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -447,8 +446,8 @@ async def save_sent_post(post_code: str, user_id: int, channel_id: int, channel_
             """, (post_code, user_id, channel_id, channel_name, get_now(), message_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Yuborilgan postni saqlashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -479,8 +478,8 @@ async def get_scheduled_posts() -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Rejalashtirilgan postlarni olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -496,8 +495,8 @@ async def mark_scheduled_post_as_sent(post_id: int) -> bool:
             cursor.execute("UPDATE send_posts SET status = 'sent', sent_at = %s WHERE id = %s", (get_now(), post_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Rejalashtirilgan post statusini yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -527,8 +526,8 @@ async def get_pending_scheduled_posts() -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Kutilayotgan postlarni olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -554,8 +553,8 @@ async def add_required_channel(channel_id: int, channel_name: str, username: str
             """, (channel_id, channel_name, username))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Majburiy kanal qo'shishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -578,8 +577,8 @@ async def get_required_channels() -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Majburiy kanallarni olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -597,8 +596,8 @@ async def remove_required_channel(channel_id: int) -> bool:
             cursor.execute("DELETE FROM req_channels WHERE channel_id = %s", (channel_id,))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Majburiy kanalni o'chirishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -624,8 +623,8 @@ async def add_reaction(post_code: str, button_index: int, reaction_emoji: str,
             """, (post_code, button_index, reaction_emoji, user_id, chat_id, message_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Reaksiya qo'shishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -653,8 +652,8 @@ async def get_post_reactions(post_code: str) -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Post reaksiyalarini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -713,8 +712,8 @@ async def add_or_update_reaction_by_chat_message(user_id: int, chat_id: int, mes
                 """, (user_id, chat_id, message_id, reaction_emoji, post_code))
                 conn.commit()
                 return ('added', None)
-        except Exception as e:
-            logging.error(f"Reaksiya qo'shishda/xatolik: {e}")
+        except Exception:
+            
             return ('error', None)
         finally:
             if conn: conn.close()
@@ -732,8 +731,8 @@ async def get_reaction_count(post_code: str, button_index: int) -> int:
             )
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
-        except Exception as e:
-            logging.error(f"Reaksiyalar sonini olishda xatolik: {e}")
+        except Exception:
+            
             return 0
         finally:
             if conn: conn.close()
@@ -752,8 +751,8 @@ async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reac
             )
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
-        except Exception as e:
-            logging.error(f"Reaksiyalar sonini olishda xatolik: {e}")
+        except Exception:
+            
             return 0
         finally:
             if conn: conn.close()
@@ -799,8 +798,8 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
             """, (post_code, user_id, full_post_json, post_name))
             conn.commit()
             return post_code
-        except Exception as e:
-            logging.error(f"Post qo'shishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -816,8 +815,8 @@ async def get_post_from_db(post_code: str) -> dict | None:
             cursor.execute("SELECT full_post_data FROM post_info WHERE post_code = %s", (post_code,))
             result = cursor.fetchone()
             return json.loads(result[0]) if result else None
-        except Exception as e:
-            logging.error(f"Postni olishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -833,8 +832,8 @@ async def check_post_owner(post_code: str, user_id: int) -> bool:
             cursor.execute("SELECT user_id FROM post_info WHERE post_code = %s", (post_code,))
             result = cursor.fetchone()
             return result[0] == user_id if result else False
-        except Exception as e:
-            logging.error(f"Post egasini tekshirishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -850,8 +849,8 @@ async def get_post_name(post_code: str) -> str | None:
             cursor.execute("SELECT post_name FROM post_info WHERE post_code = %s", (post_code,))
             result = cursor.fetchone()
             return result[0] if result and result[0] else None
-        except Exception as e:
-            logging.error(f"Post nomini olishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -889,8 +888,8 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
             """, params)
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Postni yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -906,8 +905,8 @@ async def update_post_message_id(post_code: str, message_id: int) -> bool:
             cursor.execute("UPDATE post_info SET message_id = %s WHERE post_code = %s", (message_id, post_code))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Post message_id yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -923,8 +922,8 @@ async def update_post_error(post_code: str, error_message: str) -> bool:
             cursor.execute("UPDATE post_info SET error_message = %s WHERE post_code = %s", (error_message, post_code))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Post xatolik yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -961,8 +960,8 @@ async def update_post_print_settings(post_code: str, print_settings: dict) -> bo
             )
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Print settings yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -984,8 +983,8 @@ async def record_user_activity(user_id: int, username: str = None) -> bool:
             """, (user_id, username, get_now()))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Foydalanuvchi faoliyatini yozishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1001,8 +1000,8 @@ async def save_post_name(post_code: str, post_name: str) -> bool:
             cursor.execute("UPDATE post_info SET post_name = %s WHERE post_code = %s", (post_name, post_code))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Post nomini saqlashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1027,8 +1026,8 @@ async def unsave_post_name(post_code: str, user_id: int = None) -> str | None:
                 conn.commit()
             
             return post_name
-        except Exception as e:
-            logging.error(f"Post nomini o'chirishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1055,8 +1054,8 @@ async def get_user_posts(user_id: int) -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Foydalanuvchi postlarini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1137,8 +1136,8 @@ async def create_text_button(*args, **kwargs) -> int | None:
             btn_id = cursor.fetchone()[0]
             conn.commit()
             return btn_id
-        except Exception as e:
-            logging.error(f"Matnli tugma yaratishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1157,8 +1156,8 @@ async def get_text_button_content(btn_id: int) -> dict | None:
             """, (btn_id,))
             row = cursor.fetchone()
             return {'content_sub': row[0], 'content_nonsub': row[1]} if row else None
-        except Exception as e:
-            logging.error(f"Matnli tugmani olishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1182,8 +1181,8 @@ async def update_bot_stats(stat_date: str, new_users: int = 0, new_posts: int = 
             """, (stat_date, new_users, new_posts))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Bot statistikasini yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1209,8 +1208,8 @@ async def get_bot_stats() -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Bot statistikasini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1242,8 +1241,8 @@ async def update_post_stats(post_code: str, channel_id: int, views: int = 0,
             """, (post_code, channel_id, views, clicks, shares, reactions, reactions_json))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Post statistikasini yangilashda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1272,8 +1271,8 @@ async def get_post_stats(post_code: str) -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Post statistikasini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1295,8 +1294,8 @@ async def log_user_feedback(user_id: int, feedback_text: str) -> bool:
             """, (feedback_text, user_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Feedbackni log qilishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1316,8 +1315,8 @@ async def log_user_error(user_id: int, error_text: str) -> bool:
             """, (error_text, user_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Xatolikni log qilishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1344,8 +1343,8 @@ async def get_feedbacks_by_user(user_id: int) -> List[Dict]:
                     }
                 ]
             return []
-        except Exception as e:
-            logging.error(f"Foydalanuvchi feedbacklarini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1371,8 +1370,8 @@ async def get_errors_by_user(user_id: int) -> List[Dict]:
                     }
                 ]
             return []
-        except Exception as e:
-            logging.error(f"Foydalanuvchi xatolarini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1407,8 +1406,8 @@ async def find_user_by_id_or_username(query: str) -> Dict | None:
                     'last_activity_date': result[5]
                 }
             return None
-        except Exception as e:
-            logging.error(f"Foydalanuvchini qidirishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1436,8 +1435,8 @@ async def get_user_info_from_db(user_id: int) -> Dict | None:
                     'last_activity': result[5]
                 }
             return None
-        except Exception as e:
-            logging.error(f"Foydalanuvchi ma'lumotlarini olishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1464,8 +1463,8 @@ async def get_user_block_info(user_id: int) -> Dict | None:
                     'last_activity': result[4]
                 }
             return None
-        except Exception as e:
-            logging.error(f"Foydalanuvchi blok ma'lumotlarini olishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1503,8 +1502,8 @@ async def get_users_for_export(admin_ids: List[int], period: str = None) -> List
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Foydalanuvchilarni eksport qilishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1536,8 +1535,8 @@ async def get_post_creators_for_export(admin_ids: List[int], period: str = None)
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Post yaratuvchilarni eksport qilishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1570,8 +1569,8 @@ async def get_user_settings_for_export(admin_ids: List[int], period: str = None)
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Foydalanuvchi sozlamalarini eksport qilishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1593,8 +1592,8 @@ async def save_prompt(user_id: int, prompt_text: str) -> int | None:
             prompt_id = cursor.fetchone()[0]
             conn.commit()
             return prompt_id
-        except Exception as e:
-            logging.error(f"Promptni saqlashda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1621,8 +1620,8 @@ async def get_user_prompts(user_id: int) -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception as e:
-            logging.error(f"Foydalanuvchi promptlarini olishda xatolik: {e}")
+        except Exception:
+            
             return []
         finally:
             if conn: conn.close()
@@ -1638,8 +1637,8 @@ async def delete_prompt(prompt_id: int, user_id: int) -> bool:
             cursor.execute("DELETE FROM ai_prompts WHERE id = %s AND user_id = %s", (prompt_id, user_id))
             conn.commit()
             return True
-        except Exception as e:
-            logging.error(f"Promptni o'chirishda xatolik: {e}")
+        except Exception:
+            
             return False
         finally:
             if conn: conn.close()
@@ -1664,8 +1663,8 @@ async def get_prompt_by_id(prompt_id: int, user_id: int) -> Dict | None:
                     'created_at': row[2]
                 }
             return None
-        except Exception as e:
-            logging.error(f"Promptni olishda xatolik: {e}")
+        except Exception:
+            
             return None
         finally:
             if conn: conn.close()
@@ -1707,8 +1706,8 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                 'top_lang': None,
                 'last_7_days': []
             }
-        except Exception as e:
-            logging.error(f"Foydalanuvchi statistikasi xatolik: {e}")
+        except Exception:
+            
             return {
                 'total_users': 0,
                 'today_users': 0,
@@ -1734,8 +1733,8 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
             cursor.execute("SELECT COUNT(*) FROM post_info")
             total = int((cursor.fetchone() or [0])[0] or 0)
             return {'total': total, 'daily': 0, 'weekly': 0, 'monthly': 0}
-        except Exception as e:
-            logging.error(f"Post statistikasi xatolik: {e}")
+        except Exception:
+            
             return {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
         finally:
             if conn: conn.close()
@@ -1757,8 +1756,8 @@ async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
             cursor.execute(f"SELECT language, COUNT(*) FROM users {where_sql} GROUP BY language", params)
             rows = cursor.fetchall()
             return {row[0]: int(row[1]) for row in rows}
-        except Exception as e:
-            logging.error(f"Til taqsimotini olishda xatolik: {e}")
+        except Exception:
+            
             return {}
         finally:
             if conn: conn.close()
@@ -1780,8 +1779,8 @@ async def get_daily_stats_for_graph(days: int = 30):
             users = [int(r[1] or 0) for r in rows]
             posts = [int(r[2] or 0) for r in rows]
             return dates, users, posts
-        except Exception as e:
-            logging.error(f"Grafik uchun kunlik statlarni olishda xatolik: {e}")
+        except Exception:
+            
             return [], [], []
         finally:
             if conn: conn.close()
@@ -1799,8 +1798,8 @@ async def get_total_errors_count() -> int:
             cursor.execute("SELECT COUNT(*) FROM users WHERE error_text IS NOT NULL")
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
-        except Exception as e:
-            logging.error(f"Xatolar sonini olishda xatolik: {e}")
+        except Exception:
+            
             return 0
         finally:
             if conn: conn.close()
@@ -1820,8 +1819,6 @@ async def get_post_formats(admin_ids: List[int] = None) -> Dict:
 
 async def get_button_stats(admin_ids: List[int] = None) -> Dict:
     return {}
-
-# ==================== INITIALIZATION ====================
 
 async def init_db():
     """Bazani ishga tushirish uchun kerakli dastlabki ma'lumotlarni qo'shadi."""

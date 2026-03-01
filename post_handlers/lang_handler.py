@@ -63,8 +63,6 @@ async def set_language_handler(callback: types.CallbackQuery, state: FSMContext,
         # Bosh menyuni chaqirish
         await cmd_start(callback, state, bot)
         
-    except Exception as e:
-        import logging
-        logging.error(f"Til o'zgartirishda xatolik: {e}")
+    except Exception:
         await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
 

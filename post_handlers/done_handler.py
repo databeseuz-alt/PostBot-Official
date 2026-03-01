@@ -1,4 +1,3 @@
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
@@ -158,8 +157,8 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
                 show_caption_above_media=post_data.get('show_caption_above_media', False),
                 reply_markup=preview_keyboard
             )
-    except Exception as e:
-        logging.error(f"Post preview yuborishda xatolik: {e}")
+    except Exception:
+        pass
     
     bot_info = await bot.get_me()
     bot_username = bot_info.username

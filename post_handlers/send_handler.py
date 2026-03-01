@@ -1,5 +1,4 @@
 
-import logging
 import html
 import asyncio
 from contextlib import suppress
@@ -33,11 +32,10 @@ async def schedule_message_deletion(bot: Bot, chat_id: int, message_id: int, del
     try:
         await asyncio.sleep(delete_after_seconds)
         await bot.delete_message(chat_id, message_id)
-        logging.info(f"Post (message_id={message_id}) {delete_after_seconds} sekunddan so'ng o'chirildi.")
     except TelegramBadRequest:
-        logging.warning(f"Xabar (message_id={message_id}) allaqachon o'chirilgan yoki topilmadi.")
-    except Exception as e:
-        logging.error(f"Xabarni o'chirishda xatolik: {e}")
+        pass  # Xabar allaqachon o'chirilgan yoki topilmadi
+    except Exception:
+        pass  # Boshqa xatolar - o'tkazib yuborish
 
 
 send_router = Router()
@@ -48,10 +46,10 @@ async def safe_callback_answer(callback: types.CallbackQuery):
     """Callback.answer() ni xavfsiz chaqiradi (Telegram xatolarini tutadi)."""
     try:
         await callback.answer()
-    except TelegramBadRequest as e:
-        logging.debug(f"Callback answer xatosi (ignorelanadi): {e}")
-    except Exception as e:
-        logging.warning(f"Callback answer da noma'lum xato: {e}")
+    except TelegramBadRequest:
+        pass  # Xatolar o'tkazib yuboriladi
+    except Exception:
+        pass  # Boshqa xatolar
 
 class PostSending(StatesGroup):
     waiting_for_channel_info = State()
@@ -87,8 +85,7 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
         if user_member.status not in ['administrator', 'creator']:
             return await message.answer(get_text('user_not_admin_msg', lang).format(channel_name=html.escape(chat_info.title)))
 
-    except Exception as e:
-        logging.warning(f"Kanalni tekshirishda ogohlantirish: {e}")
+    except Exception:
         error_text = get_text('add_channel_error_msg', lang)
         return await message.answer(error_text)
 
@@ -224,18 +221,16 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
     """Kanal tanlagandan keyin: Qachon yuborilsin? oynasini ko'rsatadi."""
     from post_handlers.xinline_keyboard import get_send_timing_keyboard
     
-    lang = await get_user_language(callback.from_user.id)
+    # Ikkala so'rovni parallel bajarish - tezlik uchun
+    lang_task = get_user_language(callback.from_user.id)
+    channels_task = get_user_channels(callback.from_user.id)
+    lang, user_channels = await asyncio.gather(lang_task, channels_task)
+    
     channel_name = "Noma'lum"
-    try:
-        chat_info = await bot.get_chat(callback_data.channel_id)
-        channel_name = chat_info.title
-    except Exception as e:
-        logging.warning(f"Kanal nomini olishda xatolik: {e}")
-        user_channels = await get_user_channels(callback.from_user.id)
-        for ch in user_channels:
-            if ch['channel_id'] == callback_data.channel_id:
-                channel_name = ch['channel_name']
-                break
+    for ch in user_channels:
+        if ch['channel_id'] == callback_data.channel_id:
+            channel_name = ch['channel_name']
+            break
 
     safe_channel_name = html.escape(channel_name)
     
@@ -492,8 +487,7 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
         
         await state.clear()
 
-    except Exception as e:
-        logging.error(f"Postni ({post_code}) kanalga ({channel_id}) yuborishda xato: {e}")
+    except Exception:
         await bot.send_message(user_id, get_text('send_error_msg', lang))
 
     await callback.answer()

@@ -1,4 +1,3 @@
-import logging
 import traceback
 from aiogram import Router, types
 from aiogram.exceptions import TelegramAPIError
@@ -20,10 +19,7 @@ async def error_handler(exception: types.ErrorEvent):
     Proksi bilan bog'liq xatoliklarni e'tiborsiz qoldiradi.
     """
     if isinstance(exception.exception, (ClientProxyConnectionError, ClientConnectorError, ClientHttpProxyError)):
-        logging.warning("Proksi yoki tarmoq xatoligi yuz berdi, logga yozilmaydi: %s", exception.exception)
         return True
-
-    logging.error("Dispatcherda kutilmagan xatolik yuz berdi: %s", exception.exception, exc_info=True)
 
     error_trace = traceback.format_exc()
     error_message = f"Exception: {exception.exception}\n\nTraceback:\n{error_trace}"
@@ -38,8 +34,8 @@ async def error_handler(exception: types.ErrorEvent):
 
     try:
         await log_user_error(user_id=user_id, error_text=error_message[:4000])
-    except Exception as db_error:
-        logging.error(f"Xatolikni bazaga yozishda xatolik yuz berdi: {db_error}")
+    except Exception:
+        pass
 
     if isinstance(exception.exception, TelegramAPIError):
         return False

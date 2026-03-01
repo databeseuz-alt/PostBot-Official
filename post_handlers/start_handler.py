@@ -244,9 +244,7 @@ async def set_language_from_start(callback: types.CallbackQuery, state: FSMConte
         # Bosh menyuni ko'rsatish
         await show_main_menu(callback, state, bot)
         
-    except Exception as e:
-        import logging
-        logging.error(f"Til o'zgartirishda xatolik: {e}")
+    except Exception:
         await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
 
 
