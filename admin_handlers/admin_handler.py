@@ -1,4 +1,3 @@
-import logging
 from aiogram import F, Router, types
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
@@ -10,13 +9,11 @@ from admin_handlers.xinline_keyboard import get_main_admin_keyboard
 
 from aiogram.fsm.state import State, StatesGroup
 
-logger = logging.getLogger(__name__)
 admin_router = Router()
 
 class IsAdmin(Filter):
     async def __call__(self, message_or_callback: types.Message | types.CallbackQuery) -> bool:
         return message_or_callback.from_user.id in config.ADMIN_IDS
-
 
 class AdminStates(StatesGroup):
     waiting_for_block_id = State()
@@ -38,16 +35,13 @@ class AdminStates(StatesGroup):
     waiting_for_direct_message_user_id = State()
     waiting_for_direct_message_content = State()
 
-
 class AdminGuideSettings(StatesGroup):
     waiting_for_guide_content = State()
     choosing_language = State()
 
-
 @admin_router.message(Command("admin"), IsAdmin())
 async def admin_panel_handler(message: types.Message, state: FSMContext):
     await state.clear()
-    logger.info(f"Admin panel ochdi | User ID: {message.from_user.id}, Username: @{message.from_user.username}")
 
     remover_message = await message.answer(
         "Admin paneli ochilmoqda...",

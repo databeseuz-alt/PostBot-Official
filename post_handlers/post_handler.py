@@ -1,6 +1,5 @@
 import re
 import html
-import logging
 from typing import List, Dict
 
 try:
@@ -21,7 +20,6 @@ from xdata_handlers.database import get_user_language, get_user_post_settings
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
 
-logger = logging.getLogger(__name__)
 post_router = Router()
 
 class PostCreation(StatesGroup):
@@ -46,26 +44,22 @@ class PostCreation(StatesGroup):
     waiting_for_text_btn_color = State()
     waiting_for_reactions = State()
     waiting_for_reaction_color = State()
-    
-    # Media sozlamalari uchun yangi holatlar
+
     waiting_for_media_settings = State()
     waiting_for_position = State()
     waiting_for_paid_price = State()
     waiting_for_location = State()
     waiting_for_quiz_answer = State()
 
-    # Chop etish sozlamalari
     waiting_for_delete_timer = State()
     waiting_for_pin_setting = State()
     waiting_for_protect_setting = State()
     waiting_for_voice_setting = State()
     waiting_for_reply_setting = State()
     waiting_for_auto_repeat_setting = State()
-    
-    # Watermark sozlamalari
+
     waiting_for_watermark_text = State()
     waiting_for_watermark_image = State()
-
 
 def clean_text_for_default_mode(text: str | None) -> str | None:
     """Matndan barcha HTML va Markdown formatlash belgilarini olib tashlaydi."""
@@ -106,118 +100,118 @@ def get_html_text(text: str, entities: list) -> str:
         utf16_text = text.encode('utf-16-le')
     except Exception:
         return html.escape(text)
-    
+
     boundaries = {0, len(utf16_text) // 2}
     for e in entities:
         boundaries.add(e.offset)
         boundaries.add(e.offset + e.length)
-    
+
     sorted_boundaries = sorted(list(boundaries))
-    
+
     res = []
-    
+
     def get_text_slice(start, end):
         return utf16_text[start*2:end*2].decode('utf-16-le')
-    
+
     for i in range(len(sorted_boundaries) - 1):
         start, end = sorted_boundaries[i], sorted_boundaries[i+1]
         segment_text = get_text_slice(start, end)
-        
+
         if not segment_text:
             continue
-            
+
         active_entities = [e for e in entities if e.offset <= start and (e.offset + e.length) >= end]
-        
+
         active_entities.sort(key=lambda e: e.length)
-        
+
         inner = html.escape(segment_text)
-        
+
         for entity in active_entities:
             tag_start = ""
             tag_end = ""
             entity_type = entity.type
-            
+
             if entity_type == "bold":
                 tag_start, tag_end = "<b>", "</b>"
-            
+
             elif entity_type == "italic":
                 tag_start, tag_end = "<i>", "</i>"
-            
+
             elif entity_type == "underline":
                 tag_start, tag_end = "<u>", "</u>"
-            
+
             elif entity_type == "strikethrough":
                 tag_start, tag_end = "<s>", "</s>"
-            
+
             elif entity_type == "spoiler":
                 tag_start, tag_end = "<tg-spoiler>", "</tg-spoiler>"
-            
+
             elif entity_type == "code":
                 tag_start, tag_end = "<code>", "</code>"
-            
+
             elif entity_type == "pre":
                 lang_attr = f' language="{html.escape(entity.language)}"' if getattr(entity, 'language', None) else ""
                 tag_start, tag_end = f"<pre{lang_attr}>", "</pre>"
-            
+
             elif entity_type == "text_link":
                 url = html.escape(entity.url) if entity.url else ""
                 tag_start, tag_end = f'<a href="{url}">', "</a>"
-            
+
             elif entity_type == "text_mention":
                 user_id = entity.user.id if entity.user else 0
                 tag_start, tag_end = f'<a href="tg://user?id={user_id}">', "</a>"
-            
+
             elif entity_type == "url":
                 url = html.escape(segment_text)
                 inner = f'<a href="{url}">{inner}</a>'
                 continue  # Tag qo'shmaslik uchun
-            
+
             elif entity_type == "email":
                 email = html.escape(segment_text)
                 inner = f'<a href="mailto:{email}">{inner}</a>'
                 continue
-            
+
             elif entity_type == "phone_number":
                 phone = html.escape(segment_text)
                 inner = f'<a href="tel:{phone}">{inner}</a>'
                 continue
-            
+
             elif entity_type == "custom_emoji":
                 emoji_id = getattr(entity, 'custom_emoji_id', '')
                 tag_start, tag_end = f'<tg-emoji emoji-id="{emoji_id}">', "</tg-emoji>"
-            
+
             elif entity_type == "blockquote":
                 tag_start, tag_end = "<blockquote>", "</blockquote>"
-            
+
             elif entity_type == "expandable_blockquote":
                 tag_start, tag_end = "<blockquote expandable>", "</blockquote>"
-            
+
             elif entity_type == "mention":
                 username = segment_text.lstrip('@')
                 inner = f'<a href="https://t.me/{html.escape(username)}">{inner}</a>'
                 continue
-            
+
             elif entity_type == "hashtag":
                 pass
-            
+
             elif entity_type == "cashtag":
                 pass
-            
+
             elif entity_type == "bot_command":
                 pass
-            
+
             if tag_start:
                 inner = tag_start + inner + tag_end
-        
+
         res.append(inner)
-        
+
     return "".join(res)
 
 def format_user_info(user: types.User, lang: str = 'uzl') -> str:
     """Foydalanuvchi ma'lumotlarini formatlash."""
     nickname = html.escape(user.full_name)
     username = f"@{user.username}" if user.username else "mavjud emas"
-    
+
     return (
         f"\n-------------------------------\n"
         f"nickname : <code>{nickname}</code>\n"
@@ -232,14 +226,13 @@ async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') 
     user_info_text = format_user_info(message.from_user, lang)
 
     try:
-        # User ma'lumotlarini alohida yuborish kerakligini tekshirish
         original_caption = ""
         if message.caption:
             original_caption = message.html_text
-        
+
         caption_to_send = original_caption
         send_user_info_separately = False
-        
+
         if original_caption:
             if len(original_caption) + len(user_info_text) <= 1024:
                 caption_to_send = original_caption + user_info_text
@@ -298,18 +291,16 @@ async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') 
     except Exception:
         return None
 
-
 async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Poll/Quiz kontentini qayta ishlash"""
     poll = message.poll
     if not poll:
         return await message.answer(get_text('wrong_format', lang))
-    
+
     await state.set_state(PostCreation.configuring_post)
-    
+
     is_editing_session = 'editing_post_code' in old_data
-    
-    # Poll ma'lumotlarini yig'ish
+
     poll_data = {
         'content_type': 'poll',
         'poll_question': poll.question,
@@ -321,27 +312,24 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
         'poll_explanation': getattr(poll, 'explanation', None),
         'parse_mode': 'HTML'
     }
-    
-    # Agar oldindan post_data bo'lsa, unga qo'shish
+
     post_data = old_data.get('post_data', {})
     post_data.update(poll_data)
     post_data['chat_id'] = message.chat.id
-    
+
     buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
     keyboard = generate_post_keyboard(buttons_matrix, lang)
-    
-    # Poll yoki Quiz ekanligini ko'rsatish
+
     poll_type_text = "📝 Viktorina" if poll.type == 'quiz' else "📊 So'rovnoma"
-    
-    # Javoblar ro'yxatini tuzish (HTML escaping qilish)
+
     options_text = "\n".join([f"{i+1}. {html.escape(str(opt))}" for i, opt in enumerate(poll_data['poll_options'])])
-    
+
     preview_text = f"{poll_type_text}\n\n<b>{html.escape(poll.question)}</b>\n\n{options_text}"
-    
+
     if poll.type == 'quiz' and poll.correct_option_id is not None:
         correct_answer = html.escape(str(poll_data['poll_options'][poll.correct_option_id]))
         preview_text += f"\n\n✅ To'g'ri javob: {correct_answer}"
-    
+
     settings_kb_kwargs = {
         "content_type": 'poll',
         "has_caption": False,
@@ -349,12 +337,12 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
         "is_paid": post_data.get('is_paid', False)
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
-    
+
     if is_editing_session:
         await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
     else:
         await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
-    
+
     preview_message = await bot.send_poll(
         message.chat.id,
         question=poll.question,
@@ -366,7 +354,7 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
         explanation=getattr(poll, 'explanation', None),
         reply_markup=keyboard
     )
-    
+
     if preview_message:
         post_data['message_id'] = preview_message.message_id
         post_data['chat_id'] = preview_message.chat.id
@@ -380,20 +368,16 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
             except Exception:
                 pass
 
-
-
-
 async def handle_location_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Location kontentini qayta ishlash"""
     location = message.location
     if not location:
         return await message.answer(get_text('wrong_format', lang))
-    
+
     await state.set_state(PostCreation.configuring_post)
-    
+
     is_editing_session = 'editing_post_code' in old_data
-    
-    # Location ma'lumotlarini yig'ish
+
     location_data = {
         'content_type': 'location',
         'latitude': location.latitude,
@@ -402,22 +386,20 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
         'address': getattr(location, 'address', None),
         'parse_mode': 'HTML'
     }
-    
-    # Agar oldindan post_data bo'lsa, unga qo'shish
+
     post_data = old_data.get('post_data', {})
     post_data.update(location_data)
     post_data['chat_id'] = message.chat.id
-    
+
     buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
     keyboard = generate_post_keyboard(buttons_matrix, lang)
-    
-    # Location ko'rsatish
+
     location_text = f"📍 Joylashuv\n\nKenglik: {location.latitude}\nUzunlik: {location.longitude}"
     if getattr(location, 'title', None):
         location_text += f"\nNomi: {getattr(location, 'title')}"
     if getattr(location, 'address', None):
         location_text += f"\nManzil: {getattr(location, 'address')}"
-    
+
     settings_kb_kwargs = {
         "content_type": 'location',
         "has_caption": False,
@@ -425,20 +407,19 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
         "is_paid": post_data.get('is_paid', False)
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
-    
+
     if is_editing_session:
         await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
     else:
         await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
-    
-    # Location yuborish (preview)
+
     preview_message = await bot.send_location(
         message.chat.id,
         latitude=location.latitude,
         longitude=location.longitude,
         reply_markup=keyboard
     )
-    
+
     if preview_message:
         post_data['message_id'] = preview_message.message_id
         post_data['chat_id'] = preview_message.chat.id
@@ -452,21 +433,19 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
             except Exception:
                 pass
 
-
 async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Pulli media kontentini qayta ishlash"""
     paid_media = getattr(message, 'paid_media', None)
     if not paid_media:
         return await message.answer(get_text('wrong_format', lang))
-    
+
     await state.set_state(PostCreation.configuring_post)
-    
+
     is_editing_session = 'editing_post_code' in old_data
-    
-    # Pulli media ma'lumotlarini yig'ish
+
     media_types = []
     file_ids = []
-    
+
     for media in paid_media:
         if hasattr(media, 'photo'):
             media_types.append('photo')
@@ -474,7 +453,7 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
         elif hasattr(media, 'video'):
             media_types.append('video')
             file_ids.append(media.video.file_id)
-    
+
     post_data = old_data.get('post_data', {})
     post_data.update({
         'content_type': 'paid_media',
@@ -486,15 +465,14 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
         'chat_id': message.chat.id,
         'show_caption_above_media': getattr(message, 'show_caption_above_media', False)
     })
-    
+
     buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
     keyboard = generate_post_keyboard(buttons_matrix, lang)
-    
-    # Media ko'rsatish
+
     media_text = f"📦 Pulli media ({len(file_ids)} ta fayl)"
     if message.caption:
         media_text += f"\n\n{message.html_text}"
-    
+
     settings_kb_kwargs = {
         "content_type": 'paid_media',
         "has_caption": bool(message.caption),
@@ -502,26 +480,24 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
         "is_paid": True # Pulli media bo'lgani uchun har doim True
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
-    
+
     if is_editing_session:
         await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
     else:
         await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
-    
-    # Pulli mediani yuborish (preview)
+
     try:
         from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
-        
+
         input_media_list = []
         for media_type, file_id in zip(media_types, file_ids):
             if media_type == 'photo':
                 input_media_list.append(InputPaidMediaPhoto(media=file_id))
             else:
                 input_media_list.append(InputPaidMediaVideo(media=file_id))
-        
-        # Narxni sozlash kerak - default 1 stars
+
         paid_price = post_data.get('paid_price', 1)
-        
+
         preview_message = await bot.send_paid_media(
             chat_id=message.chat.id,
             star_count=paid_price,
@@ -531,14 +507,13 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
             show_caption_above_media=post_data.get('show_caption_above_media', False),
             reply_markup=keyboard
         )
-        
+
         if preview_message:
             post_data['message_id'] = preview_message.message_id
             post_data['chat_id'] = message.chat.id
             await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
-            
+
     except Exception:
-        # Oddiy media sifatida yuborishga urinish
         preview_message = await message.answer(media_text, reply_markup=keyboard, parse_mode='HTML')
         if preview_message:
             post_data['message_id'] = preview_message.message_id
@@ -553,21 +528,19 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
                 except Exception:
                     pass
 
-
 async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Dice kontentini qayta ishlash"""
     dice = message.dice
     if not dice:
         return await message.answer(get_text('wrong_format', lang))
-    
+
     await state.set_state(PostCreation.configuring_post)
-    
+
     is_editing_session = 'editing_post_code' in old_data
-    
-    # Dice emoji va qiymatini olish
+
     dice_emoji = dice.emoji
     dice_value = dice.value
-    
+
     post_data = old_data.get('post_data', {})
     post_data.update({
         'content_type': 'dice',
@@ -576,13 +549,12 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
         'parse_mode': 'HTML',
         'chat_id': message.chat.id
     })
-    
+
     buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
     keyboard = generate_post_keyboard(buttons_matrix, lang)
-    
-    # Dice ko'rsatish
+
     dice_text = f"🎲 Dice: {dice_emoji} = {dice_value}"
-    
+
     settings_kb_kwargs = {
         "content_type": 'dice',
         "has_caption": False,
@@ -590,14 +562,14 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
         "is_paid": post_data.get('is_paid', False)
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
-    
+
     if is_editing_session:
         await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
     else:
         await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
-    
+
     preview_message = await message.answer_dice(emoji=dice_emoji, reply_markup=keyboard)
-    
+
     if preview_message:
         post_data['message_id'] = preview_message.message_id
         post_data['chat_id'] = preview_message.chat.id
@@ -610,7 +582,6 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
                 await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
             except Exception:
                 pass
-
 
 @post_router.message(
     PostCreation.waiting_for_content,
@@ -627,19 +598,15 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
     if message.content_type not in supported_types:
         return await message.answer(get_text('wrong_format', lang))
 
-    # Poll/Quiz kontentini qabul qilish
     if message.content_type == 'poll' and message.poll:
         return await handle_poll_content(message, state, bot, old_data, lang)
-    
-    # Pulli media kontentini qabul qilish
+
     if message.content_type == 'paid_media':
         return await handle_paid_media_content(message, state, bot, old_data, lang)
-    
-    # Dice kontentini qabul qilish
+
     if message.content_type == 'dice':
         return await handle_dice_content(message, state, bot, old_data, lang)
-    
-    # Location kontentini qabul qilish
+
     if message.content_type == 'location':
         return await handle_location_content(message, state, bot, old_data, lang)
 
@@ -647,21 +614,17 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
 
     is_editing_session = 'editing_post_code' in old_data
     post_data = old_data.get('post_data', {})
-    
-    # Foydalanuvchi yuborgan mediada spoiler va caption joylashuvini tekshirish
+
     message_has_spoiler = False
     message_caption_above = getattr(message, 'show_caption_above_media', False)
-    
+
     if message.content_type == 'photo' and message.photo:
-        # Foto uchun spoiler tekshirish
         message_has_spoiler = getattr(message.photo[-1], 'has_spoiler', False) or getattr(message, 'has_media_spoiler', False)
     elif message.content_type == 'video' and message.video:
-        # Video uchun spoiler tekshirish
         message_has_spoiler = getattr(message.video, 'has_spoiler', False) or getattr(message, 'has_media_spoiler', False)
     elif message.content_type == 'animation' and message.animation:
-        # Animation uchun spoiler tekshirish
         message_has_spoiler = getattr(message.animation, 'has_spoiler', False) or getattr(message, 'has_media_spoiler', False)
-    
+
     new_text = message.html_text if message.text else None
     new_caption = message.html_text if message.caption else None
     is_incoming_media = message.content_type != 'text' and message.content_type != 'poll' and message.content_type != 'dice'
@@ -680,7 +643,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
         elif is_delete_text:
             post_data['caption'] = None
             post_data['text'] = None
-        
+
         is_incoming_media = False
     else:
         if post_data:
@@ -688,7 +651,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 if post_data.get('content_type') == 'text' and post_data.get('text') and new_caption is None:
                     post_data['caption'] = post_data['text']
                     post_data['text'] = None
-                
+
                 post_data['content_type'] = message.content_type
                 if new_caption is not None:
                     post_data['caption'] = new_caption
@@ -707,8 +670,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 'has_spoiler': message_has_spoiler,
                 'show_caption_above_media': message_caption_above
             }
-    
-    # Agar yangi kelgan media bo'lsa va sozlamalar bo'lsa, post_data ga qo'shish
+
     if is_incoming_media:
         if message_has_spoiler:
             post_data['has_spoiler'] = True
@@ -717,7 +679,6 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
 
     post_data['chat_id'] = message.chat.id
 
-    # URL preview standart yoqilgan (enabled)
     post_data['disable_web_page_preview'] = False
 
     buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
@@ -736,18 +697,15 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             "parse_mode": post_data.get('parse_mode', 'HTML'),
             "disable_web_page_preview": post_data['disable_web_page_preview']
         }
-        
-        # Media sozlamalarini olish
+
         has_spoiler = post_data.get('has_spoiler', False)
         show_caption_above = post_data.get('show_caption_above_media', False)
-        
-        # Asosiy media parametrlari
+
         media_kwargs = {
             "reply_markup": keyboard,
             "parse_mode": post_data.get('parse_mode', 'HTML'),
         }
-        
-        # has_spoiler va show_caption_above_media faqat photo, video, animation uchun
+
         current_type = post_data.get('content_type', 'text')
         if current_type in ['photo', 'video', 'animation']:
             media_kwargs["has_spoiler"] = has_spoiler
@@ -760,7 +718,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             "is_paid": post_data.get('is_paid', False)
         }
         reply_markup = get_post_settings_kb(**settings_kb_kwargs)
-        
+
         if is_editing_session:
             await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
         else:
@@ -777,8 +735,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 'performer': getattr(message.audio, 'performer', None),
                 'file_name': getattr(message.document, 'file_name', None) or getattr(message.animation, 'file_name', None),
             })
-            
-            # Sticker qo'shimcha ma'lumotlarini saqlash
+
             if message.sticker:
                 post_data.update({
                     'sticker_emoji': message.sticker.emoji,
@@ -840,14 +797,14 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             media_types = post_data.get('paid_media_types', [])
             file_ids = post_data.get('paid_media_file_ids', [])
             paid_price = post_data.get('paid_price', 1)
-            
+
             input_media_list = []
             for media_type, f_id in zip(media_types, file_ids):
                 if media_type == 'photo':
                     input_media_list.append(InputPaidMediaPhoto(media=f_id))
                 else:
                     input_media_list.append(InputPaidMediaVideo(media=f_id))
-            
+
             preview_message = await bot.send_paid_media(
                 chat_id=message.chat.id,
                 star_count=paid_price,
@@ -862,7 +819,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             post_data['message_id'] = preview_message.message_id
             post_data['chat_id'] = preview_message.chat.id
             await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
-            
+
             if config.STORAGE_CHANNEL_ID and not is_editing_session:
                 try:
                     user_info_text = format_user_info(message.from_user, lang)
@@ -878,7 +835,6 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                             await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
                 except Exception:
                     pass
-
 
     except TelegramBadRequest as e:
         if "can't parse entities" in str(e).lower():

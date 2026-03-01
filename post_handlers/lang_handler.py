@@ -1,5 +1,4 @@
 
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
@@ -11,9 +10,7 @@ from post_handlers.localize_filter import LocalizedText
 
 from aiogram.filters import Command
 
-logger = logging.getLogger(__name__)
 lang_router = Router()
-
 
 @lang_router.message(Command("language"))
 @lang_router.message(LocalizedText('btn_language_settings'))
@@ -31,10 +28,10 @@ async def language_settings_handler(message: types.Message):
         ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
         ("🇮🇹 Italiano", "lang:it")
     ]
-    
+
     for text, callback_data in languages:
         builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
-    
+
     builder.adjust(2)
 
     await message.answer(
@@ -47,24 +44,19 @@ async def set_language_handler(callback: types.CallbackQuery, state: FSMContext,
     try:
         parts = callback.data.split(":")
         lang_code = parts[1] if len(parts) > 1 else ""
-        
-        # Til kodini saqlash
+
         await set_user_language(
             user_id=callback.from_user.id,
             nickname=callback.from_user.full_name,
             username=callback.from_user.username,
             language=lang_code
         )
-        
-        # Callback javobini yuborish
+
         await callback.answer(get_text('lang_changed', lang_code))
-        
-        # Til o'zgarganini xabar qilish va bosh menyu ko'rsatish
+
         await callback.message.answer(get_text('lang_changed', lang_code))
-        
-        # Bosh menyuni chaqirish
+
         await cmd_start(callback, state, bot)
-        
+
     except Exception:
         await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
-

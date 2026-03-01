@@ -1,4 +1,3 @@
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
@@ -9,9 +8,6 @@ from admin_handlers.admin_handler import IsAdmin
 from admin_handlers.admin_handler import AdminStates
 from xdata_handlers import config
 from admin_handlers.xinline_keyboard import get_channel_main_menu_keyboard, get_channel_list_keyboard
-
-logger = logging.getLogger(__name__)
-
 
 async def check_user_membership(user: types.User, bot: Bot):
     """Foydalanuvchining barcha majburiy kanallarga a'zoligini tekshiradi."""
@@ -47,7 +43,7 @@ async def check_user_membership(user: types.User, bot: Bot):
                     link = await bot.export_chat_invite_link(int(ch['id']))
                 except Exception:
                     link = None
-            
+
             if link:
                 btn_text = get_text('subscribe_btn', lang).format(title=ch['title'])
                 builder.button(text=btn_text, url=link)
@@ -57,7 +53,6 @@ async def check_user_membership(user: types.User, bot: Bot):
         return False, text, builder.as_markup()
 
     return True, None, None
-
 
 channel_router = Router()
 

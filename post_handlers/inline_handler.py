@@ -1,14 +1,11 @@
 
-import logging
 from aiogram import Router, types, Bot
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
 from xdata_handlers.database import get_post_from_db, get_user_language
 from xdata_handlers.translator import get_text
 
-logger = logging.getLogger(__name__)
 inline_router = Router()
-
 
 def has_reaction_buttons(buttons_matrix):
     """Tugmalar matritsasida reaksiya tugmalari borligini tekshirish."""
@@ -22,12 +19,11 @@ def has_reaction_buttons(buttons_matrix):
                 return True
     return False
 
-
 @inline_router.inline_query()
 async def inline_query_handler(query: types.InlineQuery, bot: Bot):
     post_code = query.query.strip()
     results = []
-    
+
     user_lang = await get_user_language(query.from_user.id) if query.from_user else 'uzl'
 
     def get_keyboard_as_dict(keyboard_markup):
@@ -55,18 +51,18 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
 
         content_type = content.get('content_type')
         is_paid = content.get('is_paid', False)
-        
+
         unsupported_inline = ['poll', 'dice', 'paid_media']
         if has_reaction_buttons(buttons_matrix) or content_type in unsupported_inline or is_paid:
             reject_title = get_text('inline_reaction_not_supported_title', user_lang)
             reject_desc = get_text('inline_reaction_not_supported_desc', user_lang)
             reject_msg = get_text('inline_reaction_not_supported_msg', user_lang)
-            
+
             if content_type in unsupported_inline or is_paid:
                 reject_title = "Dasturlanmagan format 🚫"
                 reject_desc = "Bu format (Poll, Dice, Pulli Media) inline rejimda ishlamaydi."
                 reject_msg = "Afsuski, Telegram ushbu formatni inline rejim orqali yuborishni qo'llab-quvvatlamaydi."
-            
+
             results.append({
                 "type": "article",
                 "id": "reaction_not_supported",
@@ -195,4 +191,3 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
         })
 
     await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
-

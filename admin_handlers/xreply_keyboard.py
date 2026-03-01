@@ -1,7 +1,6 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
 from xdata_handlers.translator import get_text
 
-
 def get_ad_post_settings_kb():
     """Reklama postini sozlash menyusi klaviaturasini yaratadi."""
     builder = ReplyKeyboardBuilder()
@@ -15,7 +14,6 @@ def get_ad_post_settings_kb():
     builder.adjust(3, 2)
     return builder.as_markup(resize_keyboard=True)
 
-
 def get_admin_back_kb():
     """Admin panelidagi holatlardan ortga qaytish uchun klaviatura."""
     builder = ReplyKeyboardBuilder()
@@ -25,7 +23,7 @@ def get_admin_back_kb():
 def get_ad_edit_content_kb(has_media_and_text: bool = False):
     """Edit content uchun klaviatura - media va matn birga bo'lsa qo'shimcha tugmalar bilan."""
     builder = ReplyKeyboardBuilder()
-    
+
     if has_media_and_text:
         builder.add(KeyboardButton(text="🗑️ Mediani o'chirish"))
         builder.add(KeyboardButton(text="🗑️ Matnni o'chirish"))
@@ -33,7 +31,7 @@ def get_ad_edit_content_kb(has_media_and_text: bool = False):
         builder.adjust(2, 1)
     else:
         builder.add(KeyboardButton(text="🔙 Orqaga"))
-    
+
     return builder.as_markup(resize_keyboard=True)
 
 def get_cancel_kb(lang: str):

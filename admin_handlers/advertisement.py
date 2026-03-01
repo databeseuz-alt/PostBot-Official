@@ -1,6 +1,5 @@
 import asyncio
 import re
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -16,10 +15,8 @@ from admin_handlers.xreply_keyboard import get_ad_post_settings_kb, get_admin_ba
 from post_handlers.xinline_keyboard import generate_preview_keyboard
 from admin_handlers.xinline_keyboard import get_main_admin_keyboard
 
-logger = logging.getLogger(__name__)
 ad_router = Router()
 URL_PATTERN = re.compile(r"^(https?://)?([\w-]{1,32}\.[\w-]{1,32})[^\s@]*$")
-
 
 from xdata_handlers.translator import get_text
 
@@ -30,7 +27,7 @@ def generate_ad_edit_keyboard(buttons_matrix: list | None = None):
         return builder.as_markup()
 
     has_real_buttons = any(any(btn and not btn.get('is_placeholder') for btn in row) for row in buttons_matrix)
-    
+
     placeholder_text = "➕" if has_real_buttons else get_text('add_inline_btn', 'uzl')
 
     for r_idx, row in enumerate(buttons_matrix):
@@ -90,7 +87,6 @@ async def redraw_ad_post(bot: Bot, chat_id: int, state: FSMContext, answer_text:
     if sent_message:
         await state.update_data(last_ad_post_id=sent_message.message_id)
 
-
 @ad_router.callback_query(F.data == "admin:send_ad_start", IsAdmin())
 async def send_ad_start(callback: types.CallbackQuery, state: FSMContext):
     await state.clear()
@@ -134,7 +130,6 @@ async def ad_content_received(message: types.Message, state: FSMContext, bot: Bo
 @ad_router.message(AdminStates.waiting_for_ad_content, IsAdmin())
 async def ad_wrong_content_type(message: types.Message):
     await message.answer("❌ Ushbu media turi qabul qilinmaydi. Iltimos, faqat matn, rasm, video, audio, hujjat, GIF, sticker, video xabar yoki ovozli xabar yuboring.")
-
 
 @ad_router.callback_query(AdminStates.configuring_ad_post, F.data.startswith("ad:add:"), IsAdmin())
 async def ad_ask_for_button_text(callback: types.CallbackQuery, state: FSMContext):
@@ -242,7 +237,6 @@ async def ad_delete_button(message: types.Message, state: FSMContext, bot: Bot):
     await state.set_state(AdminStates.configuring_ad_post)
     await redraw_ad_post(bot, message.chat.id, state, "Tugma o'chirildi.")
 
-
 @ad_router.message(AdminStates.configuring_ad_post, F.text.in_({"👁️ Ko'rish", "🔢 Tugmalar", "✏️ Postni tahrirlash"}), IsAdmin())
 async def ad_settings_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -277,11 +271,10 @@ async def ad_settings_handler(message: types.Message, state: FSMContext):
         await message.answer(response_text if count > 1 else "Siz hali tugma qo'shmadingiz.")
 
     elif text == "✏️ Postni tahrirlash":
-        # Media va matn birga borligini tekshirish
         has_media = content_type != 'text' and post_data.get('file_id')
         has_text = post_data.get('caption') if content_type != 'text' else post_data.get('text')
         has_media_and_text = has_media and has_text
-        
+
         await message.answer(
             "<b>Post uchun kontent yuboring:</b>\n\n"
             "> Foto yoki video qo'shish uchun, uni bu yerga yuboring.\n"
@@ -290,7 +283,6 @@ async def ad_settings_handler(message: types.Message, state: FSMContext):
             parse_mode="HTML"
         )
         await state.set_state(AdminStates.waiting_for_ad_edit_content)
-
 
 @ad_router.message(
     AdminStates.waiting_for_ad_edit_content,
@@ -303,8 +295,7 @@ async def ad_edit_content_received(message: types.Message, state: FSMContext, bo
     data = await state.get_data()
     post_data = data.get("ad_post_data", {})
     current_content_type = post_data.get('content_type')
-    
-    # Agar matnli post bo'lsa va matn kelsa
+
     if current_content_type == 'text' and message.content_type == 'text':
         new_text = message.html_text
         post_data['text'] = new_text
@@ -312,8 +303,7 @@ async def ad_edit_content_received(message: types.Message, state: FSMContext, bo
         await state.set_state(AdminStates.configuring_ad_post)
         await redraw_ad_post(bot, message.chat.id, state, "✅ Matn yangilandi!")
         return
-    
-    # Agar media post bo'lsa va matn kelsa (caption yangilash)
+
     if current_content_type != 'text' and message.content_type == 'text':
         new_caption = message.html_text
         post_data['caption'] = new_caption
@@ -321,8 +311,7 @@ async def ad_edit_content_received(message: types.Message, state: FSMContext, bo
         await state.set_state(AdminStates.configuring_ad_post)
         await redraw_ad_post(bot, message.chat.id, state, "✅ Caption yangilandi!")
         return
-    
-    # Agar media kelsa (media almashtirish yoki qo'shish)
+
     file_id = None
     if message.photo: file_id = message.photo[-1].file_id
     elif message.video: file_id = message.video.file_id
@@ -332,26 +321,22 @@ async def ad_edit_content_received(message: types.Message, state: FSMContext, bo
     elif message.voice: file_id = message.voice.file_id
     elif message.sticker: file_id = message.sticker.file_id
     elif message.video_note: file_id = message.video_note.file_id
-    
-    # Caption ni aniqlash: yangi caption yoki eski matn/caption
+
     if message.caption:
         caption_content = message.html_text
     elif current_content_type == 'text':
-        # Matnli postga media qo'shilayotgan bo'lsa, matnni caption qilamiz
         caption_content = post_data.get('text')
     else:
-        # Media postga yangi media qo'shilayotgan bo'lsa, eski caption ni saqlaymiz
         caption_content = post_data.get('caption')
-    
+
     post_data['content_type'] = message.content_type
     post_data['file_id'] = file_id
     post_data['caption'] = caption_content
     post_data['text'] = None  # Media postda text bo'lmaydi
-    
+
     await state.update_data(ad_post_data=post_data)
     await state.set_state(AdminStates.configuring_ad_post)
     await redraw_ad_post(bot, message.chat.id, state, "✅ Media yangilandi!")
-
 
 @ad_router.message(
     F.text == "🔙 Orqaga",
@@ -363,7 +348,6 @@ async def back_from_ad_edit_content(message: types.Message, state: FSMContext, b
     await state.set_state(AdminStates.configuring_ad_post)
     await redraw_ad_post(bot, message.chat.id, state, "Tahrirlash bekor qilindi. Asosiy sozlash menyusi.")
 
-
 @ad_router.message(
     F.text == "🗑️ Mediani o'chirish",
     StateFilter(AdminStates.waiting_for_ad_edit_content),
@@ -373,18 +357,16 @@ async def delete_ad_media(message: types.Message, state: FSMContext, bot: Bot):
     """Mediani o'chirish - postni matnli postga aylantirish."""
     data = await state.get_data()
     post_data = data.get("ad_post_data", {})
-    
-    # Media mavjud bo'lsa, o'chirib matnli postga aylantiramiz
+
     caption = post_data.get('caption', '')
     post_data['content_type'] = 'text'
     post_data['text'] = caption
     post_data['file_id'] = None
     post_data['caption'] = None
-    
+
     await state.update_data(ad_post_data=post_data)
     await state.set_state(AdminStates.configuring_ad_post)
     await redraw_ad_post(bot, message.chat.id, state, "✅ Media o'chirildi! Post matnli postga aylantirildi.")
-
 
 @ad_router.message(
     F.text == "🗑️ Matnni o'chirish",
@@ -395,25 +377,23 @@ async def delete_ad_text(message: types.Message, state: FSMContext, bot: Bot):
     """Matnni (caption) o'chirish."""
     data = await state.get_data()
     post_data = data.get("ad_post_data", {})
-    
+
     post_data['text'] = None
     post_data['caption'] = None
-    
+
     await state.update_data(ad_post_data=post_data)
     await state.set_state(AdminStates.configuring_ad_post)
     await redraw_ad_post(bot, message.chat.id, state, "✅ Matn o'chirildi!")
-
 
 @ad_router.message(AdminStates.waiting_for_ad_edit_content, IsAdmin())
 async def ad_edit_wrong_content_type(message: types.Message):
     await message.answer("❌ Noto'g'ri format! Iltimos, matn yoki media yuboring.")
 
-
 @ad_router.message(AdminStates.configuring_ad_post, F.text == "✅ Tayyor", IsAdmin())
 async def ad_done_confirmation(message: types.Message, state: FSMContext, bot: Bot):
     users = await get_all_active_users(admin_ids=config.ADMIN_IDS)
     total_count = len(users)
-    
+
     await state.set_state(AdminStates.waiting_for_ad_limit)
     await state.update_data(total_users_count=total_count)
 
@@ -424,34 +404,33 @@ async def ad_done_confirmation(message: types.Message, state: FSMContext, bot: B
     )
     await message.answer(text, reply_markup=ReplyKeyboardRemove(), parse_mode="HTML")
 
-
 @ad_router.message(AdminStates.waiting_for_ad_limit, F.text, IsAdmin())
 async def ad_limit_received(message: types.Message, state: FSMContext, bot: Bot):
     raw_text = message.text.strip().replace(" ", "").replace(",", "").replace(".", "")
-    
+
     if not raw_text.isdigit():
         await message.answer("Iltimos, faqat raqam kiriting (masalan: 1000).")
         return
-        
+
     limit = int(raw_text)
     data = await state.get_data()
     total_count = data.get("total_users_count", 0)
-    
+
     if limit < 1:
         await message.answer(f"❌ Xato! Minimal qiymat <code>1</code> bo'lishi kerak.\n\nQaytadan kiriting:", parse_mode="HTML")
         return
-    
+
     if limit > total_count:
         await message.answer(f"❌ Xato! Kiritilgan son jami foydalanuvchilar sonidan (<code>{total_count}</code>) ko'p.\n\nQaytadan kiriting:", parse_mode="HTML")
         return
-        
+
     await state.update_data(ad_limit=limit)
-    
+
     post_data = data.get("ad_post_data", {})
     buttons_matrix = data.get("ad_buttons_matrix", [])
     content_type = post_data.get('content_type')
     keyboard = generate_preview_keyboard(buttons_matrix)
-    
+
     if content_type == 'text': await message.answer(post_data.get('text'), reply_markup=keyboard, disable_web_page_preview=True, parse_mode='HTML')
     elif content_type == 'photo': await message.answer_photo(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard, parse_mode='HTML')
     elif content_type == 'video': await message.answer_video(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard, parse_mode='HTML')
@@ -461,46 +440,44 @@ async def ad_limit_received(message: types.Message, state: FSMContext, bot: Bot)
     elif content_type == 'voice': await message.answer_voice(post_data.get('file_id'), caption=post_data.get('caption'), reply_markup=keyboard, parse_mode='HTML')
     elif content_type == 'sticker': await message.answer_sticker(post_data.get('file_id'), reply_markup=keyboard)
     elif content_type == 'video_note': await message.answer_video_note(post_data.get('file_id'), reply_markup=keyboard)
-    
+
     confirm_text = f"Diqqat: siz <code>{limit}</code> miqdordagi foydalanuvchilarga reklama yuborasizmi?"
-    
+
     builder = InlineKeyboardBuilder()
     builder.button(text="🚀 Yuborish", callback_data="ad:confirm_send_final")
     builder.button(text="✏️ Tahrirlash", callback_data="ad:reedit_limit")
-    
+
     sent_msg = await message.answer(confirm_text, reply_markup=builder.as_markup(), parse_mode="HTML")
     await state.update_data(confirm_msg_id=sent_msg.message_id)
     await state.set_state(AdminStates.confirming_ad_send)
-
 
 @ad_router.callback_query(AdminStates.confirming_ad_send, F.data == "ad:reedit_limit", IsAdmin())
 async def ad_reedit_limit(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     total_count = data.get("total_users_count", 0)
-    
+
     text = (
         f"Reklamani qancha kishiga yuborishingizni yozib yuboring.\n\n"
         f"Jami foydalanuvchilar: <code>{total_count}</code>\n"
         f"Minimal qiymat: <code>1</code>"
     )
-    
+
     await state.set_state(AdminStates.waiting_for_ad_limit)
     try:
         await callback.message.edit_text(text, parse_mode="HTML")
     except TelegramBadRequest:
         await callback.message.answer(text, reply_markup=ReplyKeyboardRemove(), parse_mode="HTML")
-        
-    await callback.answer()
 
+    await callback.answer()
 
 @ad_router.callback_query(AdminStates.confirming_ad_send, F.data == "ad:confirm_send_final", IsAdmin())
 async def ad_final_approve_and_send(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     await callback.message.edit_reply_markup(reply_markup=None) # Tugmalarni olib tashlaymiz
-    
+
     confirm_kb = InlineKeyboardBuilder()
     confirm_kb.button(text="✅ Ha", callback_data="ad:send_now")
     confirm_kb.button(text="❌ Yo'q", callback_data="ad:cancel_sending")
-    
+
     await callback.message.answer("Tasdiqlaysizmi?", reply_markup=confirm_kb.as_markup())
     await callback.answer()
 
@@ -538,9 +515,9 @@ async def broadcast_advertisement(bot: Bot, users: list, post_data: dict, button
     sent_count, failed_count = 0, 0
     total_users = len(users)
     processed_count = 0
-    
+
     target = success_target if success_target > 0 else total_users
-    
+
     try:
         await bot.edit_message_text(
             text=(
@@ -563,7 +540,7 @@ async def broadcast_advertisement(bot: Bot, users: list, post_data: dict, button
     for chunk in user_chunks:
         if sent_count >= target:
             break
-            
+
         tasks = [send_ad_to_user(bot, user_id, post_data, keyboard) for user_id in chunk]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -574,9 +551,9 @@ async def broadcast_advertisement(bot: Bot, users: list, post_data: dict, button
                     break
             else:
                 failed_count += 1
-        
+
         processed_count += len(chunk)
-        
+
         if sent_count - last_update_sent >= 50 or sent_count >= target:
             last_update_sent = sent_count
             progress = min(100, int((sent_count / target) * 100))
@@ -594,9 +571,9 @@ async def broadcast_advertisement(bot: Bot, users: list, post_data: dict, button
                 )
             except TelegramBadRequest:
                 pass
-        
+
         await asyncio.sleep(1)
-        
+
         if processed_count >= total_users and sent_count < target:
             break
 
@@ -606,7 +583,7 @@ async def broadcast_advertisement(bot: Bot, users: list, post_data: dict, button
     else:
         status_emoji = "⚠️"
         status_text = f"Foydalanuvchilar tugadi (maqsad: {target}, yuborildi: {sent_count})"
-    
+
     final_text = (
         f"{status_emoji} Yuborish yakunlandi!\n\n"
         f"📌 {status_text}\n\n"
@@ -639,7 +616,6 @@ async def send_ad_now(callback: types.CallbackQuery, state: FSMContext, bot: Bot
         await callback.answer()
         return
 
-
     await callback.message.delete()
     await callback.answer("Reklama yuborish boshlandi...", show_alert=False)
 
@@ -662,7 +638,6 @@ async def send_ad_now(callback: types.CallbackQuery, state: FSMContext, bot: Bot
         status_message=status_message,
         success_target=limit  # Maqsadli muvaffaqiyatli yuborishlar soni
     )
-
 
 async def _cancel_ad_process(message: types.Message, state: FSMContext):
     await state.clear()
@@ -691,4 +666,3 @@ async def cancel_from_any_state(message: types.Message, state: FSMContext):
 async def cancel_from_confirmation(callback: types.CallbackQuery, state: FSMContext):
     await callback.message.delete()
     await _cancel_ad_process(callback.message, state)
-

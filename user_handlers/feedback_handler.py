@@ -1,5 +1,4 @@
 import html
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -22,9 +21,7 @@ from user_handlers.xinline_keyboard import (
 from post_handlers.xreply_keyboard import get_main_menu, get_cancel_kb
 from xdata_handlers.translator import get_text
 
-logger = logging.getLogger(__name__)
 feedback_router = Router()
-
 
 @feedback_router.message(Command("feedback"), ~IsAdmin())
 async def cmd_feedback_user(message: types.Message, state: FSMContext):
@@ -51,9 +48,6 @@ async def cmd_feedback_user(message: types.Message, state: FSMContext):
 async def cmd_feedback_admin(message: types.Message):
     await message.answer("Bu buyruq faqat oddiy foydalanuvchilar uchun mo'ljallangan.")
 
-
-
-
 @feedback_router.message(
     StateFilter(FeedbackState.waiting_for_feedback),
     F.content_type.in_({'text', 'photo', 'video', 'document', 'audio', 'voice'}),
@@ -67,7 +61,6 @@ async def process_first_feedback(message: types.Message, state: FSMContext, bot:
         await message.answer(get_text('error_technical', lang))
         return
 
-    # Tasdiqlashni olib tashamiz - to'g'ridan yuboramiz
     try:
         safe_nickname = html.escape(message.from_user.full_name)
         user_info = (f"👤 <b>Yangi fikr-mulohaza!</b>\n\n"
@@ -81,7 +74,6 @@ async def process_first_feedback(message: types.Message, state: FSMContext, bot:
             reply_markup=get_feedback_reply_to_user_keyboard(message.from_user.id)
         )
 
-
         lang = await get_user_language(message.from_user.id)
         await message.answer(
             get_text('feedback_success_msg', lang),
@@ -92,7 +84,6 @@ async def process_first_feedback(message: types.Message, state: FSMContext, bot:
     except Exception:
         lang = await get_user_language(message.from_user.id)
         await message.answer(get_text('feedback_error_msg', lang))
-
 
 @feedback_router.callback_query(F.data.startswith("reply_feedback:"))
 async def reply_from_admin_handler(callback: types.CallbackQuery, state: FSMContext):
@@ -195,7 +186,6 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
     finally:
         await state.clear()
 
-
 @feedback_router.message(
     StateFilter(FeedbackState.waiting_for_feedback, FeedbackState.chatting_with_admin),
     F.text.in_({get_text('cancel_btn', 'uz'), get_text('cancel_btn', 'ru'), get_text('cancel_btn', 'en')})
@@ -207,4 +197,3 @@ async def cancel_feedback_process(message: types.Message, state: FSMContext):
         get_text('admin_reply_cancel_msg', lang),
         reply_markup=await get_main_menu(lang, message.from_user.id)
     )
-

@@ -1,4 +1,3 @@
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -21,14 +20,12 @@ from admin_handlers.admin_handler import IsAdmin
 from post_handlers.xreply_keyboard import get_main_menu, get_cancel_kb
 from xdata_handlers.translator import get_text
 
-logger = logging.getLogger(__name__)
 ad_router = Router()
-
 
 @ad_router.message(Command("reklama"), ~IsAdmin())
 async def cmd_advertisement_user(message: types.Message, state: FSMContext):
     await state.clear()
-    
+
     lang = await get_user_language(message.from_user.id)
     remover_message = await message.answer(
         get_text('ad_section_msg', lang),
@@ -52,10 +49,6 @@ async def cmd_advertisement_user(message: types.Message, state: FSMContext):
 async def cmd_advertisement_admin(message: types.Message):
     await message.answer("Bu buyruq faqat oddiy foydalanuvchilar uchun mo'ljallangan.")
 
-
-
-
-
 @ad_router.message(
     StateFilter(AdvertisingState.waiting_for_ad_content),
     F.content_type.in_({'text', 'photo', 'video', 'document', 'audio', 'animation', 'voice'}),
@@ -64,14 +57,12 @@ async def cmd_advertisement_admin(message: types.Message):
 )
 async def process_first_ad_content(message: types.Message, state: FSMContext, bot: Bot):
     user_id = message.from_user.id
-    
-    # Admin tayinlash olib tashlandi - to'g'ridan-to'g'ri adminlarga yuboriladi
-    
+
     if not config.ADMIN_IDS:
         lang = await get_user_language(user_id)
         await message.answer(get_text('no_admins_available', lang))
         return
-    
+
     try:
         header_text = (
             f"👤 <b>Yangi reklama bo'yicha murojaat!</b>\n\n"
@@ -79,8 +70,7 @@ async def process_first_ad_content(message: types.Message, state: FSMContext, bo
             f"<b>ID:</b> <code>{user_id}</code>\n"
             f"<b>Username:</b> @{message.from_user.username or 'mavjud emas'}"
         )
-        
-        # Barcha adminlarga yuboramiz
+
         for admin_id in config.ADMIN_IDS:
             try:
                 await bot.send_message(admin_id, header_text)
@@ -90,7 +80,7 @@ async def process_first_ad_content(message: types.Message, state: FSMContext, bo
                 )
             except Exception:
                 pass
-        
+
         await state.clear()
         lang = await get_user_language(user_id)
         await message.answer(get_text('ad_sent_msg', lang))
@@ -98,7 +88,6 @@ async def process_first_ad_content(message: types.Message, state: FSMContext, bo
     except Exception:
         lang = await get_user_language(user_id)
         await message.answer(get_text('error_msg', lang))
-
 
 @ad_router.callback_query(F.data.startswith("reply_ad:"))
 async def reply_from_admin_handler(callback: types.CallbackQuery, state: FSMContext):
@@ -195,8 +184,6 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
     finally:
         await state.clear()
 
-
-
 @ad_router.message(
     StateFilter(AdvertisingState.waiting_for_ad_content, AdvertisingState.chatting_with_admin),
     F.text.in_({get_text('cancel_btn', 'uz'), get_text('cancel_btn', 'ru'), get_text('cancel_btn', 'en')})
@@ -208,4 +195,3 @@ async def cancel_ad_process(message: types.Message, state: FSMContext):
         get_text('admin_reply_cancel_msg', lang),
         reply_markup=await get_main_menu(lang, message.from_user.id)
     )
-

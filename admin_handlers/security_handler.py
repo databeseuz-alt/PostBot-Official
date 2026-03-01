@@ -1,5 +1,4 @@
 import html
-import logging
 from typing import Callable, Dict, Any, Awaitable
 from datetime import datetime, timedelta
 
@@ -10,14 +9,11 @@ from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_user_language, get_now
 from xdata_handlers import config
 
-logger = logging.getLogger(__name__)
-
 USER_DATA = {}
 
 THROTTLE_TIME_SECONDS = 0
 SPAM_MESSAGE_LIMIT = 100
 BAN_DURATION_MINUTES = 5
-
 
 class AntiFloodMiddleware(BaseMiddleware):
     async def __call__(

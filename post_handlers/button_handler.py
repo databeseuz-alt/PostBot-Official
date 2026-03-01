@@ -1,6 +1,5 @@
 
 import re
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
@@ -16,7 +15,6 @@ from xdata_handlers.translator import get_text
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
-logger = logging.getLogger(__name__)
 button_router = Router()
 
 URL_PATTERN = re.compile(
@@ -29,8 +27,6 @@ URL_PATTERN = re.compile(
 
 USERNAME_PATTERN = re.compile(r'^@([a-zA-Z0-9_]{5,32})$')
 
-
-
 async def redraw_post(message: types.Message, state: FSMContext, answer_text: str = None):
     data = await state.get_data()
     buttons_matrix = data.get("buttons_matrix", [])
@@ -40,10 +36,10 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
 
     chat_id = post_data.get("chat_id")
     message_id = post_data.get("message_id")
-    
+
     user_id = message.from_user.id if message.from_user else post_data.get("user_id")
     lang = await get_user_language(user_id)
-    
+
     new_keyboard = generate_post_keyboard(buttons_matrix, lang)
     settings_keyboard = get_post_settings_kb(
         content_type=post_data.get('content_type', 'text'),
@@ -113,7 +109,6 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
         elif content_type == 'sticker':
             sent_message = await message.bot.send_sticker(chat_id, file_id, reply_markup=new_keyboard)
         elif content_type in ['poll', 'dice', 'location']:
-            # Ushbu turlar uchun alohida yuborish metodlari (poll, dice, location)
             if content_type == 'poll':
                 sent_message = await message.bot.send_poll(
                     chat_id,
@@ -149,7 +144,7 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
                     input_media_list.append(InputPaidMediaPhoto(media=f_id))
                 else:
                     input_media_list.append(InputPaidMediaVideo(media=f_id))
-            
+
             sent_message = await message.bot.send_paid_media(
                 chat_id=chat_id,
                 star_count=post_data.get('paid_price', 1),
@@ -166,16 +161,14 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
     except Exception:
         pass
 
-
-
 @button_router.callback_query(PostCreation.configuring_post, F.data.startswith("add:"))
 async def start_add_button(callback: types.CallbackQuery, state: FSMContext):
     coords = callback.data.split(':')[1:]
     await state.update_data(target_button_coords=(int(coords[0]), int(coords[1])))
     await state.update_data(is_editing_button=False)
-    
+
     lang = await get_user_language(callback.from_user.id)
-    
+
     await state.set_state(PostCreation.waiting_for_button_type)
 
     try:
@@ -207,7 +200,7 @@ async def process_button_type_reactions(message: types.Message, state: FSMContex
     lang = await get_user_language(message.from_user.id)
     await state.set_state(PostCreation.waiting_for_reactions)
     await state.update_data(button_type="reaction")
-    
+
     await message.answer(
         get_text("reactions_prompt_msg", lang),
         reply_markup=get_reactions_selection_kb(lang),
@@ -251,21 +244,19 @@ async def back_to_configuring_post(message: types.Message, state: FSMContext):
     ~LocalizedText('back_btn')
 )
 async def process_button_text(message: types.Message, state: FSMContext):
-    # Premium emoji ni to'g'ri qabul qilish
     button_text = message.text
     custom_emoji_id = None
-    
-    # Agar custom emoji bo'lsa, uni saqlash
+
     if message.entities:
         for entity in message.entities:
             if entity.type == 'custom_emoji':
                 custom_emoji_id = entity.custom_emoji_id
                 break
-    
+
     await state.update_data(button_text=button_text, button_emoji_id=custom_emoji_id)
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
-    
+
     if data.get("button_type") == "text_btn":
         await state.set_state(PostCreation.waiting_for_text_btn_content_sub)
         await message.answer(get_text('ask_btn_sub_msg', lang), reply_markup=get_button_creation_cancel_kb(lang))
@@ -295,10 +286,10 @@ async def process_text_btn_content_nonsub(message: types.Message, state: FSMCont
     data = await state.get_data()
     content_sub = data.get("text_btn_content_sub")
     button_text = data.get("button_text")
-    
+
     from xdata_handlers.database import create_text_button
     btn_id = await create_text_button(content_sub, content_nonsub)
-    
+
     if not btn_id:
         await message.answer(get_text('btn_creation_error_msg', lang))
         return
@@ -306,14 +297,14 @@ async def process_text_btn_content_nonsub(message: types.Message, state: FSMCont
     button_emoji_id = data.get("button_emoji_id")
     buttons_matrix = data.get("buttons_matrix", [])
     is_editing = data.get("is_editing_button", False)
-    
+
     if is_editing:
         target_row, target_col = data.get("editing_button_coords")
         status_text = get_text('btn_edited_msg', lang)
     else:
         target_row, target_col = data.get("target_button_coords")
         status_text = get_text('btn_added_msg', lang)
-    
+
     new_btn = {
         'text': button_text,
         'url': None,
@@ -322,18 +313,16 @@ async def process_text_btn_content_nonsub(message: types.Message, state: FSMCont
     }
     if button_emoji_id:
         new_btn['emoji_id'] = button_emoji_id
-    
-    # Matritsani kengaytirish
+
     while len(buttons_matrix) <= target_row: buttons_matrix.append([])
     while len(buttons_matrix[target_row]) <= target_col: buttons_matrix[target_row].append(None)
-    
+
     if is_editing:
         if len(buttons_matrix) > target_row and len(buttons_matrix[target_row]) > target_col:
             buttons_matrix[target_row][target_col] = new_btn
     else:
         buttons_matrix[target_row][target_col] = new_btn
-        
-        # Clean matrix logic
+
         clean_matrix = [list(filter(None, row)) for row in buttons_matrix]
         clean_matrix = [row for row in clean_matrix if row]
         final_matrix = []
@@ -344,11 +333,10 @@ async def process_text_btn_content_nonsub(message: types.Message, state: FSMCont
         if not final_matrix or any(btn and not btn.get('is_placeholder') for btn in final_matrix[-1]):
             final_matrix.append([{'is_placeholder': True}])
         buttons_matrix = final_matrix
-    
+
     await state.update_data(buttons_matrix=buttons_matrix, is_editing_button=False)
     await state.set_state(PostCreation.configuring_post)
     await redraw_post(message, state, status_text)
-
 
 @button_router.message(
     PostCreation.waiting_for_button_url,
@@ -359,7 +347,7 @@ async def add_or_edit_button(message: types.Message, state: FSMContext):
     user_input = message.text
     lang = await get_user_language(message.from_user.id)
     final_url = ""
-    
+
     username_match = USERNAME_PATTERN.match(user_input)
     if username_match:
         final_url = f"https://t.me/{username_match.group(1)}"
@@ -385,7 +373,6 @@ async def add_or_edit_button(message: types.Message, state: FSMContext):
         target_row, target_col = data.get("editing_button_coords")
         status_text = get_text('btn_edited_msg', lang)
         if len(buttons_matrix) > target_row and len(buttons_matrix[target_row]) > target_col:
-            # Preserve existing properties (like type) if editing
             old_btn = buttons_matrix[target_row][target_col]
             if old_btn: new_btn['type'] = old_btn.get('type', 'url')
             buttons_matrix[target_row][target_col] = new_btn
@@ -394,11 +381,10 @@ async def add_or_edit_button(message: types.Message, state: FSMContext):
         status_text = get_text('btn_added_msg', lang)
         while len(buttons_matrix) <= target_row: buttons_matrix.append([])
         while len(buttons_matrix[target_row]) <= target_col: buttons_matrix[target_row].append(None)
-        
+
         new_btn['type'] = 'url'
         buttons_matrix[target_row][target_col] = new_btn
 
-        # Clean matrix logic
         clean_matrix = [list(filter(None, row)) for row in buttons_matrix]
         clean_matrix = [row for row in clean_matrix if row]
         final_matrix = []
@@ -413,7 +399,6 @@ async def add_or_edit_button(message: types.Message, state: FSMContext):
     await state.update_data(buttons_matrix=buttons_matrix, is_editing_button=False)
     await state.set_state(PostCreation.configuring_post)
     await redraw_post(message, state, status_text)
-
 
 @button_router.callback_query(PostCreation.configuring_post, F.data.startswith("manage:"))
 async def manage_button_menu(callback: types.CallbackQuery, state: FSMContext):
@@ -486,12 +471,9 @@ async def delete_button(message: types.Message, state: FSMContext):
     if not final_matrix or all(not btn.get('is_placeholder') for btn in final_matrix[-1]):
         final_matrix.append([{'is_placeholder': True}])
 
-
     await state.update_data(buttons_matrix=final_matrix)
     await state.set_state(PostCreation.configuring_post)
     await redraw_post(message, state, get_text('btn_deleted_msg', lang))
-
-
 
 @button_router.message(
     PostCreation.editing_button_text,
@@ -499,21 +481,19 @@ async def delete_button(message: types.Message, state: FSMContext):
     ~LocalizedText('back_btn')
 )
 async def process_editing_button_text(message: types.Message, state: FSMContext):
-    # Premium emoji ni to'g'ri qabul qilish
     button_text = message.text
     custom_emoji_id = None
-    
-    # Agar custom emoji bo'lsa, uni saqlash
+
     if message.entities:
         for entity in message.entities:
             if entity.type == 'custom_emoji':
                 custom_emoji_id = entity.custom_emoji_id
                 break
-    
+
     await state.update_data(button_text=button_text, button_emoji_id=custom_emoji_id)
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
-    
+
     if data.get("button_type") == "text_btn":
         await state.set_state(PostCreation.waiting_for_text_btn_content_sub)
         await message.answer(get_text('ask_btn_sub_msg', lang), reply_markup=get_button_creation_cancel_kb(lang))
@@ -524,18 +504,13 @@ async def process_editing_button_text(message: types.Message, state: FSMContext)
             buttons_matrix[target_row][target_col]['text'] = button_text
             if custom_emoji_id:
                 buttons_matrix[target_row][target_col]['emoji_id'] = custom_emoji_id
-        
+
         await state.update_data(buttons_matrix=buttons_matrix, is_editing_button=False)
         await state.set_state(PostCreation.configuring_post)
         await redraw_post(message, state, get_text('btn_edited_msg', lang))
     else:
         await state.set_state(PostCreation.waiting_for_button_url)
         await message.answer(get_text('ask_edit_btn_url_msg', lang), reply_markup=get_button_creation_cancel_kb(lang))
-
-
-
-
-
 
 @button_router.callback_query(F.data.startswith("text_btn:"))
 async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
@@ -594,7 +569,6 @@ async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
             else:
                 await callback.answer()
 
-
 @button_router.callback_query(F.data.startswith("text_btn_preview:"))
 async def handle_text_button_preview(callback: types.CallbackQuery):
     try:
@@ -613,7 +587,6 @@ async def handle_text_button_preview(callback: types.CallbackQuery):
     preview_text = f"{get_text('preview_prefix_msg', lang)} {text}"
     await callback.answer(preview_text, show_alert=True)
 
-
 @button_router.message(PostCreation.configuring_post, LocalizedText("reactions_btn"))
 async def start_adding_reactions(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
@@ -629,24 +602,21 @@ async def process_reactions(message: types.Message, state: FSMContext, bot: Bot)
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
     text = message.text.strip()
-    
+
     if text == get_text('back_btn', lang):
         await state.set_state(PostCreation.configuring_post)
         await redraw_post(message, state, get_text('back_to_settings_msg', lang))
         return
 
-    # Parse reactions
     raw_reactions = [r.strip() for r in text.split('/')]
     reactions = [r for r in raw_reactions if r]
-    
+
     if not reactions:
         await message.answer(get_text("reactions_prompt_msg", lang))
         return
-        
+
     data = await state.get_data()
-    
-    # Reaksiyalarni joylashtirish
-    # Koordinatalarni aniqlash
+
     if data.get("is_editing_button"):
         target_row, target_col = data.get("editing_button_coords")
     else:
@@ -656,7 +626,6 @@ async def process_reactions(message: types.Message, state: FSMContext, bot: Bot)
     while len(buttons_matrix) <= target_row: buttons_matrix.append([])
     while len(buttons_matrix[target_row]) <= target_col: buttons_matrix[target_row].append(None)
 
-    # Birinchi reaksiya
     first_reaction = reactions[0]
     first_btn = {
         'text': first_reaction,
@@ -664,13 +633,12 @@ async def process_reactions(message: types.Message, state: FSMContext, bot: Bot)
         'type': 'reaction',
         'is_placeholder': False
     }
-    
+
     if len(buttons_matrix[target_row]) > target_col:
         buttons_matrix[target_row][target_col] = first_btn
     else:
         buttons_matrix[target_row].insert(target_col, first_btn)
 
-    # Qolgan reaksiyalar
     for i, reaction in enumerate(reactions[1:], start=1):
         next_col = target_col + i
         next_btn = {
@@ -684,7 +652,6 @@ async def process_reactions(message: types.Message, state: FSMContext, bot: Bot)
         else:
              buttons_matrix[target_row].append(next_btn)
 
-    # Clean matrix logic
     clean_matrix = [list(filter(None, row)) for row in buttons_matrix]
     clean_matrix = [row for row in clean_matrix if row]
     final_matrix = []
@@ -700,33 +667,28 @@ async def process_reactions(message: types.Message, state: FSMContext, bot: Bot)
     await state.set_state(PostCreation.configuring_post)
     await redraw_post(message, state, get_text("reactions_saved_msg", lang))
 
-
 @button_router.callback_query(PostCreation.waiting_for_reaction_color, F.data.startswith("btn_color:"))
 async def process_reaction_color(callback: types.CallbackQuery, state: FSMContext):
     """Reaksiya tugmalari uchun rang tanlash"""
     lang = await get_user_language(callback.from_user.id)
     parts = callback.data.split(":")
     style = parts[1] if len(parts) > 1 and parts[1] else ""
-    
+
     data = await state.get_data()
     reactions = data.get("temp_reactions", [])
     buttons_matrix = data.get("buttons_matrix", [])
     is_editing = data.get("is_editing_button", False)
-    
-    # Koordinatalarni aniqlash
+
     if is_editing:
         target_row, target_col = data.get("editing_button_coords")
     else:
         target_row, target_col = data.get("target_button_coords")
 
-    # Matritsani kengaytirish (xavfsizlik uchun)
     while len(buttons_matrix) <= target_row: buttons_matrix.append([])
     while len(buttons_matrix[target_row]) <= target_col: buttons_matrix[target_row].append(None)
 
     emoji = get_style_emoji(style) if style else ''
 
-    # Reaksiyalarni joylashtirish
-    # Birinchi reaksiyani bosilgan tugma o'rniga qo'yamiz
     first_reaction = reactions[0]
     first_btn_text = f"{emoji} {first_reaction}".strip() or first_reaction
     first_btn = {
@@ -737,14 +699,12 @@ async def process_reaction_color(callback: types.CallbackQuery, state: FSMContex
     }
     if style:
         first_btn['style'] = style
-    
-    # Agar tahrirlash bo'lsa yoki joy bo'sh bo'lsa (yoki placeholder bo'lsa) o'rniga yozamiz
+
     if len(buttons_matrix[target_row]) > target_col:
         buttons_matrix[target_row][target_col] = first_btn
     else:
         buttons_matrix[target_row].insert(target_col, first_btn)
 
-    # Qolgan reaksiyalarni (masalan, 👍/👎 dagi ikkinchisi) o'ng tomonga qo'shamiz
     for i, reaction in enumerate(reactions[1:], start=1):
         next_col = target_col + i
         next_btn_text = f"{emoji} {reaction}".strip() or reaction
@@ -756,37 +716,32 @@ async def process_reaction_color(callback: types.CallbackQuery, state: FSMContex
         }
         if style:
             next_btn['style'] = style
-        # Insert qilamiz, shunda o'ngdagi tugmalar suriladi
         if len(buttons_matrix[target_row]) > next_col:
              buttons_matrix[target_row].insert(next_col, next_btn)
         else:
              buttons_matrix[target_row].append(next_btn)
 
-    # Tozalash va Placeholderlarni qayta tartiblash
     clean_matrix = [list(filter(None, row)) for row in buttons_matrix]
     clean_matrix = [row for row in clean_matrix if row]
     final_matrix = []
     for row in clean_matrix:
         new_row = [btn for btn in row if not btn.get('is_placeholder')]
-        # Har bir qatorda 8 tagacha tugma bo'lishi mumkin + 1 placeholder
         if len(new_row) < 8: new_row.append({'is_placeholder': True})
         final_matrix.append(new_row)
-        
-    # Agar oxirgi qator to'liq bo'lsa, yangi placeholder qator qo'shamiz
+
     if not final_matrix or any(btn and not btn.get('is_placeholder') for btn in final_matrix[-1]):
             final_matrix.append([{'is_placeholder': True}])
-            
+
     buttons_matrix = final_matrix
-    
-    # Vaqtinchalik ma'lumotlarni tozalash
+
     await state.update_data(
         buttons_matrix=buttons_matrix, 
         is_editing_button=False,
         temp_reactions=None
     )
-    
+
     await state.set_state(PostCreation.configuring_post)
-    
+
     await callback.answer()
     await redraw_post(callback.message, state, get_text("reactions_saved_msg", lang))
 
@@ -799,7 +754,6 @@ async def handle_reaction_click(callback: types.CallbackQuery):
         await callback.answer()
         return
 
-    # Xabar mavjud emasligini tekshirish
     if callback.message is None:
         await callback.answer("Xabar topilmadi", show_alert=True)
         return
@@ -807,59 +761,54 @@ async def handle_reaction_click(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     chat_id = callback.message.chat.id
     message_id = callback.message.message_id
-    
+
     from xdata_handlers.database import add_or_update_reaction_by_chat_message, get_user_language, get_reaction_count_by_chat_message
-    
+
     lang = await get_user_language(user_id)
-    
-    # DB ga yozish va holatni tekshirish
+
     status, old_reaction = await add_or_update_reaction_by_chat_message(user_id, chat_id, message_id, reaction)
-    
+
     if status == 'error':
         await callback.answer("Error occurred", show_alert=True)
         return
-        
+
     if status == 'already_voted':
         await callback.answer(get_text('already_voted_msg', lang), show_alert=True)
         return
 
-    # Klaviaturani yangilash (faqat yangi reaksiya qo'shilganda)
     if status == 'added':
         keyboard = callback.message.reply_markup
         if not keyboard:
             await callback.answer()
             return
-        
+
         found = False
         new_kb_list = []
-        
+
         for row in keyboard.inline_keyboard:
             new_row = []
             for btn in row:
-                # Matnni parse qilish (masalan "👍 42")
                 parts = btn.text.split()
-                
-                # Bazadan haqiqiy reaksiya sonini olamiz
+
                 if btn.callback_data and btn.callback_data.startswith("reaction:"):
                     parts = btn.callback_data.split(":")
                     btn_reaction = parts[1] if len(parts) > 1 else ""
                     count = await get_reaction_count_by_chat_message(chat_id, message_id, btn_reaction)
-                    
-                    # Emojini matn boshidan olish (raqamni olib tashlab)
+
                     current_emoji = " ".join(parts[:-1]) if len(parts) > 1 else parts[0]
                     if len(parts) == 1: current_emoji = parts[0]
-                    
+
                     btn.text = f"{current_emoji} {count}"
                     found = True
 
                 new_row.append(btn)
             new_kb_list.append(new_row)
-                
+
         if found:
             try:
                 updated_markup = types.InlineKeyboardMarkup(inline_keyboard=new_kb_list)
                 await callback.message.edit_reply_markup(reply_markup=updated_markup)
-                
+
                 alert_text = get_text('vote_accepted_msg', lang).format(reaction=reaction)
                 await callback.answer(alert_text)
             except TelegramBadRequest:

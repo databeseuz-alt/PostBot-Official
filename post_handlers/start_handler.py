@@ -1,5 +1,4 @@
 import html
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -15,9 +14,7 @@ from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
-logger = logging.getLogger(__name__)
 start_router = Router()
-
 
 async def check_user_has_language(user_id: int) -> bool:
     """Foydalanuvchi til tanlaganligini tekshiradi"""
@@ -25,7 +22,6 @@ async def check_user_has_language(user_id: int) -> bool:
     if user_info and user_info.get('language'):
         return True
     return False
-
 
 async def show_language_selection(message: types.Message):
     """Yangi foydalanuvchilar uchun til tanlash menyusi"""
@@ -40,17 +36,16 @@ async def show_language_selection(message: types.Message):
         ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
         ("🇮🇹 Italiano", "lang:it")
     ]
-    
+
     for text, callback_data in languages:
         builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
-    
+
     builder.adjust(2)
 
     await message.answer(
         "🌐 Iltimos, o'z tilingizni tanlang:\nПожалуйста, выберите ваш язык:\nPlease select your language:",
         reply_markup=builder.as_markup()
     )
-
 
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     await state.clear()
@@ -77,22 +72,19 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
             pass
         await event.message.answer(start_text, reply_markup=main_menu_keyboard)
 
-
 @start_router.message(CommandStart(), StateFilter("*"), F.forward_from.is_(None))
 async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
-    
-    # Tekshirish: foydalanuvchi til tanlaganmi?
+
     has_language = await check_user_has_language(user.id)
-    
+
     if not has_language:
-        # Yangi foydalanuvchi - til tanlash menyusini ko'rsatish
         if isinstance(event, types.Message):
             await show_language_selection(event)
         elif isinstance(event, types.CallbackQuery):
             await show_language_selection(event.message)
         return
-    
+
     is_member, text, keyboard = await check_user_membership(event.from_user, bot)
 
     if not is_member:
@@ -110,11 +102,9 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
 
     await show_main_menu(event, state, bot)
 
-
 @start_router.message(Command("newpost"))
 async def cmd_newpost(message: types.Message, state: FSMContext, bot: Bot):
     await start_post_creation(message, state, bot)
-
 
 @start_router.message(Command("mycodes"))
 async def cmd_mycodes(message: types.Message, state: FSMContext, bot: Bot):
@@ -138,18 +128,17 @@ async def cmd_mycodes(message: types.Message, state: FSMContext, bot: Bot):
                 post_code=post_code,
                 created_at="Yaqinda"
             )
-            
+
             if len(result_text) + len(item_text) + 50 > 4096:
                 result_text += f"\n\n📊 Jami: <b>{len(user_posts)}</b> ta post"
                 await message.answer(result_text, parse_mode="HTML")
                 result_text = get_text('mycodes_msg', lang)
-            
+
             result_text += item_text
             count += 1
 
         result_text += f"\n\n📊 Jami: <b>{len(user_posts)}</b> ta post"
         await message.answer(result_text, parse_mode="HTML")
-
 
 @start_router.callback_query(F.data == "check_subscription_again")
 async def check_subscription_again(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
@@ -162,13 +151,12 @@ async def check_subscription_again(callback: types.CallbackQuery, state: FSMCont
     else:
         await callback.answer(get_text('join_alert_msg', lang), show_alert=True)
 
-
 @start_router.callback_query(F.data == "create_post", StateFilter(None))
 @start_router.message(LocalizedText('new_post_btn'), StateFilter(None))
 async def start_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
     is_member, text, keyboard = await check_user_membership(user, bot)
-    
+
     if isinstance(event, types.CallbackQuery):
         await event.answer()
         if not is_member:
@@ -183,10 +171,10 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     await state.clear()
     lang = await get_user_language(user.id)
-    
+
     user_settings = await get_user_post_settings(user.id)
     ai_assistant_enabled = user_settings.get('ai_assistant_enabled', False)
-    
+
     content_text = get_text('content_msg', lang)
     if ai_assistant_enabled:
         content_text += get_text('ai_assistant_hint_msg', lang)
@@ -200,55 +188,48 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     await state.set_state(PostCreation.waiting_for_content)
 
-
 @start_router.callback_query(F.data == "edit_post", StateFilter(None))
 @start_router.message(LocalizedText('edit_post_btn'), StateFilter(None))
 async def start_post_editing_process(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
     lang = await get_user_language(user.id)
-    
-    # Tahrirlash bo'limi vaqtinchalik o'chirilgan
+
     disabled_text = "⏳ <b>Tahrirlash bo'limi vaqtinchalik o'chirilgan</b>\n\nKuting, tez orada qayta ishga tushadi!"
-    
+
     if isinstance(event, types.CallbackQuery):
         await event.answer()
         await event.message.answer(disabled_text, parse_mode="HTML")
     else:
         await event.answer(disabled_text, parse_mode="HTML")
 
-
 @start_router.callback_query(F.data.startswith("lang:"))
 async def set_language_from_start(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     """Yangi foydalanuvchi til tanlaganda ishga tushadi"""
     from xdata_handlers.database import set_user_language
-    
+
     try:
         parts = callback.data.split(":")
         lang_code = parts[1] if len(parts) > 1 else "uzl"
-        
-        # Tilni saqlash
+
         await set_user_language(
             user_id=callback.from_user.id,
             nickname=callback.from_user.full_name,
             username=callback.from_user.username,
             language=lang_code
         )
-        
+
         await callback.answer(get_text('lang_changed', lang_code))
-        
-        # Til tanlanganidan so'ng obunani tekshirish va bosh menyu
+
         is_member, text, keyboard = await check_user_membership(callback.from_user, bot)
-        
+
         if not is_member:
             await callback.message.answer(text, reply_markup=keyboard)
             return
-        
-        # Bosh menyuni ko'rsatish
+
         await show_main_menu(callback, state, bot)
-        
+
     except Exception:
         await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
-
 
 @start_router.message(
     StateFilter(

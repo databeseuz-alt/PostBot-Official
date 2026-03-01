@@ -7,10 +7,9 @@ from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
 
-
 def get_button_style(style_str: str) -> Optional[str]:
     """Convert string style to valid internal style string
-    
+
     Supported: primary, success, danger
     """
     if not style_str:
@@ -31,7 +30,6 @@ def get_style_emoji(style_str: str) -> str:
     }
     return emoji_map.get(style_str, '')
 
-
 class PostSendCallbackFactory(CallbackData, prefix="post_send"):
     action: str
     post_code: Optional[str] = None
@@ -51,12 +49,10 @@ def generate_post_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] 
     if not buttons_matrix:
         builder.button(text=get_text('add_inline_btn', lang), callback_data="add:0:0")
         return builder.as_markup()
-        
+
     has_real_buttons = any(any(btn and not btn.get('is_placeholder') for btn in row) for row in buttons_matrix)
     placeholder_text = "➕" if has_real_buttons else get_text('add_inline_btn', lang)
 
-    # Emoji to style mapping for text-based triggers
-    # ⚪ is considered colorless (None style)
     emoji_styles = {
         '🟢': 'success',
         '🔴': 'danger',
@@ -74,32 +70,30 @@ def generate_post_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] 
             else:
                 btn_text = str(btn['text'])
                 style = None # Default to colorless
-                
+
                 matched = False
                 for emoji_char, estyle in emoji_styles.items():
-                    # Double emoji logic: 🔴🔴 text -> 🔴 text (red)
                     if btn_text.startswith(emoji_char + emoji_char):
                         style = estyle
                         btn_text = btn_text[len(emoji_char):]
                         matched = True
                         break
-                    # Single emoji logic: 🔴 text -> text (red)
                     elif btn_text.startswith(emoji_char):
                         style = estyle
                         btn_text = btn_text[len(emoji_char):].strip()
                         matched = True
                         break
-                
+
                 kwargs = {
                     'text': btn_text,
                     'callback_data': f"manage:{r_idx}:{c_idx}"
                 }
-                
+
                 if style:
                     valid_style = get_button_style(style)
                     if valid_style:
                         kwargs['style'] = valid_style
-                
+
                 if btn.get('emoji_id'):
                     kwargs['icon_custom_emoji_id'] = btn['emoji_id']
                 current_row_buttons.append(InlineKeyboardButton(**kwargs))
@@ -107,8 +101,6 @@ def generate_post_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] 
             builder.row(*current_row_buttons)
 
     return builder.as_markup()
-
-
 
 def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] = None):
     """Oldindan ko'rish uchun klaviatura"""
@@ -129,7 +121,7 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
             if btn and not btn.get('is_placeholder'):
                 btn_text = str(btn['text'])
                 style = None # Default to colorless
-                
+
                 matched = False
                 for emoji_char, estyle in emoji_styles.items():
                     if btn_text.startswith(emoji_char + emoji_char):
@@ -144,7 +136,7 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
                         break
 
                 kwargs = {'text': btn_text}
-                
+
                 if btn.get('type') == 'text_btn':
                     db_id = btn.get('db_id', '0')
                     kwargs['callback_data'] = f"text_btn_preview:{db_id}"
@@ -153,12 +145,12 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
                     kwargs['callback_data'] = "reaction_preview"
                 else:
                     kwargs['url'] = btn.get('url', 'https://t.me')
-                
+
                 if style:
                     valid_style = get_button_style(style)
                     if valid_style:
                         kwargs['style'] = valid_style
-                
+
                 if btn.get('emoji_id'):
                     kwargs['icon_custom_emoji_id'] = btn['emoji_id']
                 current_row_buttons.append(InlineKeyboardButton(**kwargs))
@@ -169,7 +161,6 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
         return None
 
     return builder.as_markup()
-
 
 def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] = None):
     """Inline rejim uchun yakuniy klaviatura (tahrirlash tugmalarisiz)"""
@@ -197,7 +188,7 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
             if btn and not btn.get('is_placeholder'):
                 btn_text = str(btn['text'])
                 style = None # Default to colorless
-                
+
                 matched = False
                 for emoji_char, estyle in emoji_styles.items():
                     if btn_text.startswith(emoji_char + emoji_char):
@@ -212,7 +203,7 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
                         break
 
                 kwargs = {'text': btn_text}
-                
+
                 if btn.get('type') == 'text_btn':
                     db_id = btn.get('db_id', '0')
                     kwargs['callback_data'] = f"text_btn:{db_id}"
@@ -222,12 +213,12 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
                     kwargs['callback_data'] = f"reaction:{reaction_text}"
                 else:
                     kwargs['url'] = btn.get('url', 'https://t.me')
-                
+
                 if style:
                     valid_style = get_button_style(style)
                     if valid_style:
                         kwargs['style'] = valid_style
-                
+
                 if btn.get('emoji_id'):
                     kwargs['icon_custom_emoji_id'] = btn['emoji_id']
                 current_row_buttons.append(InlineKeyboardButton(**kwargs))
@@ -241,7 +232,6 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
 
 def create_post_options_keyboard(content_type: str, lang: str = 'uzl'):
     """Postning qo'shimcha sozlamalari uchun asosiy menyu."""
-    # Tugmalar butunlay olib tashlandi
     return None
 
 async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
@@ -250,9 +240,9 @@ async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
     Agar postda nom bo'lsa -> 'Tahrirlash', aks holda -> 'Saqlash'
     """
     builder = InlineKeyboardBuilder()
-    
+
     post_name = await get_post_name(post_code)
-    
+
     if post_name:
         builder.button(
             text=get_text('edit_post_btn', lang),
@@ -263,7 +253,7 @@ async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
             text=get_text('save_btn', lang), 
             callback_data=SavePostCallbackFactory(action="start_save", post_code=post_code).pack()
         )
-        
+
     builder.button(
         text=get_text('send_btn', lang),
         callback_data=PostSendCallbackFactory(action="start_sending", post_code=post_code).pack()
@@ -391,34 +381,29 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder.adjust(1)
     return builder.as_markup()
 
-
 def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
     """Media sozlamalari uchun inline klaviatura - layout 1, 2, 1 (faqat caption bo'lsa joylashuv ko'rsatiladi)"""
     builder = InlineKeyboardBuilder()
-    
-    # 1-qator: Joylashuv (faqat caption bo'lsa)
+
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
         position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
         builder.button(text=position_text, callback_data="media_toggle_position")
-    
-    # 2-qator: Pulli media va Spoiler
+
     if content_type in ['photo', 'video', 'animation']:
         spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
         builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
-    
+
     if content_type in ['photo', 'video', 'animation', 'paid_media']:
         paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
         builder.button(text=paid_text, callback_data="media_toggle_paid")
-    
-    # 3-qator: Orqaga - sozlamalar menyusiga qaytish
+
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
-    
-    # Layout: caption bo'lsa 1, 2, 1; bo'lmasa 2, 1
+
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
         builder.adjust(1, 2, 1)
     else:
         builder.adjust(2, 1)
-        
+
     return builder.as_markup()
 
 def create_timezone_keyboard(lang: str = 'uzl'):
@@ -435,7 +420,7 @@ def create_timezone_alphabet_keyboard(lang: str = 'uzl'):
     builder = InlineKeyboardBuilder()
     for letter in string.ascii_uppercase:
         builder.button(text=letter, callback_data=f"tz_letter:{letter}")
-    
+
     builder.button(text="🔙 Orqaga", callback_data="settings_timezone")
     builder.adjust(5, 5, 5, 5, 5, 1, 1)
     return builder.as_markup()
@@ -469,7 +454,6 @@ def get_ai_assistant_keyboard(is_enabled: bool, lang: str = 'uzl'):
     builder.adjust(1)
     return builder.as_markup()
 
-
 def get_button_color_keyboard(lang: str = 'uzl'):
     """Tugma rangini tanlash uchun inline klaviatura."""
     builder = InlineKeyboardBuilder()
@@ -491,33 +475,24 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None):
     builder.adjust(1, 1)
     return builder.as_markup()
 
-
 def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
     """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (faqat media uchun)"""
     builder = InlineKeyboardBuilder()
-    
-    # Media turlari
+
     media_types = ['photo', 'video', 'audio', 'document', 'animation', 'voice', 'video_note', 'paid_media']
     has_media = content_type in media_types
-    
+
     if has_media:
-        # Media sozlamalari
         builder.button(text=get_text('media_settings_btn', lang), callback_data="open_media_settings_menu")
-        
-        # Watermark sozlamalari (faqat photo uchun)
+
         if content_type == 'photo':
             builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
             builder.adjust(2)
         else:
             builder.adjust(1)
-    
-    return builder.as_markup()
 
+    return builder.as_markup()
 
 def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
     """Post sozlamalari uchun inline klaviatura - tugmalar olib tashlangan"""
-    # Tugmalar butunlay olib tashlandi
     return None
-
-
-

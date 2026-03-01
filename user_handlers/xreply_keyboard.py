@@ -2,7 +2,6 @@ from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
 from xdata_handlers.translator import get_text
 
-
 def get_back_kb(lang: str) -> types.ReplyKeyboardMarkup:
     """"Ortga" tugmasini yaratuvchi funksiya."""
     builder = ReplyKeyboardBuilder()

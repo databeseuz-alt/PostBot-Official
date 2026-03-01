@@ -1,4 +1,3 @@
-import logging
 from typing import Callable, Dict, Any, Awaitable
 
 from aiogram import BaseMiddleware, F, Router, types, Bot
@@ -22,9 +21,7 @@ from admin_handlers.xinline_keyboard import (
     get_unblock_confirmation_keyboard, get_blocked_user_detail_keyboard
 )
 
-logger = logging.getLogger(__name__)
 block_router = Router()
-
 
 @block_router.callback_query(F.data == "admin:blocked_users_menu", IsAdmin())
 async def blocked_users_menu_handler(callback: types.CallbackQuery, state: FSMContext):
@@ -88,7 +85,6 @@ async def block_user_query_received(message: types.Message, state: FSMContext):
 
     if await block_user(user_id_to_block):
         display_name = user_data.get('nickname') or 'Noma\'lum'
-        logger.warning(f"Foydalanuvchi bloklandi | User ID: {user_id_to_block}, Name: {display_name}, Admin: {message.from_user.id}")
         await message.answer(f"✅ Foydalanuvchi <b>{display_name}</b> (<code>{user_id_to_block}</code>) muvaffaqiyatli bloklandi!")
 
         await state.clear()
@@ -118,7 +114,6 @@ async def show_blocked_list_handler(callback: types.CallbackQuery, state: FSMCon
 
     await callback.answer()
 
-
 @block_router.callback_query(F.data.startswith("admin:unblock_confirm:"), IsAdmin())
 async def unblock_confirm_handler(callback: types.CallbackQuery, state: FSMContext):
     user_id = int(callback.data.split(":")[2])
@@ -147,7 +142,7 @@ async def unblock_confirm_handler(callback: types.CallbackQuery, state: FSMConte
 async def view_blocked_user_handler(callback: types.CallbackQuery, state: FSMContext):
     user_id = int(callback.data.split(":")[2])
     block_info = await get_user_block_info(user_id)
-    
+
     if not block_info:
         await callback.answer("Foydalanuvchi ma'lumotlari topilmadi!", show_alert=True)
         return await show_blocked_list_handler(callback, state)
@@ -162,7 +157,7 @@ async def view_blocked_user_handler(callback: types.CallbackQuery, state: FSMCon
         f"Telegram ID: <code>{user_id}</code>\n"
         f"Username: <code>{username_text}</code>"
     )
-    
+
     try:
         await callback.message.edit_text(
             text,
@@ -174,7 +169,7 @@ async def view_blocked_user_handler(callback: types.CallbackQuery, state: FSMCon
             text,
             reply_markup=get_blocked_user_detail_keyboard(user_id)
         )
-    
+
     await callback.answer()
 
 @block_router.callback_query(F.data.startswith("admin:unblock_do:"), IsAdmin())
@@ -183,7 +178,6 @@ async def unblock_do_handler(callback: types.CallbackQuery, state: FSMContext):
     await unblock_user(user_id)
     await callback.answer(f"Foydalanuvchi {user_id} blokdan chiqarildi!", show_alert=True)
     await show_blocked_list_handler(callback, state)
-
 
 class BlockUserMiddleware(BaseMiddleware):
     async def __call__(
@@ -204,7 +198,7 @@ class BlockUserMiddleware(BaseMiddleware):
 
         if user and await is_user_blocked(user.id):
             lang = await get_user_language(user.id)
-            
+
             from aiogram.types import Update
             if isinstance(event, Update):
                 if event.callback_query:

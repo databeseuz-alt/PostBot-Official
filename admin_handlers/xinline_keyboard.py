@@ -1,7 +1,5 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
-
-
 def get_main_admin_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Statistika bo'limi", callback_data="admin:stats_menu")
@@ -9,19 +7,18 @@ def get_main_admin_keyboard():
     builder.button(text="📢 Reklama yuborish", callback_data="admin:send_ad_start")
     builder.button(text="📢 Kanalni ulash", callback_data="admin:channel_menu")
     builder.button(text="ℹ️ Foydalanuvchi ma'lumotlari", callback_data="admin:user_data_menu")
-    
+
     builder.adjust(2, 2, 1)
     return builder.as_markup()
-
 
 def get_stats_menu_keyboard():
     """Asosiy statistika menyusi (2-1 strukturasi)."""
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Umumiy statistika", callback_data="admin:stats:general_text")
     builder.button(text="📈 Grafika bo'limi", callback_data="admin:stats:graphics_menu")
-    
+
     builder.button(text="🔙 Admin paneliga qaytish", callback_data="admin:back_to_main_menu")
-    
+
     builder.adjust(2, 1)
     return builder.as_markup()
 
@@ -29,14 +26,14 @@ def get_graphics_menu_keyboard():
     """Grafikalar bo'limining menyusi (1-3-2 strukturasi)."""
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 DASHBOARD", callback_data="admin:stats:dashboard")
-    
+
     builder.button(text="👥 A'zolar", callback_data="admin:stats:users_menu")
     builder.button(text="🌍 Tillar", callback_data="admin:stats:langs_menu")
     builder.button(text="📝 Postlar", callback_data="admin:stats:posts_menu")
-    
+
     builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
     builder.button(text="🔙 Ortga", callback_data="admin:stats_menu")
-    
+
     builder.adjust(1, 3, 2)
     return builder.as_markup()
 
@@ -46,10 +43,10 @@ def get_users_stats_keyboard():
     builder.button(text="📈 30 kunlik", callback_data="admin:stats:users:monthly")
     builder.button(text="📅 Haftalik", callback_data="admin:stats:users:weekly")
     builder.button(text="🕒 Kunlik (soat)", callback_data="admin:stats:users:hourly")
-    
+
     builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
     builder.button(text="🔙 Ortga", callback_data="admin:stats:graphics_menu")
-    
+
     builder.adjust(3, 2)
     return builder.as_markup()
 
@@ -59,10 +56,10 @@ def get_posts_stats_keyboard():
     builder.button(text="📈 30 kunlik", callback_data="admin:stats:posts:monthly")
     builder.button(text="📄 Formatlar", callback_data="admin:stats:posts:formats")
     builder.button(text="🔘 Tugmalar", callback_data="admin:stats:posts:buttons")
-    
+
     builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
     builder.button(text="🔙 Ortga", callback_data="admin:stats:graphics_menu")
-    
+
     builder.adjust(3, 2)
     return builder.as_markup()
 
@@ -73,7 +70,6 @@ def get_back_navigation_keyboard(back_callback="admin:stats:graphics_menu"):
     builder.button(text="🔙 Ortga", callback_data=back_callback)
     builder.adjust(2)
     return builder.as_markup()
-
 
 def get_user_data_keyboard():
     builder = InlineKeyboardBuilder()
@@ -107,7 +103,6 @@ def get_export_type_keyboard(period: str):
     builder.adjust(3, 2)
     return builder.as_markup()
 
-
 def get_user_search_start_keyboard():
     """User qidirishni boshlash uchun navigatsiya klaviaturasi."""
     builder = InlineKeyboardBuilder()
@@ -120,22 +115,21 @@ def get_user_search_start_keyboard():
 def get_user_profile_actions_keyboard(user_id: int, is_blocked: bool):
     """Foydalanuvchi profili uchun amallar klaviaturasi."""
     builder = InlineKeyboardBuilder()
-    
+
     builder.button(text="✉️ Xabar yozish", callback_data=f"admin:dm_from_profile:{user_id}")
-    
+
     if is_blocked:
         builder.button(text="✅ Blokdan chiqarish", callback_data=f"admin:unblock_from_profile:{user_id}")
     else:
         builder.button(text="🚫 Bloklash", callback_data=f"admin:block_from_profile:{user_id}")
-    
+
     builder.adjust(2)
-    
+
     builder.row(
         InlineKeyboardButton(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu"),
         InlineKeyboardButton(text="🔙 Ortga", callback_data="admin:search_user_start")
     )
     return builder.as_markup()
-
 
 def get_blocked_users_keyboard():
     builder = InlineKeyboardBuilder()
@@ -176,7 +170,6 @@ def get_unblock_confirmation_keyboard(user_id: int):
     builder.adjust(2)
     return builder.as_markup()
 
-
 from xdata_handlers.translator import get_text
 
 def generate_ad_edit_keyboard(buttons_matrix: list | None = None):
@@ -186,7 +179,7 @@ def generate_ad_edit_keyboard(buttons_matrix: list | None = None):
         return builder.as_markup()
 
     has_real_buttons = any(any(btn and not btn.get('is_placeholder') for btn in row) for row in buttons_matrix)
-    
+
     placeholder_text = "➕" if has_real_buttons else get_text('add_inline_btn', 'uzl')
 
     for r_idx, row in enumerate(buttons_matrix):
@@ -199,7 +192,6 @@ def generate_ad_edit_keyboard(buttons_matrix: list | None = None):
         if current_row_buttons:
             builder.row(*current_row_buttons)
     return builder.as_markup()
-
 
 def get_channel_main_menu_keyboard():
     builder = InlineKeyboardBuilder()

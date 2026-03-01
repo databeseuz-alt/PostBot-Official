@@ -1,11 +1,8 @@
 
 import json
-import logging
 from typing import Dict
 import os
 from pathlib import Path
-
-logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 translations: Dict[str, Dict[str, str]] = {}
@@ -15,7 +12,6 @@ def load_translations():
     locales_dir = os.path.join(BASE_DIR, "language_packs")
 
     if not os.path.exists(locales_dir):
-        logger.warning(f"Tarjima papkasi topilmadi: {locales_dir}")
         return
 
     loaded_count = 0
@@ -31,11 +27,9 @@ def load_translations():
                     translations[lang_code] = json.loads(content)
                     loaded_count += 1
             except FileNotFoundError:
-                logger.warning(f"Tarjima fayli topilmadi: {file_path}")
-            except json.JSONDecodeError as e:
-                logger.error(f"Tarjima faylini o'qishda xatolik ({filename}): {e}")
-    
-    logger.info(f"{loaded_count} ta til yuklandi")
+                pass
+            except json.JSONDecodeError:
+                pass
 
 def get_text(key: str, lang: str = "uzl") -> str:
     """
@@ -52,7 +46,6 @@ def get_text(key: str, lang: str = "uzl") -> str:
         text = translations.get("uzl", {}).get(key)
 
     return text if text is not None else f"_{key}_"
-
 
 def safe_format(text: str, **kwargs) -> str:
     """
@@ -82,16 +75,14 @@ def save_translation(lang_code: str, key: str, new_text: str) -> bool:
                 data = json.load(f)
         else:
             data = {}
-        
+
         data[key] = new_text
 
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=4)
-        
+
         return True
     except Exception:
         return False
 
-
 load_translations()
-

@@ -1,7 +1,6 @@
 import asyncio
 import threading
 import os
-import logging
 from flask import Flask
 
 from aiogram import Bot, Dispatcher
@@ -12,9 +11,6 @@ from aiogram.types import BotCommand
 from xdata_handlers import config
 from xdata_handlers.database import init_db
 from xdata_handlers.translator import load_translations
-
-# Logger sozlash
-logger = logging.getLogger(__name__)
 
 from admin_handlers.admin_handler import admin_router
 from admin_handlers.advertisement import ad_router
@@ -54,7 +50,6 @@ def home():
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
-    logger.info(f"Web server ishga tushdi: port={port}")
     app.run(host='0.0.0.0', port=port)
 
 async def set_bot_commands(bot: Bot):
@@ -65,27 +60,21 @@ async def set_bot_commands(bot: Bot):
         BotCommand(command="mycodes", description="📋 Mening post kodlarim")
     ]
     await bot.set_my_commands(commands)
-    logger.info("Bot buyruqlari o'rnatildi")
-    
+
 async def main():
-    logger.info("Bot ishga tushmoqda...")
-    
+
     await init_db()
-    logger.info("Database ishga tushdi")
-    
+
     load_translations()
-    logger.info("Tarjimalar yuklandi")
 
     bot = Bot(
         token=config.BOT_TOKEN,
         default=DefaultBotProperties(parse_mode='HTML')
     )
-    logger.info("Bot instance yaratildi")
-    
+
     storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
-    
     dp.update.middleware(UserActivityMiddleware())
     dp.update.middleware(BlockUserMiddleware())
 
@@ -101,7 +90,7 @@ async def main():
 
     dp.include_router(start_router)
     dp.include_router(ai_assistant_router) 
-    
+
     dp.include_router(feedback_router)
     dp.include_router(settings_router)
     dp.include_router(user_ad_router)
@@ -121,24 +110,18 @@ async def main():
 
     from post_handlers.schedule_handler import start_scheduler
     start_scheduler(bot)
-    logger.info("Scheduler ishga tushdi")
 
     await bot.delete_webhook(drop_pending_updates=True)
-    logger.info("Webhook o'chirildi, polling boshlandi")
     await dp.start_polling(bot)
 
-
 if __name__ == "__main__":
-    logger.info("=" * 50)
-    logger.info("POSTBOT ILUVASI ISHGA TUSHMOQDA")
-    logger.info("=" * 50)
-    
+
     t = threading.Thread(target=run_web_server, daemon=True)
     t.start()
 
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
-        logger.info("Bot to'xtatildi (KeyboardInterrupt)")
-    except Exception as e:
-        logger.exception(f"Bot ishga tushishida xatolik: {e}")
+        pass
+    except Exception:
+        pass

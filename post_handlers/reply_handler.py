@@ -1,4 +1,3 @@
-import logging
 from contextlib import suppress
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
@@ -21,27 +20,21 @@ from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
 
-logger = logging.getLogger(__name__)
 reply_router = Router()
-
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "cancel_post_creation")
 async def cancel_post_creation_callback(callback: types.CallbackQuery, state: FSMContext):
     """Post yaratishni bekor qilish"""
     from post_handlers.xreply_keyboard import get_main_menu
     lang = await get_user_language(callback.from_user.id)
-    
-    # State ni tozalash
+
     await state.clear()
-    
+
     await callback.message.edit_text(
         "❌ Post bekor qilindi",
         reply_markup=get_main_menu(lang)
     )
     await callback.answer()
-
-
-# ========== Reply Keyboard Button Handlers ==========
 
 @reply_router.message(
     PostCreation.configuring_post,
@@ -53,18 +46,16 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
     post_data = data.get('post_data', {})
     buttons_matrix = data.get('buttons_matrix', [])
     lang = await get_user_language(message.from_user.id)
-    
+
     if not post_data:
         await message.answer(get_text('post_not_found', lang))
         return
-    
-    # Preview sarlavhasini yuborish
+
     await message.answer(get_text('preview_title_msg', lang))
-    
-    # Generating preview keyboard (without management buttons)
+
     from post_handlers.xinline_keyboard import generate_preview_keyboard
     preview_keyboard = generate_preview_keyboard(buttons_matrix)
-    
+
     content_type = post_data.get('content_type', 'text')
     file_id = post_data.get('file_id')
     caption = post_data.get('caption')
@@ -73,7 +64,7 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
     disable_preview = post_data.get('disable_web_page_preview', False)
     has_spoiler = post_data.get('has_spoiler', False)
     show_caption_above = post_data.get('show_caption_above_media', False)
-    
+
     try:
         if content_type == 'text':
             await message.answer(
@@ -167,14 +158,14 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
             media_types = post_data.get('paid_media_types', [])
             file_ids = post_data.get('paid_media_file_ids', [])
             paid_price = post_data.get('paid_price', 1)
-            
+
             input_media_list = []
             for media_type, f_id in zip(media_types, file_ids):
                 if media_type == 'photo':
                     input_media_list.append(InputPaidMediaPhoto(media=f_id))
                 else:
                     input_media_list.append(InputPaidMediaVideo(media=f_id))
-            
+
             await message.answer_paid_media(
                 star_count=paid_price,
                 media=input_media_list,
@@ -183,13 +174,9 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
                 show_caption_above_media=show_caption_above,
                 reply_markup=preview_keyboard
             )
-        
-        # Preview muvaffaqiyatli yuborildi - qo'shimcha xabar chiqarmaymiz
-        
-    except Exception as e:
-        logger.exception(f"Error in preview: {e}")
-        await message.answer(get_text('preview_error_msg', lang))
 
+    except Exception as e:
+        await message.answer(get_text('preview_error_msg', lang))
 
 @reply_router.message(
     PostCreation.configuring_post,
@@ -200,18 +187,16 @@ async def settings_menu_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     post_data = data.get('post_data', {})
     lang = await get_user_language(message.from_user.id)
-    
+
     content_type = post_data.get('content_type', 'text')
-    
-    # Get settings menu keyboard
+
     from post_handlers.xinline_keyboard import get_settings_menu_inline_kb
     settings_kb = get_settings_menu_inline_kb(lang, content_type)
-    
+
     await message.answer(
         get_text('settings_menu_msg', lang),
         reply_markup=settings_kb
     )
-
 
 @reply_router.message(
     PostCreation.configuring_post,
@@ -223,54 +208,47 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
     post_data = data.get('post_data', {})
     buttons_matrix = data.get('buttons_matrix', [])
     lang = await get_user_language(message.from_user.id)
-    
+
     if not post_data:
         await message.answer(get_text('post_not_found', lang))
         return
-    
-    # Tugmalarni tekshirish
+
     has_buttons = False
     button_list = []
-    
+
     for row in buttons_matrix:
         for btn in row:
             if btn and not btn.get('is_placeholder'):
                 has_buttons = True
                 button_list.append(btn)
-    
+
     if not has_buttons:
-        # Tugmalar yo'q
         instructions = get_text('no_buttons_added_msg', lang)
         await message.answer(instructions)
         return
-    
-    # Tugmalar mavjud - ro'yxatni yaratish
+
     response_text = get_text('your_buttons_list_msg', lang) + "\n\n"
     count = 1
-    
+
     for btn in button_list:
         btn_text = btn.get('text', 'Tugma')
         btn_type = btn.get('type', 'url')
-        
+
         if btn_type == 'text_btn':
-            # Matnli tugma
             sub_content = btn.get('sub_content', '')
             nonsub_content = btn.get('nonsub_content', '')
             response_text += f"{count}. {btn_text} :\n"
             response_text += f"{get_text('button_type_text_btn_sub', lang)} = {sub_content}\n"
             response_text += f"{get_text('button_type_text_btn_nonsub', lang)} = {nonsub_content}\n"
         elif btn_type == 'reaction':
-            # Reaksiya tugma
             response_text += f"{count}. {btn_text} = {get_text('button_value_none', lang)}\n"
         else:
-            # URL tugma
             btn_url = btn.get('url', 'URL mavjud emas')
             response_text += f"{count}. {btn_text} = {btn_url}\n"
-        
-        count += 1
-    
-    await message.answer(response_text)
 
+        count += 1
+
+    await message.answer(response_text)
 
 @reply_router.message(
     PostCreation.configuring_post,
@@ -281,20 +259,17 @@ async def edit_content_handler(message: types.Message, state: FSMContext):
     data = await state.get_data()
     post_data = data.get('post_data', {})
     lang = await get_user_language(message.from_user.id)
-    
+
     content_type = post_data.get('content_type', 'text')
-    
-    # Set state to waiting for content
+
     await state.set_state(PostCreation.waiting_for_content)
-    
-    # Show edit content keyboard based on content type
+
     if content_type == 'text':
         await message.answer(
             get_text('ask_new_content_msg', lang),
             reply_markup=get_cancel_kb(lang)
         )
     else:
-        # For media, show options to delete or replace
         from post_handlers.xreply_keyboard import get_edit_content_kb
         await message.answer(
             get_text('ask_new_content_msg', lang),

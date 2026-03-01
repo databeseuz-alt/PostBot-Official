@@ -1,5 +1,4 @@
 import html
-import logging
 from aiogram import F, Router, types, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -15,17 +14,15 @@ from xdata_handlers.translator import get_text
 from post_handlers.send_handler import start_sending_handler
 from post_handlers.start_handler import start_post_editing_process
 
-logger = logging.getLogger(__name__)
 edit_post_router = Router()
-
 
 @edit_post_router.message(F.text, Command("delete_post"))
 async def delete_saved_post_handler(message: types.Message, state: FSMContext, bot: Bot):
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
-    
+
     text = message.text.strip()
-    
+
     if "@" in text:
         parts = text.split()
         if len(parts) >= 2:
@@ -48,8 +45,6 @@ async def delete_saved_post_handler(message: types.Message, state: FSMContext, b
         await start_post_editing_process(message, state, bot)
     else:
         await message.answer(get_text('post_not_found_or_not_owner', lang))
-
-
 
 async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, state: FSMContext, bot: Bot, message_to_delete: types.Message | None = None):
     lang = await get_user_language(user_id)
@@ -108,7 +103,7 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
     )
 
     instruction = get_text('post_opened_for_editing', lang).format(post_code=post_code)
-    
+
     keyboard = generate_post_keyboard(buttons_matrix, lang)
     sent_message = None
 
@@ -130,11 +125,11 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
                 media_list = [InputPaidMediaPhoto(media=post_data.get('file_id'))]
             else:
                 media_list = [InputPaidMediaVideo(media=post_data.get('file_id'))]
-                
+
             orig_caption = post_data.get('caption') or ""
             full_caption = f"{instruction}\n\n{orig_caption}"
             show_caption_above = post_data.get('show_caption_above_media', False)
-                
+
             sent_message = await bot.send_paid_media(
                 chat_id=chat_id,
                 star_count=stars,
@@ -150,12 +145,10 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
         elif content_type in ['photo', 'video', 'audio', 'document', 'animation', 'voice']:
             orig_caption = post_data.get('caption') or ""
             full_caption = f"{instruction}\n\n{orig_caption}"
-            
-            # Media sozlamalari
+
             has_spoiler = post_data.get('has_spoiler', False)
             show_caption_above = post_data.get('show_caption_above_media', False)
-            
-            # Media turlari bo'yicha yuborish
+
             if content_type == 'photo':
                 sent_message = await bot.send_photo(chat_id, post_data.get('file_id'), caption=full_caption, has_spoiler=has_spoiler, show_caption_above_media=show_caption_above, **media_kwargs)
             elif content_type == 'video':
@@ -208,14 +201,14 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             media_types = post_data.get('paid_media_types', [])
             file_ids = post_data.get('paid_media_file_ids', [])
             paid_price = post_data.get('paid_price', 1)
-            
+
             input_media_list = []
             for m_type, f_id in zip(media_types, file_ids):
                 if m_type == 'photo':
                     input_media_list.append(InputPaidMediaPhoto(media=f_id))
                 else:
                     input_media_list.append(InputPaidMediaVideo(media=f_id))
-            
+
             sent_message = await bot.send_paid_media(
                 chat_id=chat_id,
                 star_count=paid_price,
@@ -243,7 +236,6 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             await bot.send_message(chat_id, get_text('post_display_error', lang))
     except Exception:
         await bot.send_message(chat_id, get_text('post_display_error', lang))
-
 
 async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
     full_post = await get_post_from_db(post_code)
@@ -275,7 +267,7 @@ async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
                 media_list = [InputPaidMediaPhoto(media=file_id)]
             else:
                 media_list = [InputPaidMediaVideo(media=file_id)]
-                
+
             await bot.send_paid_media(
                 chat_id=chat_id,
                 star_count=stars,
@@ -333,14 +325,14 @@ async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
             media_types = post_data.get('paid_media_types', [])
             file_ids = post_data.get('paid_media_file_ids', [])
             paid_price = post_data.get('paid_price', 1)
-            
+
             input_media_list = []
             for m_type, f_id in zip(media_types, file_ids):
                 if m_type == 'photo':
                     input_media_list.append(InputPaidMediaPhoto(media=f_id))
                 else:
                     input_media_list.append(InputPaidMediaVideo(media=f_id))
-            
+
             await bot.send_paid_media(
                 chat_id=chat_id,
                 star_count=paid_price,
@@ -385,13 +377,13 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
     """Kanal yoki guruhdan forward qilingan xabarlarni qabul qilish"""
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
-    
+
     forward_origin = message.forward_origin
-    
+
     if forward_origin.type == "channel":
         channel_id = forward_origin.chat.id
         message_id = forward_origin.message_id
-        
+
         try:
             bot_member = await bot.get_chat_member(channel_id, bot.id)
             if bot_member.status not in ["administrator", "creator"]:
@@ -406,20 +398,20 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
                 parse_mode="HTML"
             )
             return
-        
+
         try:
             channel_message = await bot.forward_message(
                 chat_id=user_id,
                 from_chat_id=channel_id,
                 message_id=message_id
             )
-            
+
             text_to_search = channel_message.text or channel_message.caption or ""
-            
+
             import re
             post_code_pattern = r'\b([A-Za-z0-9]{8})\b'
             matches = re.findall(post_code_pattern, text_to_search)
-            
+
             if matches:
                 for potential_code in matches:
                     full_post = await get_post_from_db(potential_code)
@@ -431,13 +423,13 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
                         )
                         await load_post_for_editing(potential_code, user_id, message.chat.id, state, bot)
                         return
-            
+
             await message.answer(
                 "❌ Forward qilingan xabarda post kodi topilmadi.\n\n"
                 "Iltimos, post kodini qo'lda kiriting yoki post kodi bo'lgan xabarni forward qiling.",
                 parse_mode="HTML"
             )
-            
+
         except Exception:
             await message.answer(
                 "❌ Xabarni qayta ishlashda xatolik yuz berdi.\n\n"
@@ -450,7 +442,6 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
             "Iltimos, bot admin bo'lgan kanaldan xabar forward qiling yoki post kodini kiriting.",
             parse_mode="HTML"
         )
-
 
 @edit_post_router.callback_query(EditSendCallbackFactory.filter(F.action == "edit"))
 async def handle_edit_action(callback: types.CallbackQuery, callback_data: EditSendCallbackFactory, state: FSMContext, bot: Bot):

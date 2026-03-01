@@ -1,5 +1,4 @@
 import html
-import logging
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
@@ -10,9 +9,7 @@ from xdata_handlers.database import get_user_channels, remove_user_channel, get_
 from post_handlers.send_handler import cmd_add_channel
 from xdata_handlers.translator import get_text
 
-logger = logging.getLogger(__name__)
 mychannels_router = Router()
-
 
 class MyChannelsCallback(CallbackData, prefix="my_channels"):
     action: str
@@ -23,7 +20,7 @@ async def get_my_channels_keyboard(user_id: int):
     builder = InlineKeyboardBuilder()
     user_channels = await get_user_channels(user_id)
     lang = await get_user_language(user_id)
-    
+
     builder.button(
         text=get_text('add_new_channel_btn', lang),
         callback_data=MyChannelsCallback(action="add_new").pack()
@@ -54,7 +51,6 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl'):
     )
     builder.adjust(1)
     return builder.as_markup()
-
 
 @mychannels_router.message(Command("mychannels"))
 async def cmd_my_channels(message: types.Message):

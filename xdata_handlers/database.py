@@ -3,7 +3,6 @@ import json
 import secrets
 import string
 import os
-import logging
 from datetime import datetime, timedelta, timezone
 import asyncio
 from typing import Optional, List, Dict, Any
@@ -12,7 +11,6 @@ from dotenv import dotenv_values
 
 from xdata_handlers import config
 
-logger = logging.getLogger(__name__)
 TASHKENT_TZ = timezone(timedelta(hours=5))
 
 def _get_database_url() -> str | None:
@@ -40,7 +38,7 @@ def get_connection():
     connect_kwargs = {}
     if "sslmode=" not in db_url:
         connect_kwargs["sslmode"] = "require"
-    
+
     conn = psycopg2.connect(db_url, **connect_kwargs)
     conn.set_client_encoding('UTF8')
     return conn
@@ -63,7 +61,7 @@ async def set_user_language(user_id: int, nickname: str = None, username: str = 
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -88,7 +86,7 @@ async def get_all_active_users(admin_ids: List[int] = None) -> List[int]:
             rows = cursor.fetchall()
             return [int(r[0]) for r in rows]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -121,7 +119,7 @@ async def get_blocked_users_with_info(admin_ids: List[int] = None) -> List[Dict]
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -138,7 +136,6 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            # Agar language ko'rsatilmagan bo'lsa (None), yangi foydalanuvchiga NULL yoziladi
             if language is None:
                 cursor.execute("""
                     INSERT INTO users (user_id, nickname, username, language)
@@ -163,8 +160,6 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
 
-# ==================== USERS TABLE ====================
-
 async def add_or_update_user_positional(user_id: int, nickname: str, username: str, language: str = None):
     """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi."""
     return await _add_or_update_user_impl(user_id=user_id, nickname=nickname, username=username, language=language)
@@ -180,7 +175,7 @@ async def get_user_language(user_id: int) -> str:
             result = cursor.fetchone()
             return result[0] if result else 'uz'
         except Exception:
-            
+
             return 'uz'
         finally:
             if conn: conn.close()
@@ -197,7 +192,7 @@ async def is_user_blocked(user_id: int) -> bool:
             result = cursor.fetchone()
             return bool(result[0]) if result else False
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -214,7 +209,7 @@ async def block_user(user_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -231,13 +226,11 @@ async def unblock_user(user_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== CHANNELS TABLE ====================
 
 async def add_user_channel(user_id: int, channel_id: int, channel_name: str, send_posts: bool = False) -> bool:
     """Foydalanuvchi kanalini qo'shadi."""
@@ -257,7 +250,7 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -286,7 +279,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -303,13 +296,11 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== BOT_SETTINGS TABLE ====================
 
 async def get_user_bot_settings(user_id: int) -> Dict:
     """Foydalanuvchi bot sozlamalarini oladi."""
@@ -331,7 +322,7 @@ async def get_user_bot_settings(user_id: int) -> Dict:
                 'ai_assistant_enabled': False
             }
         except Exception:
-            
+
             return {
                 'ai_assistant_enabled': False
             }
@@ -346,10 +337,10 @@ async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = No
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             if ai_assistant_enabled is None:
                 return False
-            
+
             cursor.execute("""
                 INSERT INTO bot_settings (user_id, ai_assistant_enabled)
                 VALUES (%s, %s)
@@ -358,13 +349,11 @@ async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = No
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== SEND_POSTS TABLE (merged with SENT_POSTS) ====================
 
 async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int = None) -> int | None:
     """Rejalashtirilgan post qo'shadi va post_id qaytaradi."""
@@ -382,7 +371,7 @@ async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datet
             conn.commit()
             return post_id
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -408,7 +397,7 @@ async def save_sent_post(post_code: str, user_id: int, channel_id: int, channel_
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -440,7 +429,7 @@ async def get_scheduled_posts() -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -457,7 +446,7 @@ async def mark_scheduled_post_as_sent(post_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -488,15 +477,11 @@ async def get_pending_scheduled_posts() -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== SEND_POSTS TABLE (merged with SENT_POSTS) ====================
-
-# ==================== REQ_CHANNELS TABLE ====================
 
 async def add_required_channel(channel_id: int, channel_name: str, username: str = None) -> bool:
     """Majburiy kanal qo'shadi."""
@@ -515,7 +500,7 @@ async def add_required_channel(channel_id: int, channel_name: str, username: str
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -539,7 +524,7 @@ async def get_required_channels() -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -558,13 +543,11 @@ async def remove_required_channel(channel_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== REACTIONS TABLE ====================
 
 async def add_reaction(post_code: str, button_index: int, reaction_emoji: str, 
                       user_id: int, chat_id: int, message_id: int) -> bool:
@@ -585,7 +568,7 @@ async def add_reaction(post_code: str, button_index: int, reaction_emoji: str,
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -614,7 +597,7 @@ async def get_post_reactions(post_code: str) -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -640,20 +623,18 @@ async def add_or_update_reaction_by_chat_message(user_id: int, chat_id: int, mes
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
-            # Avval mavjud reaksiyani tekshiramiz
+
             cursor.execute("""
                 SELECT reaction_emoji FROM reactions 
                 WHERE user_id = %s AND chat_id = %s AND message_id = %s
             """, (user_id, chat_id, message_id))
             existing = cursor.fetchone()
-            
+
             if existing:
                 old_reaction = existing[0]
                 if old_reaction == reaction_emoji:
                     return ('already_voted', old_reaction)
-                
-                # Yangilash
+
                 cursor.execute("""
                     UPDATE reactions SET reaction_emoji = %s 
                     WHERE user_id = %s AND chat_id = %s AND message_id = %s
@@ -661,12 +642,10 @@ async def add_or_update_reaction_by_chat_message(user_id: int, chat_id: int, mes
                 conn.commit()
                 return ('updated', old_reaction)
             else:
-                # Avval post_code ni topishga harakat qilamiz (chunki u PK ning bir qismi va NULL bo'lishi mumkin emas)
                 cursor.execute("SELECT post_code FROM send_posts WHERE channel_id = %s AND message_id = %s", (chat_id, message_id))
                 post_code_res = cursor.fetchone()
                 post_code = post_code_res[0] if post_code_res else "__unknown__"
 
-                # Yangi reaksiya qo'shish
                 cursor.execute("""
                     INSERT INTO reactions (user_id, chat_id, message_id, reaction_emoji, post_code, button_index)
                     VALUES (%s, %s, %s, %s, %s, 0)
@@ -674,7 +653,7 @@ async def add_or_update_reaction_by_chat_message(user_id: int, chat_id: int, mes
                 conn.commit()
                 return ('added', None)
         except Exception:
-            
+
             return ('error', None)
         finally:
             if conn: conn.close()
@@ -693,7 +672,7 @@ async def get_reaction_count(post_code: str, button_index: int) -> int:
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
         except Exception:
-            
+
             return 0
         finally:
             if conn: conn.close()
@@ -713,13 +692,11 @@ async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reac
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
         except Exception:
-            
+
             return 0
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== POSTS TABLE ====================
 
 def generate_post_code(length: int = 8) -> str:
     """Unikal post kodini generatsiya qiladi."""
@@ -734,13 +711,13 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
             conn = get_connection()
             cursor = conn.cursor()
             post_code = generate_post_code()
-            
+
             while True:
                 cursor.execute("SELECT id FROM post_info WHERE post_code = %s", (post_code,))
                 if cursor.fetchone() is None: 
                     break
                 post_code = generate_post_code()
-            
+
             if isinstance(post_data, dict) and ('post_content' in post_data or 'buttons_matrix' in post_data):
                 full_post_data = post_data
                 if buttons_matrix is not None and 'buttons_matrix' not in full_post_data:
@@ -757,8 +734,7 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
                 INSERT INTO post_info (post_code, user_id, full_post_data, post_name)
                 VALUES (%s, %s, %s, %s)
             """, (post_code, user_id, full_post_json, post_name))
-            
-            # Matnli tugmalarga post_code qo'shish
+
             if buttons_matrix:
                 for row in buttons_matrix:
                     for btn in row:
@@ -770,11 +746,11 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
                                     SET post_code = %s, button_type = %s
                                     WHERE id = %s
                                 """, (post_code, 'text_btn', db_id))
-            
+
             conn.commit()
             return post_code
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -791,7 +767,7 @@ async def get_post_from_db(post_code: str) -> dict | None:
             result = cursor.fetchone()
             return json.loads(result[0]) if result else None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -808,7 +784,7 @@ async def check_post_owner(post_code: str, user_id: int) -> bool:
             result = cursor.fetchone()
             return result[0] == user_id if result else False
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -825,7 +801,7 @@ async def get_post_name(post_code: str) -> str | None:
             result = cursor.fetchone()
             return result[0] if result and result[0] else None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -838,7 +814,7 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             if isinstance(post_data, dict) and ('post_content' in post_data or 'buttons_matrix' in post_data):
                 full_post_data = post_data
                 if buttons_matrix is not None and 'buttons_matrix' not in full_post_data:
@@ -852,17 +828,16 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
 
             updates = ["full_post_data = %s"]
             params = [json.dumps(full_post_data, ensure_ascii=False), post_code]
-            
+
             if post_name is not None:
                 updates.append("post_name = %s")
                 params.insert(-1, post_name)
-            
+
             cursor.execute(f"""
                 UPDATE post_info SET {', '.join(updates)} 
                 WHERE post_code = %s
             """, params)
-            
-            # Matnli tugmalarga post_code qo'shish (yangi tugmalar uchun)
+
             if buttons_matrix:
                 for row in buttons_matrix:
                     for btn in row:
@@ -874,11 +849,11 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
                                     SET post_code = %s, button_type = %s
                                     WHERE id = %s AND (post_code IS NULL OR post_code = '')
                                 """, (post_code, 'text_btn', db_id))
-            
+
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -895,7 +870,7 @@ async def update_post_message_id(post_code: str, message_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -912,7 +887,7 @@ async def update_post_error(post_code: str, error_message: str) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -925,24 +900,22 @@ async def update_post_print_settings(post_code: str, print_settings: dict) -> bo
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
-            # Get current post data
+
             cursor.execute("SELECT full_post_data FROM post_info WHERE post_code = %s", (post_code,))
             result = cursor.fetchone()
-            
+
             if not result:
                 return False
-            
+
             full_post_data = result[0] if result[0] else {}
-            
+
             if isinstance(full_post_data, str):
                 full_post_data = json.loads(full_post_data)
-            
-            # Update print settings
+
             if 'print_settings' not in full_post_data:
                 full_post_data['print_settings'] = {}
             full_post_data['print_settings'].update(print_settings)
-            
+
             cursor.execute(
                 "UPDATE post_info SET full_post_data = %s WHERE post_code = %s",
                 (json.dumps(full_post_data, ensure_ascii=False), post_code)
@@ -950,7 +923,7 @@ async def update_post_print_settings(post_code: str, print_settings: dict) -> bo
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -973,7 +946,7 @@ async def record_user_activity(user_id: int, username: str = None) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -990,7 +963,7 @@ async def save_post_name(post_code: str, post_name: str) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -1003,20 +976,18 @@ async def unsave_post_name(post_code: str, user_id: int = None) -> str | None:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
-            # Avval post nomini olamiz
+
             cursor.execute("SELECT post_name FROM post_info WHERE post_code = %s", (post_code,))
             result = cursor.fetchone()
             post_name = result[0] if result else None
-            
-            # Keyin nomini null qilamiz
+
             if post_name:
                 cursor.execute("UPDATE post_info SET post_name = NULL WHERE post_code = %s", (post_code,))
                 conn.commit()
-            
+
             return post_name
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1044,13 +1015,12 @@ async def get_user_posts(user_id: int) -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
 
-# Eski funksiya nomi uchun alias
 async def get_posts_by_user(user_id: int) -> List[Dict]:
     """Foydalanuvchi postlarini oladi (eski nom uchun moslik)."""
     posts = await get_user_posts(user_id)
@@ -1087,13 +1057,8 @@ async def update_user_post_settings(user_id: int, settings: Dict = None, **kwarg
         ai_assistant_enabled=merged.get('ai_assistant_enabled')
     )
 
-# ==================== TEXT_BUTTONS TABLE ====================
-
 async def create_text_button(*args, **kwargs) -> int | None:
     """Matnli tugma yaratadi."""
-    # Supports both:
-    # - create_text_button(content_sub, content_nonsub)
-    # - create_text_button(post_code, button_type, content_sub, content_nonsub)
     if args and len(args) == 2 and not kwargs:
         post_code = None
         button_type = None
@@ -1126,7 +1091,7 @@ async def create_text_button(*args, **kwargs) -> int | None:
             conn.commit()
             return btn_id
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1146,13 +1111,11 @@ async def get_text_button_content(btn_id: int) -> dict | None:
             row = cursor.fetchone()
             return {'content_sub': row[0], 'content_nonsub': row[1]} if row else None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== BOT_STATS TABLE ====================
 
 async def update_bot_stats(stat_date: str, new_users: int = 0, new_posts: int = 0) -> bool:
     """Bot statistikasini yangilaydi."""
@@ -1171,7 +1134,7 @@ async def update_bot_stats(stat_date: str, new_users: int = 0, new_posts: int = 
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -1198,13 +1161,11 @@ async def get_bot_stats() -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== POST_STATS TABLE ====================
 
 async def update_post_stats(post_code: str, channel_id: int, views: int = 0, 
                            clicks: int = 0, shares: int = 0, reactions: int = 0, 
@@ -1215,9 +1176,9 @@ async def update_post_stats(post_code: str, channel_id: int, views: int = 0,
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             reactions_json = json.dumps(reactions_data) if reactions_data else '{}'
-            
+
             cursor.execute("""
                 INSERT INTO post_stats (post_code, channel_id, total_views, total_clicks, total_shares, reactions, reactions_data)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -1231,7 +1192,7 @@ async def update_post_stats(post_code: str, channel_id: int, views: int = 0,
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -1261,13 +1222,11 @@ async def get_post_stats(post_code: str) -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== USER FEEDBACK AND ERRORS (in USERS table) ====================
 
 async def log_user_feedback(user_id: int, feedback_text: str) -> bool:
     """Foydalanuvchi feedbackini users jadvaliga yozadi."""
@@ -1284,7 +1243,7 @@ async def log_user_feedback(user_id: int, feedback_text: str) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -1305,7 +1264,7 @@ async def log_user_error(user_id: int, error_text: str) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -1333,7 +1292,7 @@ async def get_feedbacks_by_user(user_id: int) -> List[Dict]:
                 ]
             return []
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -1360,13 +1319,11 @@ async def get_errors_by_user(user_id: int) -> List[Dict]:
                 ]
             return []
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== ADMIN EXPORT FUNCTIONS ====================
 
 async def find_user_by_id_or_username(query: str) -> Dict | None:
     """Foydalanuvchini ID yoki username bo'yicha topadi."""
@@ -1375,13 +1332,13 @@ async def find_user_by_id_or_username(query: str) -> Dict | None:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             if query.isdigit():
                 cursor.execute("SELECT user_id, nickname, username, language, is_blocked, last_activity FROM users WHERE user_id = %s", (int(query),))
             else:
                 username = query.lstrip('@')
                 cursor.execute("SELECT user_id, nickname, username, language, is_blocked, last_activity FROM users WHERE username = %s", (username,))
-            
+
             result = cursor.fetchone()
             if result:
                 return {
@@ -1396,7 +1353,7 @@ async def find_user_by_id_or_username(query: str) -> Dict | None:
                 }
             return None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1425,7 +1382,7 @@ async def get_user_info_from_db(user_id: int) -> Dict | None:
                 }
             return None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1453,7 +1410,7 @@ async def get_user_block_info(user_id: int) -> Dict | None:
                 }
             return None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1466,19 +1423,18 @@ async def get_users_for_export(admin_ids: List[int], period: str = None) -> List
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             query = """
                 SELECT user_id, nickname, username, language, is_blocked
                 FROM users 
                 WHERE user_id NOT IN (%s)
             """ % ','.join('%s' for _ in admin_ids)
-            
+
             params = admin_ids
-            
+
             if period:
-                # Period bo'yicha filter qo'shish mumkin
                 pass
-            
+
             cursor.execute(query, params)
             rows = cursor.fetchall()
             return [
@@ -1492,7 +1448,7 @@ async def get_users_for_export(admin_ids: List[int], period: str = None) -> List
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -1505,14 +1461,14 @@ async def get_post_creators_for_export(admin_ids: List[int], period: str = None)
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             query = """
                 SELECT DISTINCT u.user_id, u.nickname, u.username, u.language
                 FROM users u
                 INNER JOIN post_info p ON u.user_id = p.user_id
                 WHERE u.user_id NOT IN (%s)
             """ % ','.join('%s' for _ in admin_ids)
-            
+
             cursor.execute(query, admin_ids)
             rows = cursor.fetchall()
             return [
@@ -1525,7 +1481,7 @@ async def get_post_creators_for_export(admin_ids: List[int], period: str = None)
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -1538,7 +1494,7 @@ async def get_user_settings_for_export(admin_ids: List[int], period: str = None)
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             query = """
                 SELECT u.user_id, u.nickname, u.username, 
                        bs.ai_assistant_enabled
@@ -1546,7 +1502,7 @@ async def get_user_settings_for_export(admin_ids: List[int], period: str = None)
                 LEFT JOIN bot_settings bs ON u.user_id = bs.user_id
                 WHERE u.user_id NOT IN (%s)
             """ % ','.join('%s' for _ in admin_ids)
-            
+
             cursor.execute(query, admin_ids)
             rows = cursor.fetchall()
             return [
@@ -1559,13 +1515,11 @@ async def get_user_settings_for_export(admin_ids: List[int], period: str = None)
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
-
-# ==================== AI_PROMPTS TABLE ====================
 
 async def save_prompt(user_id: int, prompt_text: str) -> int | None:
     """Promptni saqlaydi."""
@@ -1582,7 +1536,7 @@ async def save_prompt(user_id: int, prompt_text: str) -> int | None:
             conn.commit()
             return prompt_id
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1610,7 +1564,7 @@ async def get_user_prompts(user_id: int) -> List[Dict]:
                 for row in rows
             ]
         except Exception:
-            
+
             return []
         finally:
             if conn: conn.close()
@@ -1627,7 +1581,7 @@ async def delete_prompt(prompt_id: int, user_id: int) -> bool:
             conn.commit()
             return True
         except Exception:
-            
+
             return False
         finally:
             if conn: conn.close()
@@ -1653,7 +1607,7 @@ async def get_prompt_by_id(prompt_id: int, user_id: int) -> Dict | None:
                 }
             return None
         except Exception:
-            
+
             return None
         finally:
             if conn: conn.close()
@@ -1685,15 +1639,13 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
 
             cursor.execute("SELECT COUNT(*) FROM post_info")
             total_posts = int((cursor.fetchone() or [0])[0] or 0)
-            
-            # Bugungi statistika
+
             today = get_now().strftime('%Y-%m-%d')
             cursor.execute("SELECT new_users, new_posts FROM bot_stats WHERE stat_date = %s", (today,))
             row = cursor.fetchone()
             today_users = int(row[0]) if row else 0
             today_posts = int(row[1]) if row else 0
-            
-            # Oxirgi 7 kun statistikasi
+
             cursor.execute("""
                 SELECT stat_date, new_users, new_posts
                 FROM bot_stats
@@ -1716,7 +1668,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                 'last_7_days': last_7_days
             }
         except Exception:
-            
+
             return {
                 'total_users': 0,
                 'today_users': 0,
@@ -1737,28 +1689,23 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             now = get_now()
             today = now.strftime('%Y-%m-%d')
-            
-            # Shu haftaning boshlanishi (dushanba)
+
             week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
-            
-            # Shu oyning boshlanishi
+
             month_start = now.replace(day=1).strftime('%Y-%m-%d')
-            
-            # Kunlik
+
             cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date = %s", (today,))
             daily = int(cursor.fetchone()[0] or 0)
-            
-            # Haftalik
+
             cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (week_start,))
             weekly = int(cursor.fetchone()[0] or 0)
-            
-            # Oylik
+
             cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
             monthly = int(cursor.fetchone()[0] or 0)
-            
+
             return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
         except Exception:
             return {'daily': 0, 'weekly': 0, 'monthly': 0}
@@ -1773,32 +1720,26 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
+
             now = get_now()
             today = now.strftime('%Y-%m-%d')
-            
-            # Shu haftaning boshlanishi (dushanba)
+
             week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
-            
-            # Shu oyning boshlanishi
+
             month_start = now.replace(day=1).strftime('%Y-%m-%d')
-            
-            # Jami postlar
+
             cursor.execute("SELECT COUNT(*) FROM post_info")
             total = int((cursor.fetchone() or [0])[0] or 0)
-            
-            # Kunlik
+
             cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date = %s", (today,))
             daily = int(cursor.fetchone()[0] or 0)
-            
-            # Haftalik
+
             cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date >= %s", (week_start,))
             weekly = int(cursor.fetchone()[0] or 0)
-            
-            # Oylik
+
             cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
             monthly = int(cursor.fetchone()[0] or 0)
-            
+
             return {'total': total, 'daily': daily, 'weekly': weekly, 'monthly': monthly}
         except Exception:
             return {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
@@ -1823,7 +1764,7 @@ async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
             rows = cursor.fetchall()
             return {row[0]: int(row[1]) for row in rows}
         except Exception:
-            
+
             return {}
         finally:
             if conn: conn.close()
@@ -1846,7 +1787,7 @@ async def get_daily_stats_for_graph(days: int = 30):
             posts = [int(r[2] or 0) for r in rows]
             return dates, users, posts
         except Exception:
-            
+
             return [], [], []
         finally:
             if conn: conn.close()
@@ -1865,7 +1806,7 @@ async def get_total_errors_count() -> int:
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
         except Exception:
-            
+
             return 0
         finally:
             if conn: conn.close()
@@ -1893,8 +1834,7 @@ async def init_db():
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            
-            # text_buttons jadvalini yaratish
+
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS text_buttons (
                     id SERIAL PRIMARY KEY,
@@ -1905,19 +1845,17 @@ async def init_db():
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
-            
-            # Indeks yaratish
+
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_text_buttons_post_code 
                 ON text_buttons(post_code)
             """)
-            
+
             conn.commit()
-            logger.info("text_buttons jadvali yaratildi yoki mavjud")
-        except Exception as e:
-            logger.error(f"init_db xatolik: {e}")
+        except Exception:
+            pass
         finally:
             if conn:
                 conn.close()
-    
+
     await asyncio.to_thread(_sync)
