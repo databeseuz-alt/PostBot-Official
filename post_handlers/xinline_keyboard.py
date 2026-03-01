@@ -146,7 +146,8 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
                 kwargs = {'text': btn_text}
                 
                 if btn.get('type') == 'text_btn':
-                    kwargs['callback_data'] = f"text_btn_preview:{btn['db_id']}"
+                    db_id = btn.get('db_id', '0')
+                    kwargs['callback_data'] = f"text_btn_preview:{db_id}"
                 elif btn.get('type') == 'reaction':
                     kwargs['text'] = f"{btn_text} 0"
                     kwargs['callback_data'] = "reaction_preview"
