@@ -198,6 +198,7 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('settings_btn'))
+@reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('settings_btn'))
 async def options_menu_handler(message: types.Message, state: FSMContext):
     """Sozlamalar tugmasi bosilganda media sozlamalari inline keyboardini ko'rsatish"""
     data = await state.get_data()
@@ -226,6 +227,7 @@ async def options_menu_handler(message: types.Message, state: FSMContext):
 
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('get_buttons_btn'))
+@reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('get_buttons_btn'))
 async def get_buttons_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
@@ -262,6 +264,7 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
     )
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('edit_content_btn'))
+@reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('edit_content_btn'))
 async def edit_content_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
@@ -274,6 +277,7 @@ async def edit_content_handler(message: types.Message, state: FSMContext):
     )
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('preview_btn'))
+@reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('preview_btn'))
 async def preview_post_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
@@ -379,6 +383,7 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
 
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('cancel_btn'))
+@reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('cancel_btn'))
 async def cancel_post_creation_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     await state.clear()

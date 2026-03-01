@@ -39,11 +39,8 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     # Uchinchi qator: Bekor qilish
     builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
 
-    # Layout: poll/location uchun 4, 2, 1; boshqa uchun 4, 1, 1
-    if content_type in ['poll', 'location']:
-        builder.adjust(4, 2, 1)
-    else:
-        builder.adjust(4, 1, 1)
+    # Layout: 4, 2 (4 ta tugma birinchi qatorda, 2 ta tugma ikkinchi qatorda)
+    builder.adjust(4, 2)
 
     return builder.as_markup(resize_keyboard=True)
 

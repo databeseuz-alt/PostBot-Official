@@ -189,8 +189,20 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
     PostCreation.configuring_post,
     LocalizedText('edit_confirm_btn')
 )
+@done_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('done_btn')
+)
+@done_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('edit_confirm_btn')
+)
 @done_router.callback_query(
     PostCreation.configuring_post,
+    F.data == "done_post_creation"
+)
+@done_router.callback_query(
+    PostCreation.waiting_for_media_settings,
     F.data == "done_post_creation"
 )
 async def done_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
