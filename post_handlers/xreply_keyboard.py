@@ -17,33 +17,33 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('preview_btn', lang))) # Ko'rish
     builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
-
-    # Dinamik tugma (Poll Settings / Location Settings) - Paid Media endi Sozlamalar ichida
+    
+    # 4-tugma: content_type ga qarab
     if content_type == 'poll':
         builder.add(KeyboardButton(text=get_text('poll_settings_btn', lang)))
     elif content_type == 'location':
         builder.add(KeyboardButton(text=get_text('location_settings_btn', lang)))
     else:
-        # Agar dinamik tugma bo'lmasa, Tahrirlash tugmasini bu yerga chiqaramiz
         builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
-    # Ikkinchi qator: 2 ta tugma
-    # Agar Tahrirlash birinchi qatorda bo'lmasa, uni bu yerga qo'shamiz
+    # Ikkinchi qator: Tahrirlash (faqat poll/location uchun) va Tayyor
     if content_type in ['poll', 'location']:
         builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
-
+    
     # Tayyor / Tasdiqlash
     if is_editing:
         builder.add(KeyboardButton(text=get_text('edit_confirm_btn', lang)))
     else:
         builder.add(KeyboardButton(text=get_text('done_btn', lang)))
 
-    # Bekor qilish tugmasi (oxirida)
+    # Uchinchi qator: Bekor qilish
     builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
 
-    # Layout: 4, 3 (chunki Cancel ham bor) - User 4, 2 deganida birinchi qatorda 4 ta bo'lishini nazarda tutgan
-    # 7 ta tugma bo'lsa: 4, 2, 1 ko'rinishida chiqadi
-    builder.adjust(4, 2, 1)
+    # Layout: poll/location uchun 4, 2, 1; boshqa uchun 4, 1, 1
+    if content_type in ['poll', 'location']:
+        builder.adjust(4, 2, 1)
+    else:
+        builder.adjust(4, 1, 1)
 
     return builder.as_markup(resize_keyboard=True)
 

@@ -1389,4 +1389,12 @@ async def cancel_post_creation_callback(callback: types.CallbackQuery, state: FS
     await callback.answer()
 
 
+# ===== Debug handler - barcha xabarlarni log qilish (oxirida bo'lishi kerak) =====
+@reply_router.message(F.text)
+async def debug_handler(message: Message, state: FSMContext):
+    """Debug uchun - barcha xabarlarni log qilish"""
+    current_state = await state.get_state()
+    logging.info(f"DEBUG: Received text: '{message.text}', State: {current_state}, User: {message.from_user.id}")
+
+
 
