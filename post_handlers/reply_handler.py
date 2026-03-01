@@ -1,6 +1,6 @@
 import logging
 from contextlib import suppress
-from aiogram import F, Router, types
+from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.keyboard import InlineKeyboardBuilder
