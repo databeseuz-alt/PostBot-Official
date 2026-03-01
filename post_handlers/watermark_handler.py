@@ -12,7 +12,7 @@ from aiogram.filters.callback_data import CallbackData
 
 from post_handlers.post_handler import PostCreation
 from post_handlers.xinline_keyboard import get_media_settings_inline_kb
-from post_handlers.xreply_keyboard import get_media_settings_kb, get_post_settings_kb
+from post_handlers.xreply_keyboard import get_post_settings_kb
 from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
@@ -1043,7 +1043,7 @@ async def back_to_media_settings(callback: types.CallbackQuery, state: FSMContex
 
     await callback.message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_kb(
+        reply_markup=get_media_settings_inline_kb(
             lang, has_spoiler, show_caption_above, has_caption, content_type, is_paid
         )
     )

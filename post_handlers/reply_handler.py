@@ -8,8 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import (
     get_main_menu, get_cancel_kb, get_post_settings_kb,
-    get_button_creation_cancel_kb, get_edit_content_kb,
-    get_media_settings_kb, get_settings_menu_kb
+    get_button_creation_cancel_kb, get_edit_content_kb
 )
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
@@ -659,14 +658,14 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
     content_type = post_data.get('content_type')
     is_paid = post_data.get('is_paid', False)
     
-    # Inline keyboard o'rniga Reply keyboard ishlatamiz
-    settings_keyboard = get_media_settings_kb(
-        lang=lang, 
-        has_spoiler=has_spoiler, 
-        show_caption_above=show_caption_above, 
+    # Inline keyboard
+    settings_keyboard = get_media_settings_inline_kb(
+        lang=lang,
+        has_spoiler=has_spoiler,
+        is_paid=is_paid,
+        show_caption_above=show_caption_above,
         has_caption=has_caption,
-        content_type=content_type,
-        is_paid=is_paid
+        content_type=content_type
     )
 
     # Post mavjudligini tekshirish
@@ -1016,13 +1015,13 @@ async def open_position_settings(message: Message, state: FSMContext):
     
     await message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_kb(
+        reply_markup=get_media_settings_inline_kb(
             lang=lang,
             has_spoiler=has_spoiler,
+            is_paid=is_paid,
             show_caption_above=new_position,
             has_caption=has_caption,
-            content_type=content_type,
-            is_paid=is_paid
+            content_type=content_type
         )
     )
 
@@ -1064,7 +1063,14 @@ async def toggle_position(message: Message, state: FSMContext):
     content_type = post_data.get('content_type', 'photo')
     await message.answer(
         success_text,
-        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=new_position, has_caption=has_caption, content_type=content_type, is_paid=is_paid)
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=new_position,
+            has_caption=has_caption,
+            content_type=content_type
+        )
     )
     
     # Postni ham yangilash
