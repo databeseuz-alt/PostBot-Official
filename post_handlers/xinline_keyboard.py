@@ -454,17 +454,15 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
 
 
 def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
-    """Media sozlamalari uchun inline klaviatura - layout 1, 2, 1"""
+    """Media sozlamalari uchun inline klaviatura - layout 1, 2, 1 (faqat caption bo'lsa joylashuv ko'rsatiladi)"""
     builder = InlineKeyboardBuilder()
     
-    # 1-qator: Joylashuv (1 ta tugma)
+    # 1-qator: Joylashuv (faqat caption bo'lsa)
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
         position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
-    else:
-        position_text = get_text('position_btn', lang)
-    builder.button(text=position_text, callback_data="media_toggle_position")
+        builder.button(text=position_text, callback_data="media_toggle_position")
     
-    # 2-qator: Pulli media va Spoiler (2 ta tugma)
+    # 2-qator: Pulli media va Spoiler
     if content_type in ['photo', 'video', 'animation']:
         spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
         builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
@@ -473,11 +471,14 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
         paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
         builder.button(text=paid_text, callback_data="media_toggle_paid")
     
-    # 3-qator: Orqaga (1 ta tugma)
+    # 3-qator: Orqaga
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
     
-    # Layout: 1, 2, 1
-    builder.adjust(1, 2, 1)
+    # Layout: caption bo'lsa 1, 2, 1; bo'lmasa 2, 1
+    if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
+        builder.adjust(1, 2, 1)
+    else:
+        builder.adjust(2, 1)
         
     return builder.as_markup()
 
@@ -557,18 +558,24 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None):
     return builder.as_markup()
 
 
-def get_settings_menu_inline_kb(lang: str):
-    """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (inline, adjust 2)"""
+def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
+    """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (faqat media uchun)"""
     builder = InlineKeyboardBuilder()
     
-    # Media sozlamalari
-    builder.button(text=get_text('media_settings_btn', lang), callback_data="open_media_settings_menu")
+    # Media turlari
+    media_types = ['photo', 'video', 'audio', 'document', 'animation', 'voice', 'video_note', 'paid_media']
+    has_media = content_type in media_types
     
-    # Watermark sozlamalari
-    builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
-    
-    # Layout: 2 (2 ta tugma yonma-yon)
-    builder.adjust(2)
+    if has_media:
+        # Media sozlamalari
+        builder.button(text=get_text('media_settings_btn', lang), callback_data="open_media_settings_menu")
+        
+        # Watermark sozlamalari (faqat photo uchun)
+        if content_type == 'photo':
+            builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
+            builder.adjust(2)
+        else:
+            builder.adjust(1)
     
     return builder.as_markup()
 

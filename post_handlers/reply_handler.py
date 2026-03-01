@@ -200,13 +200,28 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 async def options_menu_handler(message: types.Message, state: FSMContext):
     """Sozlamalar tugmasi bosilganda Media va Watermark tugmalarini ko'rsatish (inline)"""
     lang = await get_user_language(message.from_user.id)
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    content_type = post_data.get('content_type', 'text')
 
     await state.set_state(PostCreation.waiting_for_media_settings)
     
-    await message.answer(
-        get_text('select_settings_msg', lang),
-        reply_markup=get_settings_menu_inline_kb(lang=lang)
-    )
+    # Media turlari
+    media_types = ['photo', 'video', 'audio', 'document', 'animation', 'voice', 'video_note', 'paid_media']
+    has_media = content_type in media_types
+    
+    if has_media:
+        # Media bo'lsa - Media va Watermark tugmalari
+        await message.answer(
+            get_text('select_settings_msg', lang),
+            reply_markup=get_settings_menu_inline_kb(lang=lang, content_type=content_type)
+        )
+    else:
+        # Matn bo'lsa - faqat "Post Sozlamalari" xabari
+        await message.answer(
+            "📋 Post Sozlamalari\n\nBu post uchun sozlamalar mavjud emas.",
+            reply_markup=get_post_settings_inline_kb(content_type=content_type, lang=lang)
+        )
 
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "post_open_settings")
@@ -214,13 +229,28 @@ async def options_menu_handler(message: types.Message, state: FSMContext):
 async def open_settings_inline(callback: types.CallbackQuery, state: FSMContext):
     """Inline sozlamalar tugmasi bosilganda"""
     lang = await get_user_language(callback.from_user.id)
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    content_type = post_data.get('content_type', 'text')
 
     await state.set_state(PostCreation.waiting_for_media_settings)
     
-    await callback.message.answer(
-        get_text('select_settings_msg', lang),
-        reply_markup=get_settings_menu_inline_kb(lang=lang)
-    )
+    # Media turlari
+    media_types = ['photo', 'video', 'audio', 'document', 'animation', 'voice', 'video_note', 'paid_media']
+    has_media = content_type in media_types
+    
+    if has_media:
+        # Media bo'lsa - Media va Watermark tugmalari
+        await callback.message.answer(
+            get_text('select_settings_msg', lang),
+            reply_markup=get_settings_menu_inline_kb(lang=lang, content_type=content_type)
+        )
+    else:
+        # Matn bo'lsa - faqat "Post Sozlamalari" xabari
+        await callback.message.answer(
+            "📋 Post Sozlamalari\n\nBu post uchun sozlamalar mavjud emas.",
+            reply_markup=get_post_settings_inline_kb(content_type=content_type, lang=lang)
+        )
     await callback.answer()
 
 
