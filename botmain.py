@@ -50,16 +50,7 @@ def home():
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port)
-
-async def set_bot_commands(bot: Bot):
-    """Bot uchun buyruqlar menyusini o'rnatadi."""
-    commands = [
-        BotCommand(command="language", description="⚙️ Til sozlamalari / Настройки языка"),
-        BotCommand(command="feedback", description="✍️ Adminga xabar yuborish"),
-        BotCommand(command="mycodes", description="📋 Mening post kodlarim")
-    ]
-    await bot.set_my_commands(commands)
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 async def main():
 
