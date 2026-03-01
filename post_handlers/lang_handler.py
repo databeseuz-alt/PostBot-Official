@@ -42,16 +42,29 @@ async def language_settings_handler(message: types.Message):
 
 @lang_router.callback_query(F.data.startswith("lang:"))
 async def set_language_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
-    parts = callback.data.split(":")
-    lang_code = parts[1] if len(parts) > 1 else ""
-    
-    await set_user_language(
-        user_id=callback.from_user.id,
-        nickname=callback.from_user.full_name,
-        username=callback.from_user.username,
-        language=lang_code
-    )
-    
-    await callback.answer(get_text('lang_changed', lang_code))
-    await cmd_start(callback, state, bot)
+    try:
+        parts = callback.data.split(":")
+        lang_code = parts[1] if len(parts) > 1 else ""
+        
+        # Til kodini saqlash
+        await set_user_language(
+            user_id=callback.from_user.id,
+            nickname=callback.from_user.full_name,
+            username=callback.from_user.username,
+            language=lang_code
+        )
+        
+        # Callback javobini yuborish
+        await callback.answer(get_text('lang_changed', lang_code))
+        
+        # Til o'zgarganini xabar qilish va bosh menyu ko'rsatish
+        await callback.message.answer(get_text('lang_changed', lang_code))
+        
+        # Bosh menyuni chaqirish
+        await cmd_start(callback, state, bot)
+        
+    except Exception as e:
+        import logging
+        logging.error(f"Til o'zgartirishda xatolik: {e}")
+        await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
 
