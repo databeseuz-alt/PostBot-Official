@@ -318,7 +318,7 @@ async def process_text_btn_content_nonsub(message: types.Message, state: FSMCont
         'text': button_text,
         'url': None,
         'type': 'text_btn',
-        'btn_id': btn_id
+        'db_id': btn_id
     }
     if button_emoji_id:
         new_btn['emoji_id'] = button_emoji_id

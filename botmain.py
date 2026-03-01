@@ -44,7 +44,6 @@ from user_handlers.settings_handler import settings_router
 from user_handlers.ad_handler import ad_router as user_ad_router
 
 from admin_handlers.block_handler import BlockUserMiddleware
-from admin_handlers.maintenance_middleware import MaintenanceMiddleware
 from admin_handlers.statsmiddleware import UserActivityMiddleware
 
 app = Flask(__name__)
@@ -87,7 +86,6 @@ async def main():
     dp = Dispatcher(storage=storage)
 
     
-    dp.update.middleware(MaintenanceMiddleware())
     dp.update.middleware(UserActivityMiddleware())
     dp.update.middleware(BlockUserMiddleware())
 

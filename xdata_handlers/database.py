@@ -32,48 +32,6 @@ def get_now() -> datetime:
     """Hozirgi vaqtni har doim Toshkent vaqti bilan qaytaradi."""
     return datetime.now(TASHKENT_TZ)
 
-async def is_maintenance_mode() -> bool:
-    """Tekshiradi bot tuzatish rejimidami."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("CREATE TABLE IF NOT EXISTS global_settings (key TEXT PRIMARY KEY, value TEXT)")
-            cursor.execute("SELECT value FROM global_settings WHERE key = 'maintenance_mode'")
-            result = cursor.fetchone()
-            if result:
-                return result[0] == 'on'
-            return False
-        except Exception:
-            
-            return False
-        finally:
-            if conn: conn.close()
-    return await asyncio.to_thread(_sync)
-
-async def set_maintenance_mode(status: bool) -> bool:
-    """Bot tuzatish rejimini yoqadi yoki o'chiradi."""
-    val = 'on' if status else 'off'
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("CREATE TABLE IF NOT EXISTS global_settings (key TEXT PRIMARY KEY, value TEXT)")
-            cursor.execute("""
-                INSERT INTO global_settings (key, value) VALUES ('maintenance_mode', %s)
-                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
-            """, (val,))
-            conn.commit()
-            return True
-        except Exception:
-            
-            return False
-        finally:
-            if conn: conn.close()
-    return await asyncio.to_thread(_sync)
-
 def get_connection():
     """PostgreSQL bazasiga ulanish hosil qiladi."""
     db_url = _get_database_url() or DB_URL
@@ -313,7 +271,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT channel_id, channel_name, send_posts, aded_at, recorded_at 
+                SELECT channel_id, channel_name, send_posts, added_at, recorded_at
                 FROM channels WHERE user_id = %s
             """, (user_id,))
             rows = cursor.fetchall()
@@ -322,7 +280,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                     'channel_id': row[0],
                     'channel_name': row[1], 
                     'send_posts': row[2],
-                    'aded_at': row[3],
+                    'added_at': row[3],
                     'recorded_at': row[4]
                 }
                 for row in rows
@@ -799,6 +757,20 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
                 INSERT INTO post_info (post_code, user_id, full_post_data, post_name)
                 VALUES (%s, %s, %s, %s)
             """, (post_code, user_id, full_post_json, post_name))
+            
+            # Matnli tugmalarga post_code qo'shish
+            if buttons_matrix:
+                for row in buttons_matrix:
+                    for btn in row:
+                        if btn and btn.get('type') == 'text_btn':
+                            db_id = btn.get('db_id')
+                            if db_id:
+                                cursor.execute("""
+                                    UPDATE text_buttons 
+                                    SET post_code = %s, button_type = %s
+                                    WHERE id = %s
+                                """, (post_code, 'text_btn', db_id))
+            
             conn.commit()
             return post_code
         except Exception:
@@ -889,6 +861,20 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
                 UPDATE post_info SET {', '.join(updates)} 
                 WHERE post_code = %s
             """, params)
+            
+            # Matnli tugmalarga post_code qo'shish (yangi tugmalar uchun)
+            if buttons_matrix:
+                for row in buttons_matrix:
+                    for btn in row:
+                        if btn and btn.get('type') == 'text_btn':
+                            db_id = btn.get('db_id')
+                            if db_id:
+                                cursor.execute("""
+                                    UPDATE text_buttons 
+                                    SET post_code = %s, button_type = %s
+                                    WHERE id = %s AND (post_code IS NULL OR post_code = '')
+                                """, (post_code, 'text_btn', db_id))
+            
             conn.commit()
             return True
         except Exception:
@@ -1902,5 +1888,36 @@ async def get_button_stats(admin_ids: List[int] = None) -> Dict:
 
 async def init_db():
     """Bazani ishga tushirish uchun kerakli dastlabki ma'lumotlarni qo'shadi."""
-    # Bu funksiya kerak bo'lsa dastlabki ma'lumotlarni qo'shish uchun ishlatiladi
-    pass
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # text_buttons jadvalini yaratish
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS text_buttons (
+                    id SERIAL PRIMARY KEY,
+                    post_code TEXT,
+                    button_type TEXT,
+                    content_sub TEXT NOT NULL,
+                    content_nonsub TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Indeks yaratish
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_text_buttons_post_code 
+                ON text_buttons(post_code)
+            """)
+            
+            conn.commit()
+            logger.info("text_buttons jadvali yaratildi yoki mavjud")
+        except Exception as e:
+            logger.error(f"init_db xatolik: {e}")
+        finally:
+            if conn:
+                conn.close()
+    
+    await asyncio.to_thread(_sync)

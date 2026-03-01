@@ -2,7 +2,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
 
 
-def get_main_admin_keyboard(is_maintenance: bool = False):
+def get_main_admin_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Statistika bo'limi", callback_data="admin:stats_menu")
     builder.button(text="🚫 Bloklanganlar", callback_data="admin:blocked_users_menu")
@@ -10,10 +10,7 @@ def get_main_admin_keyboard(is_maintenance: bool = False):
     builder.button(text="📢 Kanalni ulash", callback_data="admin:channel_menu")
     builder.button(text="ℹ️ Foydalanuvchi ma'lumotlari", callback_data="admin:user_data_menu")
     
-    m_status = "Yoqilgan ✅" if is_maintenance else "O'chirilgan ❌"
-    builder.button(text=f"🔧 Tuzatish ishlari: {m_status}", callback_data="admin:toggle_maintenance")
-    
-    builder.adjust(2, 2, 1, 1)
+    builder.adjust(2, 2, 1)
     return builder.as_markup()
 
 
