@@ -7,9 +7,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import (
-    get_main_menu, get_cancel_kb, get_post_settings_kb, 
+    get_main_menu, get_cancel_kb, get_post_settings_kb,
     get_button_creation_cancel_kb, get_edit_content_kb,
-    get_media_settings_kb
+    get_media_settings_kb, get_settings_menu_kb
 )
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
@@ -200,29 +200,14 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 @reply_router.message(PostCreation.configuring_post, LocalizedText('settings_btn'))
 @reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('settings_btn'))
 async def options_menu_handler(message: types.Message, state: FSMContext):
-    """Sozlamalar tugmasi bosilganda media sozlamalari inline keyboardini ko'rsatish"""
-    data = await state.get_data()
-    post_data = data.get("post_data", {})
+    """Sozlamalar tugmasi bosilganda Media va Watermark tugmalarini ko'rsatish (adjust 2)"""
     lang = await get_user_language(message.from_user.id)
-
-    has_spoiler = post_data.get('has_spoiler', False)
-    show_caption_above = post_data.get('show_caption_above_media', False)
-    has_caption = bool(post_data.get('caption'))
-    content_type = post_data.get('content_type', 'text')
-    is_paid = post_data.get('is_paid', False)
 
     await state.set_state(PostCreation.waiting_for_media_settings)
     
     await message.answer(
-        get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang, 
-            has_spoiler=has_spoiler, 
-            is_paid=is_paid,
-            show_caption_above=show_caption_above, 
-            has_caption=has_caption,
-            content_type=content_type
-        )
+        get_text('select_settings_msg', lang),
+        reply_markup=get_settings_menu_kb(lang=lang)
     )
 
 
@@ -921,8 +906,12 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
     PostCreation.configuring_post,
     LocalizedText('media_settings_btn')
 )
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('media_settings_btn')
+)
 async def open_media_settings(message: Message, state: FSMContext):
-    """Media sozlamalari menyusini ochish"""
+    """Media sozlamalari menyusini ochish - layout 1, 2, 1"""
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
     post_data = data.get("post_data", {})
@@ -930,14 +919,21 @@ async def open_media_settings(message: Message, state: FSMContext):
     has_spoiler = post_data.get('has_spoiler', False)
     is_paid = post_data.get('is_paid', False)
     show_caption_above = post_data.get('show_caption_above_media', False)
+    content_type = post_data.get('content_type', 'photo')
+    has_caption = bool(post_data.get('caption'))
     
     await state.set_state(PostCreation.waiting_for_media_settings)
     
-    settings_text = get_text('media_settings_msg', lang)
-    has_caption = bool(post_data.get('caption'))
     await message.answer(
-        settings_text,
-        reply_markup=get_media_settings_inline_kb(lang, has_spoiler=has_spoiler, is_paid=is_paid, show_caption_above=show_caption_above, has_caption=has_caption)
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            is_paid=is_paid
+        )
     )
 
 
@@ -946,25 +942,45 @@ async def open_media_settings(message: Message, state: FSMContext):
     LocalizedText('position_btn')
 )
 async def open_position_settings(message: Message, state: FSMContext):
-    """Eski funksiya - endi kerak emas, lekin backward compatibility uchun saqlaymiz"""
+    """Joylashuv tugmasi bosilganda pozitsiyani almashtirish"""
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
     post_data = data.get("post_data", {})
     
+    # Hozirgi pozitsiyani almashtirish
     current_position = post_data.get('show_caption_above_media', False)
-    position_state = 'above' if current_position else 'below'
+    new_position = not current_position
+    post_data['show_caption_above_media'] = new_position
+    await state.update_data(post_data=post_data)
     
-    await state.set_state(PostCreation.waiting_for_media_settings)
+    # Muvaffaqiyat xaberi
+    if new_position:
+        position_text = get_text('position_above_btn', lang)
+        alert_text = "Matn yuqorida ko'rsatiladi"
+    else:
+        position_text = get_text('position_below_btn', lang)
+        alert_text = "Matn pastda ko'rsatiladi"
     
-    # To'g'ridan-to'g'ri media sozlamalarini ko'rsatamiz
+    await message.answer(
+        get_text('position_set_msg', lang).format(position=position_text)
+    )
+    
+    # Yangilangan klaviaturani ko'rsatish
     has_spoiler = post_data.get('has_spoiler', False)
     is_paid = post_data.get('is_paid', False)
-    
     has_caption = bool(post_data.get('caption'))
     content_type = post_data.get('content_type', 'photo')
+    
     await message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=current_position, has_caption=has_caption, content_type=content_type, is_paid=is_paid)
+        reply_markup=get_media_settings_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            show_caption_above=new_position,
+            has_caption=has_caption,
+            content_type=content_type,
+            is_paid=is_paid
+        )
     )
 
 
