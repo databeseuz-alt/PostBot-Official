@@ -1,4 +1,3 @@
-import logging
 from contextlib import suppress
 from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
@@ -187,8 +186,7 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
                 reply_markup=new_keyboard
             )
             
-    except Exception as e:
-        logging.error(f"Postni tahrirlab bo'lmadi (callback): {e}")
+    except Exception:
         # Xatolik bo'lsa ham qayta yuborib ko'ramiz
         try:
             await callback.bot.delete_message(chat_id, message_id)
@@ -375,10 +373,8 @@ async def preview_post_handler(message: types.Message, state: FSMContext):
             error_mode = f"<code>{parse_mode or 'None'}</code>"
             await message.answer(get_text('parse_mode_error_msg', lang).format(error_mode=error_mode))
         else:
-            logging.error(f"Previewda xatolik: {e}")
             await message.answer(get_text('preview_error_msg', lang))
-    except Exception as e:
-        logging.error(f"Previewda kutilmagan xatolik: {e}")
+    except Exception:
         await message.answer(get_text('preview_error_msg', lang))
 
 
@@ -800,8 +796,7 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
         except Exception:
             pass
         return
-    except Exception as e:
-        logging.error(f"Postni tahrirlab bo'lmadi: {e}")
+    except Exception:
         # Xatolik yuz berganda (masalan, edit_media ishlamasa) yangisini yuboramiz
         try:
             await message.bot.delete_message(chat_id, message_id)
@@ -913,8 +908,8 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
             post_data['chat_id'] = message.chat.id
             post_data['message_id'] = sent_message.message_id
             await state.update_data(post_data=post_data)
-    except Exception as e:
-        logging.error(f"Postni qayta yuborishda xatolik: {e}")
+    except Exception:
+        pass
 
 
 @reply_router.message(
@@ -1457,14 +1452,6 @@ async def cancel_post_creation_callback(callback: types.CallbackQuery, state: FS
         reply_markup=get_main_menu(lang)
     )
     await callback.answer()
-
-
-# ===== Debug handler - barcha xabarlarni log qilish (oxirida bo'lishi kerak) =====
-@reply_router.message(F.text)
-async def debug_handler(message: Message, state: FSMContext):
-    """Debug uchun - barcha xabarlarni log qilish"""
-    current_state = await state.get_state()
-    logging.info(f"DEBUG: Received text: '{message.text}', State: {current_state}, User: {message.from_user.id}")
 
 
 

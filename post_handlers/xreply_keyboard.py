@@ -43,53 +43,6 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
 
     return builder.as_markup(resize_keyboard=True)
 
-
-def get_settings_menu_kb(lang: str):
-    """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (adjust 2)"""
-    builder = ReplyKeyboardBuilder()
-    
-    # Media sozlamalari
-    builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
-    
-    # Watermark sozlamalari
-    builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
-    
-    # Layout: 2 (2 ta tugma yonma-yon)
-    builder.adjust(2)
-    
-    return builder.as_markup(resize_keyboard=True)
-
-
-def get_media_settings_kb(lang: str, has_spoiler: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', is_paid: bool = False):
-    """Media sozlamalari uchun klaviatura - layout 1, 2, 1"""
-    builder = ReplyKeyboardBuilder()
-    
-    # 1-qator: Joylashuv (1 ta tugma)
-    if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
-        position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
-    else:
-        position_text = get_text('position_btn', lang)
-    builder.add(KeyboardButton(text=position_text))
-    
-    # 2-qator: Pulli media va Spoiler (2 ta tugma)
-    if content_type in ['photo', 'video', 'animation']:
-        spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
-        builder.add(KeyboardButton(text=spoiler_text))
-    
-    if content_type in ['photo', 'video', 'animation', 'paid_media']:
-        paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
-        builder.add(KeyboardButton(text=paid_text))
-    
-    # 3-qator: Orqaga (1 ta tugma)
-    builder.add(KeyboardButton(text=get_text('back_btn', lang)))
-    
-    # Layout: 1, 2, 1
-    builder.adjust(1, 2, 1)
-        
-    return builder.as_markup(resize_keyboard=True)
-
-
-
 # Eski get_position_kb funksiyasini o'chiramiz yoki yangi versiyaga almashtiramiz
 def get_position_kb(lang: str, current_position: str = 'below'):
     """Joylashuv tugmasi - toggle tugma sifatida"""
