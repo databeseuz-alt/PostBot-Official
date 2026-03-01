@@ -7,6 +7,15 @@ from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
 
+# Emoji to style mapping - used across multiple functions
+EMOJI_STYLES = {
+    '🟢': 'success',
+    '🔴': 'danger',
+    '🔵': 'primary',
+    '⚪': None
+}
+
+
 def get_button_style(style_str: str) -> Optional[str]:
     """Convert string style to valid internal style string
 
@@ -29,6 +38,25 @@ def get_style_emoji(style_str: str) -> str:
         'primary': '🔵'
     }
     return emoji_map.get(style_str, '')
+
+
+def _extract_style_from_text(btn_text: str) -> tuple[str, Optional[str]]:
+    """
+    Extract style from button text based on emoji prefixes.
+    Returns (cleaned_text, style) tuple.
+    """
+    style = None
+    for emoji_char, estyle in EMOJI_STYLES.items():
+        if btn_text.startswith(emoji_char + emoji_char):
+            style = estyle
+            btn_text = btn_text[len(emoji_char):]
+            break
+        elif btn_text.startswith(emoji_char):
+            style = estyle
+            btn_text = btn_text[len(emoji_char):].strip()
+            break
+    return btn_text, style
+
 
 class PostSendCallbackFactory(CallbackData, prefix="post_send"):
     action: str
@@ -53,13 +81,6 @@ def generate_post_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] 
     has_real_buttons = any(any(btn and not btn.get('is_placeholder') for btn in row) for row in buttons_matrix)
     placeholder_text = "➕" if has_real_buttons else get_text('add_inline_btn', lang)
 
-    emoji_styles = {
-        '🟢': 'success',
-        '🔴': 'danger',
-        '🔵': 'primary',
-        '⚪': None
-    }
-
     for r_idx, row in enumerate(buttons_matrix):
         current_row_buttons = []
         for c_idx, btn in enumerate(row):
@@ -68,21 +89,7 @@ def generate_post_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] 
             if btn.get('is_placeholder'):
                 current_row_buttons.append(InlineKeyboardButton(text=placeholder_text, callback_data=f"add:{r_idx}:{c_idx}"))
             else:
-                btn_text = str(btn['text'])
-                style = None # Default to colorless
-
-                matched = False
-                for emoji_char, estyle in emoji_styles.items():
-                    if btn_text.startswith(emoji_char + emoji_char):
-                        style = estyle
-                        btn_text = btn_text[len(emoji_char):]
-                        matched = True
-                        break
-                    elif btn_text.startswith(emoji_char):
-                        style = estyle
-                        btn_text = btn_text[len(emoji_char):].strip()
-                        matched = True
-                        break
+                btn_text, style = _extract_style_from_text(str(btn['text']))
 
                 kwargs = {
                     'text': btn_text,
@@ -108,32 +115,11 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
     if not buttons_matrix:
         return None
 
-    emoji_styles = {
-        '🟢': 'success',
-        '🔴': 'danger',
-        '🔵': 'primary',
-        '⚪': None
-    }
-
     for row in buttons_matrix:
         current_row_buttons = []
         for btn in row:
             if btn and not btn.get('is_placeholder'):
-                btn_text = str(btn['text'])
-                style = None # Default to colorless
-
-                matched = False
-                for emoji_char, estyle in emoji_styles.items():
-                    if btn_text.startswith(emoji_char + emoji_char):
-                        style = estyle
-                        btn_text = btn_text[len(emoji_char):]
-                        matched = True
-                        break
-                    elif btn_text.startswith(emoji_char):
-                        style = estyle
-                        btn_text = btn_text[len(emoji_char):].strip()
-                        matched = True
-                        break
+                btn_text, style = _extract_style_from_text(str(btn['text']))
 
                 kwargs = {'text': btn_text}
 
@@ -168,39 +154,11 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
     if not buttons_matrix:
         return None
 
-    emoji_styles = {
-        '🟢': 'success',
-        '🔴': 'danger',
-        '🔵': 'primary',
-        '⚪': None
-    }
-
-    emoji_styles = {
-        '🟢': 'success',
-        '🔴': 'danger',
-        '🔵': 'primary',
-        '⚪': None
-    }
-
     for row in buttons_matrix:
         current_row_buttons = []
         for btn in row:
             if btn and not btn.get('is_placeholder'):
-                btn_text = str(btn['text'])
-                style = None # Default to colorless
-
-                matched = False
-                for emoji_char, estyle in emoji_styles.items():
-                    if btn_text.startswith(emoji_char + emoji_char):
-                        style = estyle
-                        btn_text = btn_text[len(emoji_char):]
-                        matched = True
-                        break
-                    elif btn_text.startswith(emoji_char):
-                        style = estyle
-                        btn_text = btn_text[len(emoji_char):].strip()
-                        matched = True
-                        break
+                btn_text, style = _extract_style_from_text(str(btn['text']))
 
                 kwargs = {'text': btn_text}
 

@@ -1,4 +1,6 @@
+from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
+from aiogram.types import ReplyKeyboardMarkup
 from xdata_handlers.translator import get_text
 
 async def get_main_menu(lang: str, user_id: int):
@@ -60,35 +62,31 @@ def get_post_done_menu(lang: str):
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
+def get_single_button_kb(text: str) -> ReplyKeyboardMarkup:
+    """Bitta tugmali klaviatura yaratish uchun umumiy funksiya."""
+    builder = ReplyKeyboardBuilder()
+    builder.add(KeyboardButton(text=text))
+    builder.adjust(1)
+    return builder.as_markup(resize_keyboard=True)
+
 def get_cancel_kb(lang: str):
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
-    builder.adjust(1)
-    return builder.as_markup(resize_keyboard=True)
+    """Bekor qilish tugmasi bilan klaviatura."""
+    return get_single_button_kb(get_text('cancel_btn', lang))
 
-def get_button_creation_cancel_kb(lang: str):
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text=get_text('back_btn', lang)))
-    builder.adjust(1)
-    return builder.as_markup(resize_keyboard=True)
+def get_back_button_kb(lang: str):
+    """Orqaga tugmasi bilan klaviatura."""
+    return get_single_button_kb(get_text('back_btn', lang))
 
-def get_save_cancel_kb(lang: str):
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text=get_text('back_btn', lang)))
-    builder.adjust(1)
-    return builder.as_markup(resize_keyboard=True)
+# Asosiy funksiyalarga aliaslar (mavjud kod bilan moslik uchun)
+get_button_creation_cancel_kb = get_back_button_kb
+get_save_cancel_kb = get_back_button_kb
+get_cancel_only_kb = get_cancel_kb
 
 def get_save_cancelled_kb(lang: str):
     builder = ReplyKeyboardBuilder()
     builder.add(KeyboardButton(text=get_text('cr_another_post_btn', lang)))
     builder.add(KeyboardButton(text=get_text('back_btn', lang)))
     builder.adjust(2)
-    return builder.as_markup(resize_keyboard=True)
-
-def get_cancel_only_kb(lang: str):
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
-    builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
 
 def get_button_type_kb(lang: str):

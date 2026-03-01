@@ -1,5 +1,6 @@
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton
 from xdata_handlers.translator import get_text
+from post_handlers.xreply_keyboard import get_cancel_kb
 
 def get_ad_post_settings_kb():
     """Reklama postini sozlash menyusi klaviaturasini yaratadi."""
@@ -16,9 +17,13 @@ def get_ad_post_settings_kb():
 
 def get_admin_back_kb():
     """Admin panelidagi holatlardan ortga qaytish uchun klaviatura."""
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text="❌ Bekor qilish"))
-    return builder.as_markup(resize_keyboard=True)
+    from post_handlers.xreply_keyboard import get_single_button_kb
+    return get_single_button_kb("❌ Bekor qilish")
+
+def get_ad_back_kb():
+    """Reklama tugmasini yaratish jarayonidan ortga qaytish uchun klaviatura."""
+    from post_handlers.xreply_keyboard import get_single_button_kb
+    return get_single_button_kb("🔙 Ortga")
 
 def get_ad_edit_content_kb(has_media_and_text: bool = False):
     """Edit content uchun klaviatura - media va matn birga bo'lsa qo'shimcha tugmalar bilan."""
@@ -32,16 +37,4 @@ def get_ad_edit_content_kb(has_media_and_text: bool = False):
     else:
         builder.add(KeyboardButton(text="🔙 Orqaga"))
 
-    return builder.as_markup(resize_keyboard=True)
-
-def get_cancel_kb(lang: str):
-    """Jarayonni bekor qilish uchun umumiy klaviatura."""
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
-    return builder.as_markup(resize_keyboard=True)
-
-def get_ad_back_kb():
-    """Reklama tugmasini yaratish jarayonidan ortga qaytish uchun klaviatura."""
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text="🔙 Ortga"))
     return builder.as_markup(resize_keyboard=True)

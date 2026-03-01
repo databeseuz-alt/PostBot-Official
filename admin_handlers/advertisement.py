@@ -11,7 +11,8 @@ from admin_handlers.admin_handler import IsAdmin
 from admin_handlers.admin_handler import AdminStates
 from xdata_handlers.database import get_all_active_users
 from xdata_handlers import config
-from admin_handlers.xreply_keyboard import get_ad_post_settings_kb, get_admin_back_kb, get_cancel_kb, get_ad_back_kb, get_ad_edit_content_kb
+from admin_handlers.xreply_keyboard import get_ad_post_settings_kb, get_admin_back_kb, get_ad_back_kb, get_ad_edit_content_kb
+from post_handlers.xreply_keyboard import get_cancel_kb
 from post_handlers.xinline_keyboard import generate_preview_keyboard
 from admin_handlers.xinline_keyboard import get_main_admin_keyboard
 
