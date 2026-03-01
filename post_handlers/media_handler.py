@@ -72,6 +72,8 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
             content_type=content_type
         )
     )
+
+    await redraw_post_with_callback(callback, state)
     await callback.answer()
 
 @media_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_spoiler")
@@ -103,6 +105,8 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
             content_type=content_type
         )
     )
+
+    await redraw_post_with_callback(callback, state)
     await callback.answer()
 
 @media_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_paid")
@@ -138,6 +142,8 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
             content_type=content_type
         )
     )
+
+    await redraw_post_with_callback(callback, state)
     await callback.answer()
 
 @media_router.callback_query(PostCreation.configuring_post, F.data == "back_to_post_settings")
@@ -148,7 +154,7 @@ async def back_from_media_to_post_settings(callback: types.CallbackQuery, state:
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
 
-    content_type = post_data.get('content_type', 'text')
+    content_type = post_data.get('content_type') or 'photo'
     has_caption = bool(post_data.get('caption'))
     is_paid = post_data.get('is_paid', False)
 
@@ -194,7 +200,7 @@ async def back_to_settings_menu_handler(callback: types.CallbackQuery, state: FS
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
 
-    content_type = post_data.get('content_type', 'text')
+    content_type = post_data.get('content_type') or 'photo'
 
     await state.set_state(PostCreation.waiting_for_media_settings)
 
@@ -255,7 +261,7 @@ async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMCo
 
     await state.set_state(PostCreation.waiting_for_media_settings)
 
-    await callback.message.answer(
+    await callback.message.edit_text(
         get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_inline_kb(
             lang=lang,

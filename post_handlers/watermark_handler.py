@@ -894,12 +894,7 @@ async def back_to_media_settings(callback: types.CallbackQuery, state: FSMContex
 
     await state.set_state(PostCreation.waiting_for_media_settings)
 
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
-
-    await callback.message.answer(
+    await callback.message.edit_text(
         get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_inline_kb(
             lang, has_spoiler, show_caption_above, has_caption, content_type, is_paid
@@ -916,7 +911,7 @@ async def back_to_post_settings(callback: types.CallbackQuery, state: FSMContext
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
 
-    content_type = post_data.get('content_type', 'text')
+    content_type = post_data.get('content_type') or 'photo'
     has_caption = bool(post_data.get('caption'))
     is_paid = post_data.get('is_paid', False)
 
@@ -942,7 +937,7 @@ async def back_to_settings_menu_from_watermark(callback: types.CallbackQuery, st
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
 
-    content_type = post_data.get('content_type', 'photo')
+    content_type = post_data.get('content_type') or 'photo'
 
     await state.set_state(PostCreation.waiting_for_media_settings)
 
