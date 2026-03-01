@@ -18,11 +18,8 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
 
-    # Dinamik tugma (Paid Media / Poll Settings / Location Settings)
-    if content_type in ['photo', 'video', 'animation', 'paid_media']:
-        paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
-        builder.add(KeyboardButton(text=paid_text))
-    elif content_type == 'poll':
+    # Dinamik tugma (Poll Settings / Location Settings) - Paid Media endi Sozlamalar ichida
+    if content_type == 'poll':
         builder.add(KeyboardButton(text=get_text('poll_settings_btn', lang)))
     elif content_type == 'location':
         builder.add(KeyboardButton(text=get_text('location_settings_btn', lang)))
@@ -32,7 +29,7 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
 
     # Ikkinchi qator: 2 ta tugma
     # Agar Tahrirlash birinchi qatorda bo'lmasa, uni bu yerga qo'shamiz
-    if content_type in ['photo', 'video', 'animation', 'poll', 'location', 'paid_media']:
+    if content_type in ['poll', 'location']:
         builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
     # Tayyor / Tasdiqlash
@@ -51,8 +48,8 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     return builder.as_markup(resize_keyboard=True)
 
 
-def get_media_settings_kb(lang: str, has_spoiler: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
-    """Media sozlamalari uchun klaviatura - faqat 2 ta media sozlamasi va Watermark"""
+def get_media_settings_kb(lang: str, has_spoiler: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', is_paid: bool = False):
+    """Media sozlamalari uchun klaviatura - media sozlamalari, Watermark va Paid Media"""
     builder = ReplyKeyboardBuilder()
     
     # 1. Caption position (Yuqoriga/Pastga)
@@ -65,14 +62,19 @@ def get_media_settings_kb(lang: str, has_spoiler: bool = False, show_caption_abo
         spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
         builder.add(KeyboardButton(text=spoiler_text))
     
-    # 3. Watermark
+    # 3. Paid Media (photo/video uchun)
+    if content_type in ['photo', 'video', 'animation', 'paid_media']:
+        paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
+        builder.add(KeyboardButton(text=paid_text))
+    
+    # 4. Watermark
     builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
     
-    # 4. Orqaga
+    # 5. Orqaga
     builder.add(KeyboardButton(text=get_text('back_btn', lang)))
     
-    # Layout: 2, 2
-    builder.adjust(2, 2)
+    # Layout: 2, 2, 1 (yoki 2, 3)
+    builder.adjust(2, 2, 1)
         
     return builder.as_markup(resize_keyboard=True)
 

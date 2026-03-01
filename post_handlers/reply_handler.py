@@ -55,7 +55,6 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
         content_type=content_type
     )
     
-    content_type = post_data.get('content_type')
     file_id = post_data.get("file_id")
     caption = post_data.get("caption")
     parse_mode = post_data.get("parse_mode", 'HTML')
@@ -200,7 +199,7 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('settings_btn'))
 async def options_menu_handler(message: types.Message, state: FSMContext):
-    """Sozlamalar tugmasi bosilganda media sozlamalari reply keyboardini ko'rsatish"""
+    """Sozlamalar tugmasi bosilganda media sozlamalari inline keyboardini ko'rsatish"""
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(message.from_user.id)
@@ -209,14 +208,16 @@ async def options_menu_handler(message: types.Message, state: FSMContext):
     show_caption_above = post_data.get('show_caption_above_media', False)
     has_caption = bool(post_data.get('caption'))
     content_type = post_data.get('content_type', 'text')
+    is_paid = post_data.get('is_paid', False)
 
     await state.set_state(PostCreation.waiting_for_media_settings)
     
     await message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_kb(
+        reply_markup=get_media_settings_inline_kb(
             lang=lang, 
             has_spoiler=has_spoiler, 
+            is_paid=is_paid,
             show_caption_above=show_caption_above, 
             has_caption=has_caption,
             content_type=content_type
@@ -415,11 +416,13 @@ async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMCont
 
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_position")
+@reply_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_position")
 async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda joylashuvni almashtirish"""
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
+    content_type = post_data.get('content_type', 'photo')
     
     current_position = post_data.get('show_caption_above_media', False)
     new_position = not current_position
@@ -436,8 +439,10 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
     has_spoiler = post_data.get('has_spoiler', False)
     is_paid = post_data.get('is_paid', False)
     
-    # Postni yangilash
-    await redraw_post_with_callback(callback, state)
+    # Postni yangilash (faqat configuring_post holatida)
+    current_state = await state.get_state()
+    if current_state == PostCreation.configuring_post:
+        await redraw_post_with_callback(callback, state)
     
     has_caption = bool(post_data.get('caption'))
     await callback.message.edit_reply_markup(
@@ -446,17 +451,20 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
             has_spoiler=has_spoiler,
             is_paid=is_paid,
             show_caption_above=new_position,
-            has_caption=has_caption
+            has_caption=has_caption,
+            content_type=content_type
         )
     )
 
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_spoiler")
+@reply_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_spoiler")
 async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda spoilerni yoqish/o'chirish"""
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
+    content_type = post_data.get('content_type', 'photo')
     
     current_spoiler = post_data.get('has_spoiler', False)
     new_spoiler = not current_spoiler
@@ -473,8 +481,10 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
     is_paid = post_data.get('is_paid', False)
     show_caption_above = post_data.get('show_caption_above_media', False)
     
-    # Postni yangilash
-    await redraw_post_with_callback(callback, state)
+    # Postni yangilash (faqat configuring_post holatida)
+    current_state = await state.get_state()
+    if current_state == PostCreation.configuring_post:
+        await redraw_post_with_callback(callback, state)
     
     has_caption = bool(post_data.get('caption'))
     await callback.message.edit_reply_markup(
@@ -483,17 +493,20 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
             has_spoiler=new_spoiler,
             is_paid=is_paid,
             show_caption_above=show_caption_above,
-            has_caption=has_caption
+            has_caption=has_caption,
+            content_type=content_type
         )
     )
 
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_paid")
+@reply_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_paid")
 async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda pulli mediani yoqish/o'chirish"""
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(callback.from_user.id)
+    content_type = post_data.get('content_type', 'photo')
     
     current_paid = post_data.get('is_paid', False)
     new_paid = not current_paid
@@ -514,14 +527,29 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     show_caption_above = post_data.get('show_caption_above_media', False)
     has_caption = bool(post_data.get('caption'))
     
-    # Inline keyboard xabarini o'chirish
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
+    # Current state ni tekshirish
+    current_state = await state.get_state()
     
-    # Postni yangilash (yangi post yuborish)
-    await redraw_post_with_callback(callback, state)
+    if current_state == PostCreation.configuring_post:
+        # Inline keyboard xabarini o'chirish (faqat configuring_post da)
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        # Postni yangilash (yangi post yuborish)
+        await redraw_post_with_callback(callback, state)
+    else:
+        # Settings menyusida bo'lsak, faqat inline klaviaturani yangilaymiz
+        await callback.message.edit_reply_markup(
+            reply_markup=get_media_settings_inline_kb(
+                lang,
+                has_spoiler=has_spoiler,
+                is_paid=new_paid,
+                show_caption_above=show_caption_above,
+                has_caption=has_caption,
+                content_type=content_type
+            )
+        )
 
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "media_set_price")
@@ -545,6 +573,7 @@ async def post_media_set_price_callback(callback: types.CallbackQuery, state: FS
 
 
 @reply_router.callback_query(PostCreation.configuring_post, F.data == "back_to_post_settings")
+@reply_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_post_settings")
 async def back_from_media_to_post_settings(callback: types.CallbackQuery, state: FSMContext):
     """Media sozlamalaridan post sozlamalariga qaytish"""
     data = await state.get_data()
@@ -552,24 +581,45 @@ async def back_from_media_to_post_settings(callback: types.CallbackQuery, state:
     lang = await get_user_language(callback.from_user.id)
     
     content_type = post_data.get('content_type', 'text')
+    has_caption = bool(post_data.get('caption'))
+    is_paid = post_data.get('is_paid', False)
     
-    # Post sozlamalari klaviaturasini ko'rsatish
-    keyboard = create_post_options_keyboard(
-        content_type=content_type,
-        lang=lang
-    )
+    # Oldingi state ni tekshirish
+    previous_state = await state.get_state()
     
-    if keyboard:
-        await callback.message.edit_text(
-            get_text('post_settings_msg', lang),
-            reply_markup=keyboard
+    # State ni configuring_post ga o'tkazish
+    await state.set_state(PostCreation.configuring_post)
+    
+    if previous_state == PostCreation.configuring_post:
+        # Asosiy post sozlamalari (inline klaviatura)
+        keyboard = create_post_options_keyboard(
+            content_type=content_type,
+            lang=lang
         )
+        
+        if keyboard:
+            await callback.message.edit_text(
+                get_text('post_settings_msg', lang),
+                reply_markup=keyboard
+            )
+        else:
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
     else:
-        # Agar keyboard yo'q bo'lsa, xabarni o'chirish
+        # waiting_for_media_settings dan qaytish - inline xabarni o'chirib, reply klaviaturani qaytarish
         try:
             await callback.message.delete()
         except Exception:
             pass
+        
+        # Asosiy menyuni reply klaviatura bilan ko'rsatish
+        from post_handlers.xreply_keyboard import get_post_settings_kb
+        await callback.message.answer(
+            get_text('post_settings_msg', lang),
+            reply_markup=get_post_settings_kb(content_type, has_caption, lang, is_paid=is_paid)
+        )
     
     await callback.answer()
 
@@ -599,13 +649,18 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
     
     has_caption = bool(post_data.get('caption'))
     
+    # content_type va is_paid ni post_data dan olish
+    content_type = post_data.get('content_type')
+    is_paid = post_data.get('is_paid', False)
+    
     # Inline keyboard o'rniga Reply keyboard ishlatamiz
     settings_keyboard = get_media_settings_kb(
         lang=lang, 
         has_spoiler=has_spoiler, 
         show_caption_above=show_caption_above, 
         has_caption=has_caption,
-        content_type=content_type
+        content_type=content_type,
+        is_paid=is_paid
     )
 
     # Post mavjudligini tekshirish
@@ -631,7 +686,6 @@ async def redraw_post_with_settings(message: types.Message, state: FSMContext, a
         # Hozircha waiting_for_media_settings da qolamiz.
         return
 
-    content_type = post_data.get('content_type')
     file_id = post_data.get("file_id")
     caption = post_data.get("caption")
     parse_mode = post_data.get("parse_mode", 'HTML')
@@ -905,7 +959,7 @@ async def open_position_settings(message: Message, state: FSMContext):
     content_type = post_data.get('content_type', 'photo')
     await message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=current_position, has_caption=has_caption, content_type=content_type)
+        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=current_position, has_caption=has_caption, content_type=content_type, is_paid=is_paid)
     )
 
 
@@ -946,7 +1000,7 @@ async def toggle_position(message: Message, state: FSMContext):
     content_type = post_data.get('content_type', 'photo')
     await message.answer(
         success_text,
-        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=new_position, has_caption=has_caption, content_type=content_type)
+        reply_markup=get_media_settings_kb(lang, has_spoiler=has_spoiler, show_caption_above=new_position, has_caption=has_caption, content_type=content_type, is_paid=is_paid)
     )
     
     # Postni ham yangilash

@@ -1044,7 +1044,7 @@ async def back_to_media_settings(callback: types.CallbackQuery, state: FSMContex
     await callback.message.answer(
         get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_kb(
-            lang, has_spoiler, show_caption_above, has_caption, content_type
+            lang, has_spoiler, show_caption_above, has_caption, content_type, is_paid
         )
     )
     await callback.answer()
