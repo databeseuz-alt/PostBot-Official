@@ -167,25 +167,35 @@ async def get_blocked_users_with_info(admin_ids: List[int] = None) -> List[Dict]
             if conn: conn.close()
     return await asyncio.to_thread(_sync)
 
-async def add_or_update_user(user_id: int, nickname: str = None, username: str = None, language: str = 'uz'):
+async def add_or_update_user(user_id: int, nickname: str = None, username: str = None, language: str = None):
     """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi."""
     return await _add_or_update_user_impl(user_id=user_id, nickname=nickname, username=username, language=language)
 
-async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, language: str = 'uz'):
+async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, language: str = None):
     """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi."""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO users (user_id, nickname, username, language)
-                VALUES (%s, %s, %s, %s)
-                ON CONFLICT (user_id) DO UPDATE SET
-                    nickname = EXCLUDED.nickname,
-                    username = EXCLUDED.username,
-                    language = (CASE WHEN EXCLUDED.language IS NOT NULL THEN EXCLUDED.language ELSE users.language END);
-            """, (user_id, nickname, username, language))
+            # Agar language ko'rsatilmagan bo'lsa (None), yangi foydalanuvchiga NULL yoziladi
+            if language is None:
+                cursor.execute("""
+                    INSERT INTO users (user_id, nickname, username, language)
+                    VALUES (%s, %s, %s, NULL)
+                    ON CONFLICT (user_id) DO UPDATE SET
+                        nickname = EXCLUDED.nickname,
+                        username = EXCLUDED.username;
+                """, (user_id, nickname, username))
+            else:
+                cursor.execute("""
+                    INSERT INTO users (user_id, nickname, username, language)
+                    VALUES (%s, %s, %s, %s)
+                    ON CONFLICT (user_id) DO UPDATE SET
+                        nickname = EXCLUDED.nickname,
+                        username = EXCLUDED.username,
+                        language = EXCLUDED.language;
+                """, (user_id, nickname, username, language))
             conn.commit()
         except Exception as e:
             logging.error(f"Foydalanuvchini qo'shishda xatolik: {e}")
@@ -195,7 +205,7 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
 
 # ==================== USERS TABLE ====================
 
-async def add_or_update_user_positional(user_id: int, nickname: str, username: str, language: str = 'uz'):
+async def add_or_update_user_positional(user_id: int, nickname: str, username: str, language: str = None):
     """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi."""
     return await _add_or_update_user_impl(user_id=user_id, nickname=nickname, username=username, language=language)
 

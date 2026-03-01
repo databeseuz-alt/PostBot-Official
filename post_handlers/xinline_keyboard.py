@@ -454,32 +454,30 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
 
 
 def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
-    """Media sozlamalari uchun inline klaviatura - position, spoiler, paid media va watermark"""
+    """Media sozlamalari uchun inline klaviatura - layout 1, 2, 1"""
     builder = InlineKeyboardBuilder()
     
-    # 1. Caption position (Yuqoriga/Pastga)
+    # 1-qator: Joylashuv (1 ta tugma)
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
         position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
-        builder.button(text=position_text, callback_data="media_toggle_position")
+    else:
+        position_text = get_text('position_btn', lang)
+    builder.button(text=position_text, callback_data="media_toggle_position")
     
-    # 2. Spoiler
+    # 2-qator: Pulli media va Spoiler (2 ta tugma)
     if content_type in ['photo', 'video', 'animation']:
         spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
         builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
     
-    # 3. Paid Media (photo/video uchun)
     if content_type in ['photo', 'video', 'animation', 'paid_media']:
         paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
         builder.button(text=paid_text, callback_data="media_toggle_paid")
     
-    # 4. Watermark
-    builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
-    
-    # 5. Orqaga
+    # 3-qator: Orqaga (1 ta tugma)
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
     
-    # Layout: 2, 2, 1
-    builder.adjust(2, 2, 1)
+    # Layout: 1, 2, 1
+    builder.adjust(1, 2, 1)
         
     return builder.as_markup()
 
@@ -556,6 +554,53 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None):
     builder.button(text=get_text('print_auto_repeat', lang), callback_data=f"print:{post_code or 'none'}:auto_repeat")
     builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:back")
     builder.adjust(2, 2, 2, 1)
+    return builder.as_markup()
+
+
+def get_settings_menu_inline_kb(lang: str):
+    """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (inline, adjust 2)"""
+    builder = InlineKeyboardBuilder()
+    
+    # Media sozlamalari
+    builder.button(text=get_text('media_settings_btn', lang), callback_data="open_media_settings_menu")
+    
+    # Watermark sozlamalari
+    builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
+    
+    # Layout: 2 (2 ta tugma yonma-yon)
+    builder.adjust(2)
+    
+    return builder.as_markup()
+
+
+def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
+    """Post sozlamalari uchun asosiy inline klaviatura - layout 4, 2"""
+    builder = InlineKeyboardBuilder()
+    
+    # Birinchi qator: 4 ta asosiy tugma
+    builder.button(text=get_text('preview_btn', lang), callback_data="post_preview")
+    builder.button(text=get_text('settings_btn', lang), callback_data="post_open_settings")
+    builder.button(text=get_text('get_buttons_btn', lang), callback_data="post_show_buttons")
+    
+    # 4-tugma: content_type ga qarab
+    if content_type == 'poll':
+        builder.button(text=get_text('poll_settings_btn', lang), callback_data="post_poll_settings")
+    elif content_type == 'location':
+        builder.button(text=get_text('location_settings_btn', lang), callback_data="post_location_settings")
+    else:
+        builder.button(text=get_text('edit_content_btn', lang), callback_data="post_edit_content")
+    
+    # Ikkinchi qator: Bekor qilish, Tayyor
+    builder.button(text=get_text('cancel_btn', lang), callback_data="post_cancel")
+    
+    if is_editing:
+        builder.button(text=get_text('edit_confirm_btn', lang), callback_data="post_done")
+    else:
+        builder.button(text=get_text('done_btn', lang), callback_data="post_done")
+    
+    # Layout: 4, 2
+    builder.adjust(4, 2)
+    
     return builder.as_markup()
 
 

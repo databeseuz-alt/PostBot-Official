@@ -14,7 +14,8 @@ from post_handlers.xreply_keyboard import (
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
     generate_preview_keyboard, create_post_options_keyboard,
-    get_media_settings_inline_kb, generate_post_keyboard
+    get_media_settings_inline_kb, generate_post_keyboard,
+    get_settings_menu_inline_kb, get_post_settings_inline_kb
 )
 from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
@@ -200,15 +201,30 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 @reply_router.message(PostCreation.configuring_post, LocalizedText('settings_btn'))
 @reply_router.message(PostCreation.waiting_for_media_settings, LocalizedText('settings_btn'))
 async def options_menu_handler(message: types.Message, state: FSMContext):
-    """Sozlamalar tugmasi bosilganda Media va Watermark tugmalarini ko'rsatish (adjust 2)"""
+    """Sozlamalar tugmasi bosilganda Media va Watermark tugmalarini ko'rsatish (inline)"""
     lang = await get_user_language(message.from_user.id)
 
     await state.set_state(PostCreation.waiting_for_media_settings)
     
     await message.answer(
         get_text('select_settings_msg', lang),
-        reply_markup=get_settings_menu_kb(lang=lang)
+        reply_markup=get_settings_menu_inline_kb(lang=lang)
     )
+
+
+@reply_router.callback_query(PostCreation.configuring_post, F.data == "post_open_settings")
+@reply_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "post_open_settings")
+async def open_settings_inline(callback: types.CallbackQuery, state: FSMContext):
+    """Inline sozlamalar tugmasi bosilganda"""
+    lang = await get_user_language(callback.from_user.id)
+
+    await state.set_state(PostCreation.waiting_for_media_settings)
+    
+    await callback.message.answer(
+        get_text('select_settings_msg', lang),
+        reply_markup=get_settings_menu_inline_kb(lang=lang)
+    )
+    await callback.answer()
 
 
 @reply_router.message(PostCreation.configuring_post, LocalizedText('get_buttons_btn'))
@@ -911,7 +927,7 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
     LocalizedText('media_settings_btn')
 )
 async def open_media_settings(message: Message, state: FSMContext):
-    """Media sozlamalari menyusini ochish - layout 1, 2, 1"""
+    """Media sozlamalari menyusini ochish - inline klaviatura"""
     lang = await get_user_language(message.from_user.id)
     data = await state.get_data()
     post_data = data.get("post_data", {})
@@ -926,15 +942,42 @@ async def open_media_settings(message: Message, state: FSMContext):
     
     await message.answer(
         get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_kb(
+        reply_markup=get_media_settings_inline_kb(
             lang=lang,
             has_spoiler=has_spoiler,
+            is_paid=is_paid,
             show_caption_above=show_caption_above,
             has_caption=has_caption,
-            content_type=content_type,
-            is_paid=is_paid
+            content_type=content_type
         )
     )
+
+
+@reply_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "open_media_settings_menu")
+async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMContext):
+    """Inline Media tugmasi bosilganda - inline klaviaturani ko'rsatish"""
+    lang = await get_user_language(callback.from_user.id)
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    content_type = post_data.get('content_type', 'photo')
+    has_caption = bool(post_data.get('caption'))
+    
+    await callback.message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type
+        )
+    )
+    await callback.answer()
 
 
 @reply_router.message(

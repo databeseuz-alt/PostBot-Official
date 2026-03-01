@@ -3,10 +3,11 @@ from aiogram import F, Router, types, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
+from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
 
 from admin_handlers.channel_handler import check_user_membership
 from xdata_handlers.translator import get_text
-from xdata_handlers.database import get_user_language, add_or_update_user, get_posts_by_user, get_user_post_settings
+from xdata_handlers.database import get_user_language, add_or_update_user, get_posts_by_user, get_user_post_settings, get_user_info_from_db
 from post_handlers.xreply_keyboard import get_main_menu, get_cancel_reply_kb
 from post_handlers.post_handler import PostCreation
 from post_handlers.send_handler import PostSending
@@ -14,6 +15,39 @@ from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
 start_router = Router()
+
+
+async def check_user_has_language(user_id: int) -> bool:
+    """Foydalanuvchi til tanlaganligini tekshiradi"""
+    user_info = await get_user_info_from_db(user_id)
+    if user_info and user_info.get('language'):
+        return True
+    return False
+
+
+async def show_language_selection(message: types.Message):
+    """Yangi foydalanuvchilar uchun til tanlash menyusi"""
+    builder = InlineKeyboardBuilder()
+    languages = [
+        ("🇺🇿 O'zbek", "lang:uzl"), ("🇺🇿 Ўзбек", "lang:uzk"),
+        ("🇹🇯 Tojik", "lang:tj"), ("🇹🇲 Turkman", "lang:tk"),
+        ("🇬🇧 English", "lang:en"), ("🇷🇺 Русский", "lang:ru"),
+        ("🇰🇿 Қазақ", "lang:kz"), ("🇦🇿 Azərca", "lang:az"),
+        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg"),
+        ("🇸🇦 العربية", "lang:ar"), ("🇪🇸 Español", "lang:es"),
+        ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
+        ("🇮🇹 Italiano", "lang:it")
+    ]
+    
+    for text, callback_data in languages:
+        builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
+    
+    builder.adjust(2)
+
+    await message.answer(
+        "🌐 Iltimos, o'z tilingizni tanlang:\nПожалуйста, выберите ваш язык:\nPlease select your language:",
+        reply_markup=builder.as_markup()
+    )
 
 
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
@@ -44,6 +78,19 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
 
 @start_router.message(CommandStart(), StateFilter("*"), F.forward_from.is_(None))
 async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    user = event.from_user
+    
+    # Tekshirish: foydalanuvchi til tanlaganmi?
+    has_language = await check_user_has_language(user.id)
+    
+    if not has_language:
+        # Yangi foydalanuvchi - til tanlash menyusini ko'rsatish
+        if isinstance(event, types.Message):
+            await show_language_selection(event)
+        elif isinstance(event, types.CallbackQuery):
+            await show_language_selection(event.message)
+        return
+    
     is_member, text, keyboard = await check_user_membership(event.from_user, bot)
 
     if not is_member:
@@ -166,6 +213,41 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
         await event.message.answer(disabled_text, parse_mode="HTML")
     else:
         await event.answer(disabled_text, parse_mode="HTML")
+
+
+@start_router.callback_query(F.data.startswith("lang:"))
+async def set_language_from_start(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    """Yangi foydalanuvchi til tanlaganda ishga tushadi"""
+    from xdata_handlers.database import set_user_language
+    
+    try:
+        parts = callback.data.split(":")
+        lang_code = parts[1] if len(parts) > 1 else "uzl"
+        
+        # Tilni saqlash
+        await set_user_language(
+            user_id=callback.from_user.id,
+            nickname=callback.from_user.full_name,
+            username=callback.from_user.username,
+            language=lang_code
+        )
+        
+        await callback.answer(get_text('lang_changed', lang_code))
+        
+        # Til tanlanganidan so'ng obunani tekshirish va bosh menyu
+        is_member, text, keyboard = await check_user_membership(callback.from_user, bot)
+        
+        if not is_member:
+            await callback.message.answer(text, reply_markup=keyboard)
+            return
+        
+        # Bosh menyuni ko'rsatish
+        await show_main_menu(callback, state, bot)
+        
+    except Exception as e:
+        import logging
+        logging.error(f"Til o'zgartirishda xatolik: {e}")
+        await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
 
 
 @start_router.message(
