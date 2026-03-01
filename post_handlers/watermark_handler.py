@@ -46,9 +46,6 @@ async def apply_and_redraw_watermark(callback_or_message, state, lang: str):
     watermark_scale = post_data.get('watermark_scale', 1.0)
     content_type = post_data.get('content_type', 'photo')
     
-    # DEBUG: Log rotation value
-    logging.info(f"Watermark apply: rotation={watermark_rotation}, position={watermark_position}, scale={watermark_scale}")
-    
     # ASLI FILE_ID ni saqlash - agar hali saqlanmagan bo'lsa
     if 'original_file_id' not in post_data and post_data.get('file_id'):
         post_data['original_file_id'] = post_data.get('file_id')
@@ -127,9 +124,6 @@ async def apply_and_redraw_watermark(callback_or_message, state, lang: str):
             post_data['watermark_applied'] = True
             await state.update_data(post_data=post_data)
             
-            # DEBUG: Log that we're about to edit the message
-            logging.info(f"Watermark applied, new_file_id: {new_file_id}, chat_id: {chat_id}, message_id: {message_id}")
-            
             # Postni qayta chizish - faqat media qismini yangilaymiz
             chat_id = post_data.get('chat_id')
             message_id = post_data.get('message_id')
@@ -154,11 +148,10 @@ async def apply_and_redraw_watermark(callback_or_message, state, lang: str):
                         message_id=message_id,
                         media=media
                     )
-                except Exception as e:
-                    # Agar xabar o'zgarmagan bo'lsa yoki boshqa xatolik bo'lsa, e'tibor bermaymiz
-                    logging.info(f"Watermark media edit xabari o'zgarmagan: {e}")
-    except Exception as e:
-        logging.error(f"Watermark apply and redraw xatolik: {e}")
+                except Exception:
+                    pass
+    except Exception:
+        pass
 
 # Watermark joylashuvi
 WATERMARK_POSITIONS = {

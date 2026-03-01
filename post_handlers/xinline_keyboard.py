@@ -238,72 +238,8 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
 
 def create_post_options_keyboard(content_type: str, lang: str = 'uzl'):
     """Postning qo'shimcha sozlamalari uchun asosiy menyu."""
-    # Faqat media turlari uchun media sozlamalari
-    if content_type not in ('photo', 'video', 'audio', 'document', 'animation', 'voice'):
-        return None
-    
-    builder = InlineKeyboardBuilder()
-    
-    # ===== Row 1: 3ta tugma =====
-    # Ko'rish
-    builder.button(
-        text=get_text('preview_btn', lang),
-        callback_data="post_preview"
-    )
-    
-    # Tugma
-    builder.button(
-        text=get_text('get_buttons_btn', lang),
-        callback_data="post_get_buttons"
-    )
-    
-    # Postni tahrirlash
-    builder.button(
-        text=get_text('edit_content_btn', lang),
-        callback_data="post_edit_content"
-    )
-    
-    # ===== Row 2: 3ta tugma =====
-    # Media (media sozlamalari - Settings bilan bir xil)
-    builder.button(
-        text="🖼 Media",
-        callback_data="post_media_settings"
-    )
-    
-    # Avtoimzo (watermark) - faqat photo va video uchun
-    if content_type in ('photo', 'video'):
-        builder.button(
-            text=get_text('watermark_btn', lang),
-            callback_data="watermark_settings"
-        )
-    else:
-        # Media turi photo/video emas bo'lsa, boshqa tugma ko'rsatish
-        builder.button(
-            text="🔥 Reaksiyalar",
-            callback_data="post_reactions"
-        )
-    
-    # Viktorina (poll) - hamma uchun
-    builder.button(
-        text="❓ Viktorina",
-        callback_data="post_poll_settings"
-    )
-    
-    # ===== Row 3: 2ta tugma =====
-    # Bekor qilish
-    builder.button(
-        text=get_text('cancel_btn', lang),
-        callback_data="cancel_post_creation"
-    )
-    
-    # Tayyor
-    builder.button(
-        text=get_text('done_btn', lang),
-        callback_data="done_post_creation"
-    )
-    
-    builder.adjust(3, 3, 2)
-    return builder.as_markup()
+    # Tugmalar butunlay olib tashlandi
+    return None
 
 async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
     """
@@ -581,34 +517,9 @@ def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
 
 
 def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
-    """Post sozlamalari uchun asosiy inline klaviatura - layout 4, 2"""
-    builder = InlineKeyboardBuilder()
-    
-    # Birinchi qator: 4 ta asosiy tugma
-    builder.button(text=get_text('preview_btn', lang), callback_data="post_preview")
-    builder.button(text=get_text('settings_btn', lang), callback_data="post_open_settings")
-    builder.button(text=get_text('get_buttons_btn', lang), callback_data="post_show_buttons")
-    
-    # 4-tugma: content_type ga qarab
-    if content_type == 'poll':
-        builder.button(text=get_text('poll_settings_btn', lang), callback_data="post_poll_settings")
-    elif content_type == 'location':
-        builder.button(text=get_text('location_settings_btn', lang), callback_data="post_location_settings")
-    else:
-        builder.button(text=get_text('edit_content_btn', lang), callback_data="post_edit_content")
-    
-    # Ikkinchi qator: Bekor qilish, Tayyor
-    builder.button(text=get_text('cancel_btn', lang), callback_data="post_cancel")
-    
-    if is_editing:
-        builder.button(text=get_text('edit_confirm_btn', lang), callback_data="post_done")
-    else:
-        builder.button(text=get_text('done_btn', lang), callback_data="post_done")
-    
-    # Layout: 4, 2
-    builder.adjust(4, 2)
-    
-    return builder.as_markup()
+    """Post sozlamalari uchun inline klaviatura - tugmalar olib tashlangan"""
+    # Tugmalar butunlay olib tashlandi
+    return None
 
 
 
