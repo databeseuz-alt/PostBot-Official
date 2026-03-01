@@ -220,76 +220,25 @@ def format_user_info(user: types.User, lang: str = 'uzl') -> str:
     )
 
 async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') -> str | None:
-    if not config.STORAGE_CHANNEL_ID:
-        return None
-
-    user_info_text = format_user_info(message.from_user, lang)
-
-    try:
-        original_caption = ""
-        if message.caption:
-            original_caption = message.html_text
-
-        caption_to_send = original_caption
-        send_user_info_separately = False
-
-        if original_caption:
-            if len(original_caption) + len(user_info_text) <= 1024:
-                caption_to_send = original_caption + user_info_text
-            else:
-                send_user_info_separately = True
-        else:
-            send_user_info_separately = True
-
-        if message.voice:
-            sent_message = await bot.send_voice(config.STORAGE_CHANNEL_ID, message.voice.file_id, caption=caption_to_send, parse_mode="HTML")
-            if send_user_info_separately:
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.voice.file_id
-
-        elif message.photo:
-            sent_message = await bot.send_photo(config.STORAGE_CHANNEL_ID, message.photo[-1].file_id, caption=caption_to_send, parse_mode="HTML")
-            if send_user_info_separately:
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.photo[-1].file_id
-
-        elif message.video:
-            sent_message = await bot.send_video(config.STORAGE_CHANNEL_ID, message.video.file_id, caption=caption_to_send, parse_mode="HTML")
-            if send_user_info_separately:
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.video.file_id
-
-        elif message.audio:
-            sent_message = await bot.send_audio(config.STORAGE_CHANNEL_ID, message.audio.file_id, caption=caption_to_send, parse_mode="HTML")
-            if send_user_info_separately:
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.audio.file_id
-
-        elif message.document:
-            sent_message = await bot.send_document(config.STORAGE_CHANNEL_ID, message.document.file_id, caption=caption_to_send, parse_mode="HTML")
-            if send_user_info_separately:
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.document.file_id
-
-        elif message.video_note:
-            sent_message = await bot.send_video_note(config.STORAGE_CHANNEL_ID, message.video_note.file_id)
-            await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.video_note.file_id
-
-        elif message.sticker:
-            sent_message = await bot.send_sticker(config.STORAGE_CHANNEL_ID, message.sticker.file_id)
-            await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.sticker.file_id
-
-        elif message.animation:
-            sent_message = await bot.send_animation(config.STORAGE_CHANNEL_ID, message.animation.file_id, caption=caption_to_send, parse_mode="HTML")
-            if send_user_info_separately:
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
-            return sent_message.animation.file_id
-
-        return None
-    except Exception:
-        return None
+    """Faqat permanent file_id olish, log kanaliga yuborish BAJARILMAYDI"""
+    # Faqat message'dan file_id ni qaytarish
+    if message.voice:
+        return message.voice.file_id
+    elif message.photo:
+        return message.photo[-1].file_id
+    elif message.video:
+        return message.video.file_id
+    elif message.audio:
+        return message.audio.file_id
+    elif message.document:
+        return message.document.file_id
+    elif message.video_note:
+        return message.video_note.file_id
+    elif message.sticker:
+        return message.sticker.file_id
+    elif message.animation:
+        return message.animation.file_id
+    return None
 
 async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Poll/Quiz kontentini qayta ishlash"""
