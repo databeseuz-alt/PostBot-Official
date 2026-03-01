@@ -592,19 +592,7 @@ async def print_settings_callback(callback: types.CallbackQuery, state: FSMConte
         await callback.answer()
         return
     
-    # For now, show coming soon message for all other actions
-    action_texts = {
-        "pin": "📌 Mahkamlash",
-        "protect": "🛡️ Himoya qilish",
-        "voice": "🎤 Ovoz bilan",
-        "reply": "↩️ Javob posti",
-        "auto_repeat": "🔄 Avtotakrorlash"
-    }
-    
-    await callback.message.answer(
-        f"<b>✅ {action_texts.get(action, action)}</b>\n\n<i>Bu funksiya tez orada ishga tushiriladi!</i>",
-        parse_mode="HTML"
-    )
+    # boshqa actionlar uchun hech narsa qilmaymiz (tugmalar o'chirildi)
     await callback.answer()
 
 @done_router.message(PostCreation.waiting_for_delete_timer)
@@ -730,56 +718,6 @@ async def process_delete_timer(message: types.Message, state: FSMContext):
     )
     
     await state.clear()
-
-@done_router.callback_query(F.data == "print:pin")
-async def print_pin_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Mahkamlash tugmasi bosilganda."""
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.answer(
-        f"<b>📌 {get_text('print_pin', lang)}</b>\n\n<i>Bu funksiya tez orada ishga tushiriladi!</i>",
-        parse_mode="HTML"
-    )
-    await callback.answer()
-
-@done_router.callback_query(F.data == "print:protect")
-async def print_protect_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Himoya qilish tugmasi bosilganda."""
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.answer(
-        f"<b>🛡️ {get_text('print_protect', lang)}</b>\n\n<i>Bu funksiya tez orada ishga tushiriladi!</i>",
-        parse_mode="HTML"
-    )
-    await callback.answer()
-
-@done_router.callback_query(F.data == "print:voice")
-async def print_voice_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Ovoz bilan tugmasi bosilganda."""
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.answer(
-        f"<b>🎤 {get_text('print_with_voice', lang)}</b>\n\n<i>Bu funksiya tez orada ishga tushiriladi!</i>",
-        parse_mode="HTML"
-    )
-    await callback.answer()
-
-@done_router.callback_query(F.data == "print:reply")
-async def print_reply_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Javob posti tugmasi bosilganda."""
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.answer(
-        f"<b>↩️ {get_text('print_reply_post', lang)}</b>\n\n<i>Bu funksiya tez orada ishga tushiriladi!</i>",
-        parse_mode="HTML"
-    )
-    await callback.answer()
-
-@done_router.callback_query(F.data == "print:auto_repeat")
-async def print_auto_repeat_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Avtotakrorlash tugmasi bosilganda."""
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.answer(
-        f"<b>🔄 {get_text('print_auto_repeat', lang)}</b>\n\n<i>Bu funksiya tez orada ishga tushiriladi!</i>",
-        parse_mode="HTML"
-    )
-    await callback.answer()
 
 @done_router.callback_query(F.data == "cancel_action")
 async def cancel_action_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):

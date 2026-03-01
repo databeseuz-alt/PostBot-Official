@@ -1696,15 +1696,35 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
 
             cursor.execute("SELECT COUNT(*) FROM post_info")
             total_posts = int((cursor.fetchone() or [0])[0] or 0)
+            
+            # Bugungi statistika
+            today = get_now().strftime('%Y-%m-%d')
+            cursor.execute("SELECT new_users, new_posts FROM bot_stats WHERE stat_date = %s", (today,))
+            row = cursor.fetchone()
+            today_users = int(row[0]) if row else 0
+            today_posts = int(row[1]) if row else 0
+            
+            # Oxirgi 7 kun statistikasi
+            cursor.execute("""
+                SELECT stat_date, new_users, new_posts
+                FROM bot_stats
+                WHERE stat_date >= (CURRENT_DATE - INTERVAL '7 days')
+                ORDER BY stat_date DESC
+                LIMIT 7
+            """)
+            last_7_days = [
+                {'date': str(r[0]), 'users': int(r[1] or 0), 'posts': int(r[2] or 0)}
+                for r in cursor.fetchall()
+            ]
 
             return {
                 'total_users': total_users,
-                'today_users': 0,
+                'today_users': today_users,
                 'active_users': active_users,
                 'total_posts': total_posts,
-                'today_posts': 0,
+                'today_posts': today_posts,
                 'top_lang': None,
-                'last_7_days': []
+                'last_7_days': last_7_days
             }
         except Exception:
             
@@ -1722,19 +1742,76 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
     return await asyncio.to_thread(_sync)
 
 async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
-    return {'daily': 0, 'weekly': 0, 'monthly': 0}
-
-async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
+    """Yangi foydalanuvchilar statistikasi (kunlik, haftalik, oylik)"""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
+            
+            now = get_now()
+            today = now.strftime('%Y-%m-%d')
+            
+            # Shu haftaning boshlanishi (dushanba)
+            week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
+            
+            # Shu oyning boshlanishi
+            month_start = now.replace(day=1).strftime('%Y-%m-%d')
+            
+            # Kunlik
+            cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date = %s", (today,))
+            daily = int(cursor.fetchone()[0] or 0)
+            
+            # Haftalik
+            cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (week_start,))
+            weekly = int(cursor.fetchone()[0] or 0)
+            
+            # Oylik
+            cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
+            monthly = int(cursor.fetchone()[0] or 0)
+            
+            return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
+        except Exception:
+            return {'daily': 0, 'weekly': 0, 'monthly': 0}
+        finally:
+            if conn: conn.close()
+    return await asyncio.to_thread(_sync)
+
+async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
+    """Postlar statistikasi (jami, kunlik, haftalik, oylik)"""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            now = get_now()
+            today = now.strftime('%Y-%m-%d')
+            
+            # Shu haftaning boshlanishi (dushanba)
+            week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
+            
+            # Shu oyning boshlanishi
+            month_start = now.replace(day=1).strftime('%Y-%m-%d')
+            
+            # Jami postlar
             cursor.execute("SELECT COUNT(*) FROM post_info")
             total = int((cursor.fetchone() or [0])[0] or 0)
-            return {'total': total, 'daily': 0, 'weekly': 0, 'monthly': 0}
-        except Exception:
             
+            # Kunlik
+            cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date = %s", (today,))
+            daily = int(cursor.fetchone()[0] or 0)
+            
+            # Haftalik
+            cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date >= %s", (week_start,))
+            weekly = int(cursor.fetchone()[0] or 0)
+            
+            # Oylik
+            cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
+            monthly = int(cursor.fetchone()[0] or 0)
+            
+            return {'total': total, 'daily': daily, 'weekly': weekly, 'monthly': monthly}
+        except Exception:
             return {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
         finally:
             if conn: conn.close()

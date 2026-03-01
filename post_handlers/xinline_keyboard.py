@@ -485,13 +485,8 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None):
     """Chop etish sozlamalari uchun inline klaviatura."""
     builder = InlineKeyboardBuilder()
     builder.button(text=get_text('print_delete_timer', lang), callback_data=f"print:{post_code or 'none'}:delete_timer")
-    builder.button(text=get_text('print_pin', lang), callback_data=f"print:{post_code or 'none'}:pin")
-    builder.button(text=get_text('print_protect', lang), callback_data=f"print:{post_code or 'none'}:protect")
-    builder.button(text=get_text('print_with_voice', lang), callback_data=f"print:{post_code or 'none'}:voice")
-    builder.button(text=get_text('print_reply_post', lang), callback_data=f"print:{post_code or 'none'}:reply")
-    builder.button(text=get_text('print_auto_repeat', lang), callback_data=f"print:{post_code or 'none'}:auto_repeat")
     builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:back")
-    builder.adjust(2, 2, 2, 1)
+    builder.adjust(1, 1)
     return builder.as_markup()
 
 

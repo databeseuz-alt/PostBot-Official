@@ -688,7 +688,3 @@ async def cancel_from_confirmation(callback: types.CallbackQuery, state: FSMCont
     await callback.message.delete()
     await _cancel_ad_process(callback.message, state)
 
-@ad_router.callback_query(F.data == "ad:dummy_button", IsAdmin())
-async def dummy_button_handler(callback: types.CallbackQuery):
-    await callback.answer("Bu tugma faqat ko'rish uchun, bosilmaydi.")
-
