@@ -152,7 +152,7 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
                     kwargs['text'] = f"{btn_text} 0"
                     kwargs['callback_data'] = "reaction_preview"
                 else:
-                    kwargs['url'] = btn['url']
+                    kwargs['url'] = btn.get('url', 'https://t.me')
                 
                 if style:
                     valid_style = get_button_style(style)
@@ -214,12 +214,14 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
                 kwargs = {'text': btn_text}
                 
                 if btn.get('type') == 'text_btn':
-                    kwargs['callback_data'] = f"text_btn:{btn['db_id']}"
+                    db_id = btn.get('db_id', '0')
+                    kwargs['callback_data'] = f"text_btn:{db_id}"
                 elif btn.get('type') == 'reaction':
                     kwargs['text'] = f"{btn_text} 0"
-                    kwargs['callback_data'] = f"reaction:{btn['text']}"
+                    reaction_text = btn.get('text', '👍')
+                    kwargs['callback_data'] = f"reaction:{reaction_text}"
                 else:
-                    kwargs['url'] = btn['url']
+                    kwargs['url'] = btn.get('url', 'https://t.me')
                 
                 if style:
                     valid_style = get_button_style(style)

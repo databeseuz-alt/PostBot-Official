@@ -270,7 +270,9 @@ async def ad_settings_handler(message: types.Message, state: FSMContext):
         for row in buttons_matrix:
             for btn in row:
                 if btn and not btn.get('is_placeholder'):
-                    response_text += f"{count}. {btn['text']} = {btn['url']}\n"
+                    btn_text = btn.get('text', 'Tugma')
+                    btn_url = btn.get('url', btn.get('type', 'URL tugma'))
+                    response_text += f"{count}. {btn_text} = {btn_url}\n"
                     count += 1
         await message.answer(response_text if count > 1 else "Siz hali tugma qo'shmadingiz.")
 

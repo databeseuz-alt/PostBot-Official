@@ -366,6 +366,9 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
         await message.answer(get_text('post_not_found', lang))
         return
     
+    # Preview sarlavhasini yuborish
+    await message.answer(get_text('preview_title_msg', lang))
+    
     # Generating preview keyboard (without management buttons)
     from post_handlers.xinline_keyboard import generate_preview_keyboard
     preview_keyboard = generate_preview_keyboard(buttons_matrix)
@@ -489,7 +492,7 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
                 reply_markup=preview_keyboard
             )
         
-        await message.answer(get_text('content_received', lang))
+        # Preview muvaffaqiyatli yuborildi - qo'shimcha xabar chiqarmaymiz
         
     except Exception as e:
         logger.exception(f"Error in preview: {e}")
