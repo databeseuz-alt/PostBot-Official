@@ -19,9 +19,9 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
 
     if content_type == 'poll':
-        builder.add(KeyboardButton(text=get_text('poll_settings_btn', lang)))
+        builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
     elif content_type == 'location':
-        builder.add(KeyboardButton(text=get_text('location_settings_btn', lang)))
+        builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
     else:
         builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 

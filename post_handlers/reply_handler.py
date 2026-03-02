@@ -48,7 +48,7 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
     lang = await get_user_language(message.from_user.id)
 
     if not post_data:
-        await message.answer(get_text('post_not_found', lang))
+        await message.answer(get_text('post_not_found_msg', lang))
         return
 
     await message.answer(get_text('preview_title_msg', lang))
@@ -210,7 +210,7 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
 
     if not post_data:
-        await message.answer(get_text('post_not_found', lang))
+        await message.answer(get_text('post_not_found_msg', lang))
         return
 
     has_buttons = False

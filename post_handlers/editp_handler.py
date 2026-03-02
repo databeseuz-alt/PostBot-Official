@@ -52,7 +52,7 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
     is_admin = user_id in config.ADMIN_IDS
 
     if not is_owner and not is_admin:
-        await bot.send_message(chat_id, get_text('post_not_found', lang))
+        await bot.send_message(chat_id, get_text('post_not_found_msg', lang))
         await state.clear()
         await bot.send_message(
             chat_id, get_text('main_menu', lang),
@@ -233,9 +233,9 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             error_mode = f"<code>{post_data.get('parse_mode', 'HTML') or 'HTML'}</code>"
             await bot.send_message(chat_id, get_text('parse_mode_error', lang).format(parse_mode=error_mode))
         else:
-            await bot.send_message(chat_id, get_text('post_display_error', lang))
+            await bot.send_message(chat_id, get_text('post_display_error_msg', lang))
     except Exception:
-        await bot.send_message(chat_id, get_text('post_display_error', lang))
+            await bot.send_message(chat_id, get_text('post_display_error_msg', lang))
 
 async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
     full_post = await get_post_from_db(post_code)
@@ -364,7 +364,7 @@ async def receive_post_code(message: types.Message, state: FSMContext, bot: Bot)
     full_post = await get_post_from_db(post_code)
 
     if not full_post or not is_owner:
-        return await message.answer(get_text('post_not_found', lang))
+        return await message.answer(get_text('post_not_found_msg', lang))
 
     await show_post_preview(message, post_code, bot)
     await message.answer(

@@ -422,10 +422,7 @@ def get_button_color_keyboard(lang: str = 'uzl'):
     """Tugma rangini tanlash uchun inline klaviatura."""
     builder = InlineKeyboardBuilder()
     builder.row(
-        InlineKeyboardButton(text=get_text('btn_color_default', lang), callback_data="btn_color:"),
-        InlineKeyboardButton(text=get_text('btn_color_green', lang), callback_data="btn_color:success", style="success")
-    )
-    builder.row(
+        InlineKeyboardButton(text=get_text('btn_color_green', lang), callback_data="btn_color:success", style="success"),
         InlineKeyboardButton(text=get_text('btn_color_blue', lang), callback_data="btn_color:primary", style="primary"),
         InlineKeyboardButton(text=get_text('btn_color_red', lang), callback_data="btn_color:danger", style="danger")
     )
