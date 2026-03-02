@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Спойлер фаъол шуд!</b>\n\nМуҳтавои медиа бо эффекти хира пинҳон карда мешавад.",
     "spoiler_disabled_msg": "<b>✅ Спойлер хомӯш шуд!</b>",
     "paid_media_btn": "💰 Медиаи пулакӣ",
+    "media_price_btn": "Нархи медиа",
     "paid_media_set_price_msg": "<b>💰 Барои медиаи пулакӣ нарх ворид кунед:</b>\n\nНархро бо Telegram Stars ворид кунед (масалан: 50)",
     "paid_media_enabled_msg": "<b>✅ Медиаи пулакӣ фаъол шуд!</b>\n\nНарх: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Медиаи пулакӣ хомӯш шуд!</b>",

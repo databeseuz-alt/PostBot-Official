@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoiler attivato!</b>\n\nIl contenuto multimediale verrà nascosto con un effetto sfocatura.",
     "spoiler_disabled_msg": "<b>✅ Spoiler disattivato!</b>",
     "paid_media_btn": "💰 Media a pagamento",
+    "media_price_btn": "Prezzo del media",
     "paid_media_set_price_msg": "<b>💰 Inserisci un prezzo per il media a pagamento:</b>\n\nInserisci il prezzo in Telegram Stars (esempio: 50)",
     "paid_media_enabled_msg": "<b>✅ Media a pagamento attivato!</b>\n\nPrezzo: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Media a pagamento disattivato!</b>",

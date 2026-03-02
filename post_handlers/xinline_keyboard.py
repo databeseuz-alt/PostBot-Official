@@ -339,7 +339,7 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder.adjust(1)
     return builder.as_markup()
 
-def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo'):
+def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1):
     """Media sozlamalari uchun inline klaviatura - layout 1, 2, 1 (faqat caption bo'lsa joylashuv ko'rsatiladi)"""
     builder = InlineKeyboardBuilder()
 
@@ -351,9 +351,15 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
         paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
         builder.button(text=paid_text, callback_data="media_toggle_paid")
 
-    if content_type in ['photo', 'video', 'animation']:
-        spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
-        builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
+    if content_type in ['photo', 'video', 'animation', 'paid_media']:
+        if is_paid:
+            # Pulli media yoqilganda spoiler o'rniga faqat media narxi yozuvi chiqadi
+            price_text = get_text('media_price_btn', lang)
+            builder.button(text=price_text, callback_data="media_set_price")
+        else:
+            # Pulli media o'chiq bo'lsa spoiler tugmasi ko'rsatiladi
+            spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
+            builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
 
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
 

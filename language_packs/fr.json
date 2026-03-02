@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoiler activé !</b>\n\nLe contenu média sera masqué avec un effet flou.",
     "spoiler_disabled_msg": "<b>✅ Spoiler désactivé !</b>",
     "paid_media_btn": "💰 Média payant",
+    "media_price_btn": "Prix du média",
     "paid_media_set_price_msg": "<b>💰 Entrez un prix pour le média payant :</b>\n\nEntrez le prix en Telegram Stars (exemple : 50)",
     "paid_media_enabled_msg": "<b>✅ Média payant activé !</b>\n\nPrix : {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Média payant désactivé !</b>",

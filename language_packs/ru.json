@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Спойлер включен!</b>\n\nМедиа будет скрыто эффектом размытия.",
     "spoiler_disabled_msg": "<b>✅ Спойлер выключен!</b>",
     "paid_media_btn": "💰 Платный контент",
+    "media_price_btn": "Цена медиа",
     "paid_media_set_price_msg": "<b>💰 Введите цену платного контента:</b>\n\nВведите цену в Telegram Stars (например: 50)",
     "paid_media_enabled_msg": "<b>✅ Платный контент включен!</b>\n\nЦена: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Платный контент выключен!</b>",

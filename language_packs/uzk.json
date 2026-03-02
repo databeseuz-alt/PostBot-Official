@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Спойлер ёқилди!</b>\n\nМедиа хабари блур эффекти билан яширилади.",
     "spoiler_disabled_msg": "<b>✅ Спойлер ўчирилди!</b>",
     "paid_media_btn": "💰 Пулли медиа",
+    "media_price_btn": "Медиа нархи",
     "paid_media_set_price_msg": "<b>💰 Пулли медиа нархини киритинг:</b>\n\nTelegram Stars да нархни киритинг (масалан: 50)",
     "paid_media_enabled_msg": "<b>✅ Пулли медиа ёқилди!</b>\n\nНарх: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Пулли медиа ўчирилди!</b>",

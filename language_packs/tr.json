@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoiler açıldı!</b>\n\nMedya içeriği bulanıklaştırma efektiyle gizlenecek.",
     "spoiler_disabled_msg": "<b>✅ Spoiler kapatıldı!</b>",
     "paid_media_btn": "💰 Ücretli medya",
+    "media_price_btn": "Medya fiyatı",
     "paid_media_set_price_msg": "<b>💰 Ücretli medya fiyatını girin:</b>\n\nTelegram Stars cinsinden fiyat girin (örneğin: 50)",
     "paid_media_enabled_msg": "<b>✅ Ücretli medya açıldı!</b>\n\nFiyat: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Ücretli medya kapatıldı!</b>",

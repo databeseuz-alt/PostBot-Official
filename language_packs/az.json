@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoiler yandırıldı!</b>\n\nMedia məzmunu dumanlı effektlə gizlədiləcək.",
     "spoiler_disabled_msg": "<b>✅ Spoiler söndürüldü!</b>",
     "paid_media_btn": "💰 Pullu media",
+    "media_price_btn": "Media qiyməti",
     "paid_media_set_price_msg": "<b>💰 Pullu media üçün qiymət daxil edin:</b>\n\nQiyməti Telegram Stars olaraq daxil edin (məsələn: 50)",
     "paid_media_enabled_msg": "<b>✅ Pullu media yandırıldı!</b>\n\nQiymət: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Pullu media söndürüldü!</b>",

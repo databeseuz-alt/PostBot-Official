@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Спойлер қосылды!</b>\n\nМедиа бұлыңғырлық эффектімен жасырылады.",
     "spoiler_disabled_msg": "<b>✅ Спойлер өшірілді!</b>",
     "paid_media_btn": "💰 Ақылы медиа",
+    "media_price_btn": "Медиа бағасы",
     "paid_media_set_price_msg": "<b>💰 Ақылы медиа бағасын енгізіңіз:</b>\n\nTelegram Stars түріндегі бағаны енгізіңіз (мысалы: 50)",
     "paid_media_enabled_msg": "<b>✅ Ақылы медиа қосылды!</b>\n\nБағасы: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Ақылы медиа өшірілді!</b>",

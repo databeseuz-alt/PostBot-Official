@@ -38,7 +38,8 @@ async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMCont
             is_paid=is_paid,
             show_caption_above=show_caption_above,
             has_caption=has_caption,
-            content_type=content_type
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
         )
     )
     await callback.answer()
@@ -69,7 +70,8 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
             is_paid=is_paid,
             show_caption_above=not show_caption_above,
             has_caption=has_caption,
-            content_type=content_type
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -102,7 +104,8 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
             is_paid=is_paid,
             show_caption_above=show_caption_above,
             has_caption=has_caption,
-            content_type=content_type
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -140,10 +143,16 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     status_text = "✅ Pulli media yoqildi" if new_paid else "❌ Pulli media o'chirildi"
     await callback.answer(status_text, show_alert=False)
 
-    # 1. AVVAL post preview ni yangilash (tugmalar bilan birga)
+    # 1. AVVAL post preview ni yangilash (tugmalar bilan birga) - post move qilinadi
     await redraw_post_with_callback(callback, state)
 
-    # 2. KEYIN pastda yangi media sozlamalarini yuborish (eskisi o'chirilmaydi)
+    # 2. Eski media sozlamalari xabarini o'chirish (move qilish uchun)
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    # 3. KEYIN pastga yangi media sozlamalarini yuborish (postdan keyin)
     await callback.message.answer(
         get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_inline_kb(
@@ -152,7 +161,8 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
             is_paid=new_paid,
             show_caption_above=show_caption_above,
             has_caption=has_caption,
-            content_type=content_type
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -251,7 +261,8 @@ async def open_media_settings(message: Message, state: FSMContext):
             is_paid=is_paid,
             show_caption_above=show_caption_above,
             has_caption=has_caption,
-            content_type=content_type
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -279,7 +290,8 @@ async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMCo
             is_paid=is_paid,
             show_caption_above=show_caption_above,
             has_caption=has_caption,
-            content_type=content_type
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
         )
     )
     await callback.answer()

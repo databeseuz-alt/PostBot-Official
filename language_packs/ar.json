@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ تم تفعيل السبويلر!</b>\n\nسيتم إخفاء محتوى الوسائط بتأثير ضبابي.",
     "spoiler_disabled_msg": "<b>✅ تم تعطيل السبويلر!</b>",
     "paid_media_btn": "💰 وسائط مدفوعة",
+    "media_price_btn": "سعر الوسائط",
     "paid_media_set_price_msg": "<b>💰 أدخل سعراً للوسائط المدفوعة:</b>\n\nأدخل السعر بـ Telegram Stars (مثال: 50)",
     "paid_media_enabled_msg": "<b>✅ تم تفعيل الوسائط المدفوعة!</b>\n\nالسعر: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ تم تعطيل الوسائط المدفوعة!</b>",

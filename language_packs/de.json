@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoiler aktiviert!</b>\n\nDer Medieninhalt wird mit einem Unschärfe-Effekt ausgeblendet.",
     "spoiler_disabled_msg": "<b>✅ Spoiler deaktiviert!</b>",
     "paid_media_btn": "💰 Kostenpflichtige Medien",
+    "media_price_btn": "Medienpreis",
     "paid_media_set_price_msg": "<b>💰 Gib einen Preis für kostenpflichtige Medien ein:</b>\n\nGib den Preis in Telegram Stars ein (Beispiel: 50)",
     "paid_media_enabled_msg": "<b>✅ Kostenpflichtige Medien aktiviert!</b>\n\nPreis: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Kostenpflichtige Medien deaktiviert!</b>",

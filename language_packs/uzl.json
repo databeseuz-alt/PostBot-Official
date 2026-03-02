@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoiler yoqildi!</b>\n\nMedia xabari blur effekti bilan yashiriladi.",
     "spoiler_disabled_msg": "<b>✅ Spoiler o'chirildi!</b>",
     "paid_media_btn": "💰 Pulli media",
+    "media_price_btn": "Media narxi",
     "paid_media_set_price_msg": "<b>💰 Pulli media narxini kiriting:</b>\n\nTelegram Stars da narxni kiriting (masalan: 50)",
     "paid_media_enabled_msg": "<b>✅ Pulli media yoqildi!</b>\n\nNarx: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Pulli media o'chirildi!</b>",

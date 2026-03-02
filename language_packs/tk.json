@@ -202,6 +202,7 @@
     "spoiler_enabled_msg": "<b>✅ Spoýler açyldy!</b>\n\nMediýa mazmuny bulanyklyk effekti bilen gizlener.",
     "spoiler_disabled_msg": "<b>✅ Spoýler öçürildi!</b>",
     "paid_media_btn": "💰 Tölegli mediýa",
+    "media_price_btn": "Media bahasy",
     "paid_media_set_price_msg": "<b>💰 Tölegli mediýa üçin baha giriziň:</b>\n\nBahany Telegram Stars görnüşinde giriziň (mysal üçin: 50)",
     "paid_media_enabled_msg": "<b>✅ Tölegli mediýa açyldy!</b>\n\nBahasy: {price} ⭐",
     "paid_media_disabled_msg": "<b>✅ Tölegli mediýa öçürildi!</b>",
