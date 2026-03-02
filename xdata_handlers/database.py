@@ -94,8 +94,21 @@ def release_connection(conn):
         # Agar pool ishlamasa, to'g'ridan-to'g'ri yopamiz
         if conn: release_connection(conn)
 
-async def set_user_language(user_id: int, nickname: str = None, username: str = None, language: str = 'uz') -> bool:
+def _normalize_language(language: str | None) -> str:
+    """Til kodini normalize qiladi."""
+    if not language:
+        return 'uzl'  # Default til
+    language = language.lower().strip()
+    # 'uz' ni 'uzl' ga o'zgartirish
+    if language == 'uz':
+        return 'uzl'
+    return language
+
+async def set_user_language(user_id: int, nickname: str = None, username: str = None, language: str = 'uzl') -> bool:
     """Foydalanuvchi tilini o'rnatadi."""
+    # Til kodini normalize qilish
+    language = _normalize_language(language)
+    
     def _sync():
         conn = None
         try:

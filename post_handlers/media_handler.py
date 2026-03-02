@@ -132,50 +132,39 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     await state.update_data(post_data=post_data)
     await state.set_state(PostCreation.waiting_for_media_settings)
 
-    # Yangi xabarda paid media preview yuborish
-    if new_paid:
-        from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
-        demo_text = get_text('paid_media_demo_msg', lang) if get_text('paid_media_demo_msg', lang) != 'paid_media_demo_msg' else "⭐ Bu pulli media post namunasi. Ochish uchun 1 yulduz to'lang."
-        
-        try:
-            file_id = post_data.get('file_id')
-            if content_type == 'photo' and file_id:
-                await callback.bot.send_paid_media(
-                    chat_id=callback.message.chat.id,
-                    star_count=1,
-                    media=[InputPaidMediaPhoto(media=file_id)],
-                    caption=demo_text,
-                    parse_mode='HTML'
-                )
-            elif content_type == 'video' and file_id:
-                await callback.bot.send_paid_media(
-                    chat_id=callback.message.chat.id,
-                    star_count=1,
-                    media=[InputPaidMediaVideo(media=file_id)],
-                    caption=demo_text,
-                    parse_mode='HTML'
-                )
-        except Exception as e:
-            # Agar yuborib bo'lmasa, oddiy xabar yuborish
-            await callback.message.answer(
-                f"⭐ Pulli media yoqildi!\n\nMedia ochish uchun 1 ⭐ yulduz to'lanadi."
-            )
-    
-    # Media sozlamalarini yangi xabarda yuborish
-    await callback.message.answer(
-        get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang,
-            has_spoiler=has_spoiler,
-            is_paid=new_paid,
-            show_caption_above=show_caption_above,
-            has_caption=has_caption,
-            content_type=content_type
-        )
-    )
-    
+    # Faqat callback notification ko'rsatiladi
+    status_text = "✅ Pulli media yoqildi" if new_paid else "❌ Pulli media o'chirildi"
+    await callback.answer(status_text, show_alert=False)
+
+    # 1. AVVAL post preview ni yangilash (tugmalar bilan birga)
     await redraw_post_with_callback(callback, state)
-    await callback.answer()
+
+    # 2. KEYIN media sozlamalarini yangilash
+    try:
+        await callback.message.edit_text(
+            get_text('media_settings_msg', lang),
+            reply_markup=get_media_settings_inline_kb(
+                lang=lang,
+                has_spoiler=has_spoiler,
+                is_paid=new_paid,
+                show_caption_above=show_caption_above,
+                has_caption=has_caption,
+                content_type=content_type
+            )
+        )
+    except Exception:
+        # Agar edit qilib bo'lmasa, yangi xabar yuborish
+        await callback.message.answer(
+            get_text('media_settings_msg', lang),
+            reply_markup=get_media_settings_inline_kb(
+                lang=lang,
+                has_spoiler=has_spoiler,
+                is_paid=new_paid,
+                show_caption_above=show_caption_above,
+                has_caption=has_caption,
+                content_type=content_type
+            )
+        )
 
 @media_router.callback_query(PostCreation.configuring_post, F.data == "back_to_post_settings")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_post_settings")
