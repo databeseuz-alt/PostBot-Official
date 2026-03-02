@@ -126,8 +126,12 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     new_paid = not is_paid
     post_data['is_paid'] = new_paid
 
-    if new_paid and not post_data.get('paid_price'):
-        post_data['paid_price'] = 1  # Default narx
+    if new_paid:
+        # Pulli media yoqilganda spoiler o'chiriladi
+        post_data['has_spoiler'] = False
+        has_spoiler = False
+        if not post_data.get('paid_price'):
+            post_data['paid_price'] = 1  # Default narx
 
     await state.update_data(post_data=post_data)
     await state.set_state(PostCreation.waiting_for_media_settings)
@@ -139,32 +143,18 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     # 1. AVVAL post preview ni yangilash (tugmalar bilan birga)
     await redraw_post_with_callback(callback, state)
 
-    # 2. KEYIN media sozlamalarini yangilash
-    try:
-        await callback.message.edit_text(
-            get_text('media_settings_msg', lang),
-            reply_markup=get_media_settings_inline_kb(
-                lang=lang,
-                has_spoiler=has_spoiler,
-                is_paid=new_paid,
-                show_caption_above=show_caption_above,
-                has_caption=has_caption,
-                content_type=content_type
-            )
+    # 2. KEYIN pastda yangi media sozlamalarini yuborish (eskisi o'chirilmaydi)
+    await callback.message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=new_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type
         )
-    except Exception:
-        # Agar edit qilib bo'lmasa, yangi xabar yuborish
-        await callback.message.answer(
-            get_text('media_settings_msg', lang),
-            reply_markup=get_media_settings_inline_kb(
-                lang=lang,
-                has_spoiler=has_spoiler,
-                is_paid=new_paid,
-                show_caption_above=show_caption_above,
-                has_caption=has_caption,
-                content_type=content_type
-            )
-        )
+    )
 
 @media_router.callback_query(PostCreation.configuring_post, F.data == "back_to_post_settings")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_post_settings")
