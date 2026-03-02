@@ -1,4 +1,5 @@
 import psycopg2
+import psycopg2.pool
 import json
 import secrets
 import string
@@ -8,12 +9,21 @@ import asyncio
 from typing import Optional, List, Dict, Any
 from collections import Counter
 from dotenv import dotenv_values
+import logging
 
 from xdata_handlers import config
 
+# Logging sozlamalari
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 TASHKENT_TZ = timezone(timedelta(hours=5))
 
+# Connection pool global o'zgaruvchi
+_connection_pool = None
+
 def _get_database_url() -> str | None:
+    """DATABASE_URL ni environment yoki .env fayldan oladi."""
     db_url = os.getenv("DATABASE_URL")
     if db_url:
         return db_url
@@ -26,22 +36,63 @@ def _get_database_url() -> str | None:
 
 DB_URL = _get_database_url()
 
+def _get_connection_pool():
+    """PostgreSQL connection pool hosil qiladi (singleton)."""
+    global _connection_pool
+    if _connection_pool is None:
+        db_url = _get_database_url() or DB_URL
+        if not db_url:
+            raise ValueError("DATABASE_URL topilmadi! Environment variables ni tekshiring.")
+        
+        # Supabase uchun SSL sozlamalari
+        connect_kwargs = {
+            "sslmode": "require",
+            "connect_timeout": 30,
+        }
+        
+        try:
+            _connection_pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=20,
+                dsn=db_url,
+                **connect_kwargs
+            )
+            logger.info("PostgreSQL connection pool yaratildi")
+        except Exception as e:
+            logger.error(f"Connection pool yaratishda xatolik: {e}")
+            raise
+    
+    return _connection_pool
+
 def get_now() -> datetime:
     """Hozirgi vaqtni har doim Toshkent vaqti bilan qaytaradi."""
     return datetime.now(TASHKENT_TZ)
 
 def get_connection():
-    """PostgreSQL bazasiga ulanish hosil qiladi."""
-    db_url = _get_database_url() or DB_URL
-    if not db_url:
-        raise ValueError("DATABASE_URL topilmadi! Environment variables ni tekshiring.")
-    connect_kwargs = {}
-    if "sslmode=" not in db_url:
-        connect_kwargs["sslmode"] = "require"
+    """PostgreSQL bazasiga ulanish hosil qiladi (pool dan)."""
+    try:
+        pool = _get_connection_pool()
+        conn = pool.getconn()
+        conn.set_client_encoding('UTF8')
+        return conn
+    except Exception as e:
+        logger.error(f"Ulanishda xatolik: {e}")
+        # Fallback - to'g'ridan-to'g'ri ulanish
+        db_url = _get_database_url() or DB_URL
+        if not db_url:
+            raise ValueError("DATABASE_URL topilmadi!")
+        conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=30)
+        conn.set_client_encoding('UTF8')
+        return conn
 
-    conn = psycopg2.connect(db_url, **connect_kwargs)
-    conn.set_client_encoding('UTF8')
-    return conn
+def release_connection(conn):
+    """Ulanishni poolga qaytaradi."""
+    try:
+        pool = _get_connection_pool()
+        pool.putconn(conn)
+    except Exception:
+        # Agar pool ishlamasa, to'g'ridan-to'g'ri yopamiz
+        if conn: release_connection(conn)
 
 async def set_user_language(user_id: int, nickname: str = None, username: str = None, language: str = 'uz') -> bool:
     """Foydalanuvchi tilini o'rnatadi."""
@@ -60,11 +111,11 @@ async def set_user_language(user_id: int, nickname: str = None, username: str = 
             """, (user_id, nickname, username, language))
             conn.commit()
             return True
-        except Exception:
-
+        except Exception as e:
+            logger.error(f"set_user_language xatolik: {e}")
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_all_active_users(admin_ids: List[int] = None) -> List[int]:
@@ -89,7 +140,7 @@ async def get_all_active_users(admin_ids: List[int] = None) -> List[int]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_blocked_users_with_info(admin_ids: List[int] = None) -> List[Dict]:
@@ -122,7 +173,7 @@ async def get_blocked_users_with_info(admin_ids: List[int] = None) -> List[Dict]
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_or_update_user(user_id: int, nickname: str = None, username: str = None, language: str = None):
@@ -136,6 +187,11 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
         try:
             conn = get_connection()
             cursor = conn.cursor()
+            
+            # Avval foydalanuvchi mavjudligini tekshiramiz
+            cursor.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
+            user_exists = cursor.fetchone() is not None
+            
             if language is None:
                 cursor.execute("""
                     INSERT INTO users (user_id, nickname, username, language)
@@ -153,11 +209,22 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
                         username = EXCLUDED.username,
                         language = EXCLUDED.language;
                 """, (user_id, nickname, username, language))
+            
+            # Agar yangi foydalanuvchi bo'lsa, statistikani yangilaymiz
+            if not user_exists:
+                today = get_now().strftime('%Y-%m-%d')
+                cursor.execute("""
+                    INSERT INTO bot_stats (stat_date, new_users, new_posts)
+                    VALUES (%s, 1, 0)
+                    ON CONFLICT (stat_date) DO UPDATE SET
+                        new_users = bot_stats.new_users + 1;
+                """, (today,))
+            
             conn.commit()
         except Exception:
             pass
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_or_update_user_positional(user_id: int, nickname: str, username: str, language: str = None):
@@ -178,7 +245,7 @@ async def get_user_language(user_id: int) -> str:
 
             return 'uz'
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def is_user_blocked(user_id: int) -> bool:
@@ -195,7 +262,7 @@ async def is_user_blocked(user_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def block_user(user_id: int) -> bool:
@@ -212,7 +279,7 @@ async def block_user(user_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def unblock_user(user_id: int) -> bool:
@@ -229,7 +296,7 @@ async def unblock_user(user_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_user_channel(user_id: int, channel_id: int, channel_name: str, send_posts: bool = False) -> bool:
@@ -253,7 +320,7 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_channels(user_id: int) -> List[Dict]:
@@ -282,7 +349,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def remove_user_channel(user_id: int, channel_id: int) -> bool:
@@ -299,7 +366,7 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_bot_settings(user_id: int) -> Dict:
@@ -327,7 +394,7 @@ async def get_user_bot_settings(user_id: int) -> Dict:
                 'ai_assistant_enabled': False
             }
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = None) -> bool:
@@ -352,7 +419,7 @@ async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = No
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int = None) -> int | None:
@@ -374,7 +441,7 @@ async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datet
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def save_sent_post(post_code: str, user_id: int, channel_id: int, channel_name: str = None, message_id: int = None) -> bool:
@@ -400,7 +467,7 @@ async def save_sent_post(post_code: str, user_id: int, channel_id: int, channel_
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_scheduled_posts() -> List[Dict]:
@@ -432,7 +499,7 @@ async def get_scheduled_posts() -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def mark_scheduled_post_as_sent(post_id: int) -> bool:
@@ -449,7 +516,7 @@ async def mark_scheduled_post_as_sent(post_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_pending_scheduled_posts() -> List[Dict]:
@@ -480,7 +547,7 @@ async def get_pending_scheduled_posts() -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_required_channel(channel_id: int, channel_name: str, username: str = None) -> bool:
@@ -503,7 +570,7 @@ async def add_required_channel(channel_id: int, channel_name: str, username: str
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_required_channels() -> List[Dict]:
@@ -527,7 +594,7 @@ async def get_required_channels() -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_all_required_channels() -> List[Dict]:
@@ -546,7 +613,7 @@ async def remove_required_channel(channel_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_reaction(post_code: str, button_index: int, reaction_emoji: str, 
@@ -571,7 +638,7 @@ async def add_reaction(post_code: str, button_index: int, reaction_emoji: str,
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_post_reactions(post_code: str) -> List[Dict]:
@@ -600,7 +667,7 @@ async def get_post_reactions(post_code: str) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def add_or_update_reaction(post_code: str, button_index: int, reaction_emoji: str,
@@ -656,7 +723,7 @@ async def add_or_update_reaction_by_chat_message(user_id: int, chat_id: int, mes
 
             return ('error', None)
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_reaction_count(post_code: str, button_index: int) -> int:
@@ -675,7 +742,7 @@ async def get_reaction_count(post_code: str, button_index: int) -> int:
 
             return 0
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reaction_emoji: str) -> int:
@@ -695,7 +762,7 @@ async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reac
 
             return 0
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 def generate_post_code(length: int = 8) -> str:
@@ -753,7 +820,7 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_post_from_db(post_code: str) -> dict | None:
@@ -770,7 +837,7 @@ async def get_post_from_db(post_code: str) -> dict | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def check_post_owner(post_code: str, user_id: int) -> bool:
@@ -787,7 +854,7 @@ async def check_post_owner(post_code: str, user_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_post_name(post_code: str) -> str | None:
@@ -804,7 +871,7 @@ async def get_post_name(post_code: str) -> str | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: list = None, post_name: str = None) -> bool:
@@ -856,7 +923,7 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_post_message_id(post_code: str, message_id: int) -> bool:
@@ -873,7 +940,7 @@ async def update_post_message_id(post_code: str, message_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_post_error(post_code: str, error_message: str) -> bool:
@@ -890,7 +957,7 @@ async def update_post_error(post_code: str, error_message: str) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_post_print_settings(post_code: str, print_settings: dict) -> bool:
@@ -926,7 +993,7 @@ async def update_post_print_settings(post_code: str, print_settings: dict) -> bo
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def record_user_activity(user_id: int, username: str = None) -> bool:
@@ -949,7 +1016,7 @@ async def record_user_activity(user_id: int, username: str = None) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def save_post_name(post_code: str, post_name: str) -> bool:
@@ -966,7 +1033,7 @@ async def save_post_name(post_code: str, post_name: str) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def unsave_post_name(post_code: str, user_id: int = None) -> str | None:
@@ -990,7 +1057,7 @@ async def unsave_post_name(post_code: str, user_id: int = None) -> str | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_posts(user_id: int) -> List[Dict]:
@@ -1018,7 +1085,7 @@ async def get_user_posts(user_id: int) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_posts_by_user(user_id: int) -> List[Dict]:
@@ -1094,7 +1161,7 @@ async def create_text_button(*args, **kwargs) -> int | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_text_button_content(btn_id: int) -> dict | None:
@@ -1114,7 +1181,7 @@ async def get_text_button_content(btn_id: int) -> dict | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_bot_stats(stat_date: str, new_users: int = 0, new_posts: int = 0) -> bool:
@@ -1137,7 +1204,7 @@ async def update_bot_stats(stat_date: str, new_users: int = 0, new_posts: int = 
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_bot_stats() -> List[Dict]:
@@ -1164,7 +1231,7 @@ async def get_bot_stats() -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def update_post_stats(post_code: str, channel_id: int, views: int = 0, 
@@ -1195,7 +1262,7 @@ async def update_post_stats(post_code: str, channel_id: int, views: int = 0,
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_post_stats(post_code: str) -> List[Dict]:
@@ -1225,7 +1292,7 @@ async def get_post_stats(post_code: str) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def log_user_feedback(user_id: int, feedback_text: str) -> bool:
@@ -1246,7 +1313,7 @@ async def log_user_feedback(user_id: int, feedback_text: str) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def log_user_error(user_id: int, error_text: str) -> bool:
@@ -1267,7 +1334,7 @@ async def log_user_error(user_id: int, error_text: str) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_feedbacks_by_user(user_id: int) -> List[Dict]:
@@ -1295,7 +1362,7 @@ async def get_feedbacks_by_user(user_id: int) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_errors_by_user(user_id: int) -> List[Dict]:
@@ -1322,7 +1389,7 @@ async def get_errors_by_user(user_id: int) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def find_user_by_id_or_username(query: str) -> Dict | None:
@@ -1356,7 +1423,7 @@ async def find_user_by_id_or_username(query: str) -> Dict | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_info_from_db(user_id: int) -> Dict | None:
@@ -1385,7 +1452,7 @@ async def get_user_info_from_db(user_id: int) -> Dict | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_block_info(user_id: int) -> Dict | None:
@@ -1413,7 +1480,7 @@ async def get_user_block_info(user_id: int) -> Dict | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_users_for_export(admin_ids: List[int], period: str = None) -> List[Dict]:
@@ -1451,7 +1518,7 @@ async def get_users_for_export(admin_ids: List[int], period: str = None) -> List
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_post_creators_for_export(admin_ids: List[int], period: str = None) -> List[Dict]:
@@ -1484,7 +1551,7 @@ async def get_post_creators_for_export(admin_ids: List[int], period: str = None)
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_settings_for_export(admin_ids: List[int], period: str = None) -> List[Dict]:
@@ -1518,7 +1585,7 @@ async def get_user_settings_for_export(admin_ids: List[int], period: str = None)
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def save_prompt(user_id: int, prompt_text: str) -> int | None:
@@ -1539,7 +1606,7 @@ async def save_prompt(user_id: int, prompt_text: str) -> int | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_user_prompts(user_id: int) -> List[Dict]:
@@ -1567,7 +1634,7 @@ async def get_user_prompts(user_id: int) -> List[Dict]:
 
             return []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def delete_prompt(prompt_id: int, user_id: int) -> bool:
@@ -1584,7 +1651,7 @@ async def delete_prompt(prompt_id: int, user_id: int) -> bool:
 
             return False
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_prompt_by_id(prompt_id: int, user_id: int) -> Dict | None:
@@ -1610,7 +1677,7 @@ async def get_prompt_by_id(prompt_id: int, user_id: int) -> Dict | None:
 
             return None
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
@@ -1679,7 +1746,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                 'last_7_days': []
             }
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
@@ -1710,7 +1777,7 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
         except Exception:
             return {'daily': 0, 'weekly': 0, 'monthly': 0}
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
@@ -1744,7 +1811,7 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
         except Exception:
             return {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
@@ -1767,7 +1834,7 @@ async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
 
             return {}
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_daily_stats_for_graph(days: int = 30):
@@ -1790,11 +1857,60 @@ async def get_daily_stats_for_graph(days: int = 30):
 
             return [], [], []
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_active_users_by_period(admin_ids: List[int] = None) -> Dict:
-    return {'daily': 0, 'weekly': 0, 'monthly': 0}
+    """Faol foydalanuvchilar statistikasi (kunlik, haftalik, oylik)"""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            now = get_now()
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            
+            # Adminlarni filter qilish uchun
+            admin_filter = ""
+            if admin_ids:
+                admin_ids_str = ','.join(str(id) for id in admin_ids)
+                admin_filter = f"AND user_id NOT IN ({admin_ids_str})"
+            
+            # Bugun faol bo'lganlar
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT user_id) 
+                FROM users 
+                WHERE last_activity >= %s {admin_filter}
+            """, (today_start,))
+            daily = int(cursor.fetchone()[0] or 0)
+            
+            # Shu hafta faol bo'lganlar
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT user_id) 
+                FROM users 
+                WHERE last_activity >= %s {admin_filter}
+            """, (week_start,))
+            weekly = int(cursor.fetchone()[0] or 0)
+            
+            # Shu oy faol bo'lganlar
+            cursor.execute(f"""
+                SELECT COUNT(DISTINCT user_id) 
+                FROM users 
+                WHERE last_activity >= %s {admin_filter}
+            """, (month_start,))
+            monthly = int(cursor.fetchone()[0] or 0)
+            
+            return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
+        except Exception as e:
+            print(f"get_active_users_by_period error: {e}")
+            return {'daily': 0, 'weekly': 0, 'monthly': 0}
+        finally:
+            if conn: release_connection(conn)
+    
+    return await asyncio.to_thread(_sync)
 
 async def get_total_errors_count() -> int:
     def _sync():
@@ -1809,7 +1925,7 @@ async def get_total_errors_count() -> int:
 
             return 0
         finally:
-            if conn: conn.close()
+            if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
 async def get_activity_heatmap_for_last_24h():
@@ -1851,11 +1967,19 @@ async def init_db():
                 ON text_buttons(post_code)
             """)
 
+            # Bot statistikasi uchun jadval
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS bot_stats (
+                    stat_date DATE PRIMARY KEY,
+                    new_users INTEGER DEFAULT 0,
+                    new_posts INTEGER DEFAULT 0
+                )
+            """)
+
             conn.commit()
         except Exception:
             pass
         finally:
-            if conn:
-                conn.close()
+            if conn: release_connection(conn)
 
     await asyncio.to_thread(_sync)

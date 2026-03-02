@@ -347,13 +347,13 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
         position_text = get_text('position_above_btn', lang) if show_caption_above else get_text('position_below_btn', lang)
         builder.button(text=position_text, callback_data="media_toggle_position")
 
-    if content_type in ['photo', 'video', 'animation']:
-        spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
-        builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
-
     if content_type in ['photo', 'video', 'animation', 'paid_media']:
         paid_text = get_text('paid_media_enabled_btn', lang) if is_paid else get_text('paid_media_btn', lang)
         builder.button(text=paid_text, callback_data="media_toggle_paid")
+
+    if content_type in ['photo', 'video', 'animation']:
+        spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
+        builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
 
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
 

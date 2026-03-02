@@ -213,10 +213,10 @@ def format_user_info(user: types.User, lang: str = 'uzl') -> str:
     username = f"@{user.username}" if user.username else "mavjud emas"
 
     return (
-        f"\n-------------------------------\n"
-        f"nickname : <code>{nickname}</code>\n"
-        f"user iD : <code>{user.id}</code>\n"
-        f"username : <code>{username}</code>"
+        f"\n\n-------------------------------\n"
+        f"👤 nickname: <code>{nickname}</code>\n"
+        f"🆔 user iD: <code>{user.id}</code>\n"
+        f"📎 username: <code>{username}</code>"
     )
 
 async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') -> str | None:
@@ -312,8 +312,25 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
         if config.STORAGE_CHANNEL_ID and not is_editing_session:
             try:
                 user_info_text = format_user_info(message.from_user, lang)
-                await message.copy_to(config.STORAGE_CHANNEL_ID)
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
+                # Post va foydalanuvchi ma'lumotlarini bitta xabarda yuborish
+                sent_poll = await bot.send_poll(
+                    config.STORAGE_CHANNEL_ID,
+                    question=poll.question,
+                    options=[opt.text for opt in poll.options],
+                    is_anonymous=poll.is_anonymous,
+                    allows_multiple_answers=poll.allows_multiple_answers,
+                    correct_option_id=poll.correct_option_id if poll.type == 'quiz' else None,
+                    type='quiz' if poll.type == 'quiz' else 'regular',
+                    explanation=getattr(poll, 'explanation', None)
+                )
+                # Foydalanuvchi ma'lumotlarini reply sifatida yuborish
+                if sent_poll:
+                    await bot.send_message(
+                        config.STORAGE_CHANNEL_ID,
+                        user_info_text,
+                        parse_mode="HTML",
+                        reply_to_message_id=sent_poll.message_id
+                    )
             except Exception:
                 pass
 
@@ -377,8 +394,20 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
         if config.STORAGE_CHANNEL_ID and not is_editing_session:
             try:
                 user_info_text = format_user_info(message.from_user, lang)
-                await message.copy_to(config.STORAGE_CHANNEL_ID)
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
+                # Location va foydalanuvchi ma'lumotlarini bitta xabarda yuborish
+                sent_location = await bot.send_location(
+                    config.STORAGE_CHANNEL_ID,
+                    latitude=location.latitude,
+                    longitude=location.longitude
+                )
+                # Foydalanuvchi ma'lumotlarini reply sifatida yuborish
+                if sent_location:
+                    await bot.send_message(
+                        config.STORAGE_CHANNEL_ID,
+                        user_info_text,
+                        parse_mode="HTML",
+                        reply_to_message_id=sent_location.message_id
+                    )
             except Exception:
                 pass
 
@@ -472,8 +501,16 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
             if config.STORAGE_CHANNEL_ID and not is_editing_session:
                 try:
                     user_info_text = format_user_info(message.from_user, lang)
-                    await message.copy_to(config.STORAGE_CHANNEL_ID)
-                    await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
+                    # Paid media va foydalanuvchi ma'lumotlarini bitta xabarda yuborish
+                    sent_media = await message.copy_to(config.STORAGE_CHANNEL_ID)
+                    # Foydalanuvchi ma'lumotlarini reply sifatida yuborish
+                    if sent_media:
+                        await bot.send_message(
+                            config.STORAGE_CHANNEL_ID,
+                            user_info_text,
+                            parse_mode="HTML",
+                            reply_to_message_id=sent_media.message_id
+                        )
                 except Exception:
                     pass
 
@@ -527,8 +564,19 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
         if config.STORAGE_CHANNEL_ID and not is_editing_session:
             try:
                 user_info_text = format_user_info(message.from_user, lang)
-                await message.copy_to(config.STORAGE_CHANNEL_ID)
-                await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
+                # Dice va foydalanuvchi ma'lumotlarini bitta xabarda yuborish
+                sent_dice = await bot.send_dice(
+                    config.STORAGE_CHANNEL_ID,
+                    emoji=dice_emoji
+                )
+                # Foydalanuvchi ma'lumotlarini reply sifatida yuborish
+                if sent_dice:
+                    await bot.send_message(
+                        config.STORAGE_CHANNEL_ID,
+                        user_info_text,
+                        parse_mode="HTML",
+                        reply_to_message_id=sent_dice.message_id
+                    )
             except Exception:
                 pass
 
@@ -772,16 +820,80 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             if config.STORAGE_CHANNEL_ID and not is_editing_session:
                 try:
                     user_info_text = format_user_info(message.from_user, lang)
+                    sent_message = None
+
                     if is_incoming_media:
-                        await message.copy_to(config.STORAGE_CHANNEL_ID)
-                        await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text, parse_mode="HTML")
+                        # Media uchun caption ga user_info qo'shish
+                        new_caption = (caption or "") + user_info_text
+                        # Telegram caption limit 1024
+                        if len(new_caption) > 1024:
+                            new_caption = (caption or "")[:900] + "..." + user_info_text
+
+                        if current_type == 'photo':
+                            sent_message = await bot.send_photo(
+                                config.STORAGE_CHANNEL_ID, file_id, caption=new_caption,
+                                parse_mode='HTML', show_caption_above_media=show_caption_above
+                            )
+                        elif current_type == 'video':
+                            sent_message = await bot.send_video(
+                                config.STORAGE_CHANNEL_ID, file_id, caption=new_caption,
+                                parse_mode='HTML', show_caption_above_media=show_caption_above
+                            )
+                        elif current_type == 'audio':
+                            sent_message = await bot.send_audio(
+                                config.STORAGE_CHANNEL_ID, file_id, caption=new_caption,
+                                parse_mode='HTML'
+                            )
+                        elif current_type == 'document':
+                            sent_message = await bot.send_document(
+                                config.STORAGE_CHANNEL_ID, file_id, caption=new_caption,
+                                parse_mode='HTML'
+                            )
+                        elif current_type == 'voice':
+                            sent_message = await bot.send_voice(
+                                config.STORAGE_CHANNEL_ID, file_id, caption=new_caption,
+                                parse_mode='HTML'
+                            )
+                        elif current_type == 'animation':
+                            sent_message = await bot.send_animation(
+                                config.STORAGE_CHANNEL_ID, file_id, caption=new_caption,
+                                parse_mode='HTML', show_caption_above_media=show_caption_above
+                            )
+                        elif current_type == 'video_note':
+                            # Video note caption qo'llamaydi, reply sifatida yuboramiz
+                            sent_message = await bot.send_video_note(
+                                config.STORAGE_CHANNEL_ID, file_id
+                            )
+                            if sent_message:
+                                await bot.send_message(
+                                    config.STORAGE_CHANNEL_ID, user_info_text,
+                                    parse_mode="HTML", reply_to_message_id=sent_message.message_id
+                                )
+                        elif current_type == 'sticker':
+                            # Sticker caption qo'llamaydi, reply sifatida yuboramiz
+                            sent_message = await bot.send_sticker(
+                                config.STORAGE_CHANNEL_ID, file_id
+                            )
+                            if sent_message:
+                                await bot.send_message(
+                                    config.STORAGE_CHANNEL_ID, user_info_text,
+                                    parse_mode="HTML", reply_to_message_id=sent_message.message_id
+                                )
                     elif current_type == 'text':
-                        total_text = (post_data.get('text') or "") + "\n\n" + user_info_text
+                        # Matn uchun user_info ni qo'shish
+                        original_text = post_data.get('text') or ""
+                        total_text = original_text + user_info_text
+                        
                         if len(total_text) <= 4096:
+                            # Hammasi bitta xabarga sig'adi
                             await bot.send_message(config.STORAGE_CHANNEL_ID, total_text, parse_mode="HTML")
                         else:
-                            await bot.send_message(config.STORAGE_CHANNEL_ID, post_data.get('text') or "", parse_mode="HTML")
-                            await bot.send_message(config.STORAGE_CHANNEL_ID, user_info_text.strip(), parse_mode="HTML")
+                            # Matn juda uzun - qisqartirib, oxiriga user_info qo'shish
+                            # User_info uzunligini hisobga olib qisqartirish
+                            truncate_length = 4096 - len(user_info_text) - 10  # 10 ta belgi zaxira
+                            truncated_text = original_text[:truncate_length] + "...\n\n"
+                            final_text = truncated_text + user_info_text
+                            await bot.send_message(config.STORAGE_CHANNEL_ID, final_text, parse_mode="HTML")
                 except Exception:
                     pass
 
