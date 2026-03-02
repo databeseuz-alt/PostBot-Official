@@ -46,25 +46,51 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
                 disable_web_page_preview=disable_preview
             )
         elif content_type == 'photo':
-            preview_message = await bot.send_photo(
-                chat_id,
-                post_data.get('file_id'),
-                caption=post_data.get('caption', ''),
-                reply_markup=preview_keyboard,
-                parse_mode=parse_mode,
-                has_spoiler=has_spoiler,
-                show_caption_above_media=show_caption_above
-            )
+            is_paid = post_data.get('is_paid', False)
+            if is_paid:
+                from aiogram.types import InputPaidMediaPhoto
+                preview_message = await bot.send_paid_media(
+                    chat_id=chat_id,
+                    star_count=post_data.get('paid_price', 1),
+                    media=[InputPaidMediaPhoto(media=post_data.get('file_id'))],
+                    caption=post_data.get('caption', ''),
+                    reply_markup=preview_keyboard,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above
+                )
+            else:
+                preview_message = await bot.send_photo(
+                    chat_id,
+                    post_data.get('file_id'),
+                    caption=post_data.get('caption', ''),
+                    reply_markup=preview_keyboard,
+                    parse_mode=parse_mode,
+                    has_spoiler=has_spoiler,
+                    show_caption_above_media=show_caption_above
+                )
         elif content_type == 'video':
-            preview_message = await bot.send_video(
-                chat_id,
-                post_data.get('file_id'),
-                caption=post_data.get('caption', ''),
-                reply_markup=preview_keyboard,
-                parse_mode=parse_mode,
-                has_spoiler=has_spoiler,
-                show_caption_above_media=show_caption_above
-            )
+            is_paid = post_data.get('is_paid', False)
+            if is_paid:
+                from aiogram.types import InputPaidMediaVideo
+                preview_message = await bot.send_paid_media(
+                    chat_id=chat_id,
+                    star_count=post_data.get('paid_price', 1),
+                    media=[InputPaidMediaVideo(media=post_data.get('file_id'))],
+                    caption=post_data.get('caption', ''),
+                    reply_markup=preview_keyboard,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above
+                )
+            else:
+                preview_message = await bot.send_video(
+                    chat_id,
+                    post_data.get('file_id'),
+                    caption=post_data.get('caption', ''),
+                    reply_markup=preview_keyboard,
+                    parse_mode=parse_mode,
+                    has_spoiler=has_spoiler,
+                    show_caption_above_media=show_caption_above
+                )
         elif content_type == 'audio':
             preview_message = await bot.send_audio(
                 chat_id,

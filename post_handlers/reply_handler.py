@@ -74,23 +74,49 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
                 disable_web_page_preview=disable_preview
             )
         elif content_type == 'photo':
-            await message.answer_photo(
-                file_id,
-                caption=caption,
-                reply_markup=preview_keyboard,
-                parse_mode=parse_mode,
-                has_spoiler=has_spoiler,
-                show_caption_above_media=show_caption_above
-            )
+            is_paid = post_data.get('is_paid', False)
+            paid_price = post_data.get('paid_price', 1)
+            if is_paid:
+                from aiogram.types import InputPaidMediaPhoto
+                await message.answer_paid_media(
+                    star_count=paid_price,
+                    media=[InputPaidMediaPhoto(media=file_id)],
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    reply_markup=preview_keyboard
+                )
+            else:
+                await message.answer_photo(
+                    file_id,
+                    caption=caption,
+                    reply_markup=preview_keyboard,
+                    parse_mode=parse_mode,
+                    has_spoiler=has_spoiler,
+                    show_caption_above_media=show_caption_above
+                )
         elif content_type == 'video':
-            await message.answer_video(
-                file_id,
-                caption=caption,
-                reply_markup=preview_keyboard,
-                parse_mode=parse_mode,
-                has_spoiler=has_spoiler,
-                show_caption_above_media=show_caption_above
-            )
+            is_paid = post_data.get('is_paid', False)
+            paid_price = post_data.get('paid_price', 1)
+            if is_paid:
+                from aiogram.types import InputPaidMediaVideo
+                await message.answer_paid_media(
+                    star_count=paid_price,
+                    media=[InputPaidMediaVideo(media=file_id)],
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    reply_markup=preview_keyboard
+                )
+            else:
+                await message.answer_video(
+                    file_id,
+                    caption=caption,
+                    reply_markup=preview_keyboard,
+                    parse_mode=parse_mode,
+                    has_spoiler=has_spoiler,
+                    show_caption_above_media=show_caption_above
+                )
         elif content_type == 'audio':
             await message.answer_audio(
                 file_id,

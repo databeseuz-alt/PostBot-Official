@@ -149,10 +149,33 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             has_spoiler = post_data.get('has_spoiler', False)
             show_caption_above = post_data.get('show_caption_above_media', False)
 
+            is_paid = post_data.get('is_paid', False)
             if content_type == 'photo':
-                sent_message = await bot.send_photo(chat_id, post_data.get('file_id'), caption=full_caption, has_spoiler=has_spoiler, show_caption_above_media=show_caption_above, **media_kwargs)
+                if is_paid:
+                    from aiogram.types import InputPaidMediaPhoto
+                    sent_message = await bot.send_paid_media(
+                        chat_id=chat_id,
+                        star_count=post_data.get('paid_price', 1),
+                        media=[InputPaidMediaPhoto(media=post_data.get('file_id'))],
+                        caption=full_caption,
+                        show_caption_above_media=show_caption_above,
+                        **media_kwargs
+                    )
+                else:
+                    sent_message = await bot.send_photo(chat_id, post_data.get('file_id'), caption=full_caption, has_spoiler=has_spoiler, show_caption_above_media=show_caption_above, **media_kwargs)
             elif content_type == 'video':
-                sent_message = await bot.send_video(chat_id, post_data.get('file_id'), caption=full_caption, has_spoiler=has_spoiler, show_caption_above_media=show_caption_above, **media_kwargs)
+                if is_paid:
+                    from aiogram.types import InputPaidMediaVideo
+                    sent_message = await bot.send_paid_media(
+                        chat_id=chat_id,
+                        star_count=post_data.get('paid_price', 1),
+                        media=[InputPaidMediaVideo(media=post_data.get('file_id'))],
+                        caption=full_caption,
+                        show_caption_above_media=show_caption_above,
+                        **media_kwargs
+                    )
+                else:
+                    sent_message = await bot.send_video(chat_id, post_data.get('file_id'), caption=full_caption, has_spoiler=has_spoiler, show_caption_above_media=show_caption_above, **media_kwargs)
             elif content_type == 'audio':
                 sent_message = await bot.send_audio(chat_id, post_data.get('file_id'), caption=full_caption, **media_kwargs)
             elif content_type == 'document':

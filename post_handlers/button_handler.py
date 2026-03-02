@@ -90,12 +90,40 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
     }
 
     try:
+        is_paid = post_data.get('is_paid', False)
+        paid_price = post_data.get('paid_price', 1)
+        show_caption_above = post_data.get('show_caption_above_media', False)
+
         if content_type == 'text':
             sent_message = await message.bot.send_message(chat_id, text=text, **message_kwargs)
         elif content_type == 'photo':
-            sent_message = await message.bot.send_photo(chat_id, file_id, caption=caption, **media_kwargs)
+            if is_paid:
+                from aiogram.types import InputPaidMediaPhoto
+                sent_message = await message.bot.send_paid_media(
+                    chat_id=chat_id,
+                    star_count=paid_price,
+                    media=[InputPaidMediaPhoto(media=file_id)],
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    reply_markup=new_keyboard
+                )
+            else:
+                sent_message = await message.bot.send_photo(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'video':
-            sent_message = await message.bot.send_video(chat_id, file_id, caption=caption, **media_kwargs)
+            if is_paid:
+                from aiogram.types import InputPaidMediaVideo
+                sent_message = await message.bot.send_paid_media(
+                    chat_id=chat_id,
+                    star_count=paid_price,
+                    media=[InputPaidMediaVideo(media=file_id)],
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    reply_markup=new_keyboard
+                )
+            else:
+                sent_message = await message.bot.send_video(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'audio':
             sent_message = await message.bot.send_audio(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'document':

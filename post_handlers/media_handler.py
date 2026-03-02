@@ -1,3 +1,5 @@
+import asyncio
+
 from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
@@ -329,15 +331,28 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
 
     try:
         if (is_paid and content_type in ['photo', 'video']) or content_type == 'paid_media':
+            # Pulli media uchun caption va reply_markup ni tahrirlash
             try:
-                await callback.bot.delete_message(chat_id, message_id)
+                await callback.bot.edit_message_caption(
+                    chat_id=chat_id,
+                    message_id=message_id,
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    reply_markup=new_keyboard
+                )
+                # Caption joylashuvini alohida sozlash
+                # Telegram API da paid_media uchun show_caption_above_media ni to'g'ridan-to'g'ri o'zgartirib bo'lmaydi,
+                # lekin caption ni o'zgartirish mumkin
+                return
             except Exception:
-                pass
-
-            await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
-
-            await state.set_state(PostCreation.configuring_post)
-            return
+                # Agar tahrirlash ishlamasa, eski usul bilan o'chirib yangidan yuborish
+                try:
+                    await callback.bot.delete_message(chat_id, message_id)
+                except Exception:
+                    pass
+                await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
+                await state.set_state(PostCreation.configuring_post)
+                return
 
         if content_type == 'photo':
             from aiogram.types import InputMediaPhoto
@@ -469,23 +484,51 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
                 disable_web_page_preview=disable_preview
             )
         elif content_type == 'photo':
-            sent_message = await message.answer_photo(
-                file_id,
-                caption=caption,
-                reply_markup=keyboard,
-                parse_mode=parse_mode,
-                has_spoiler=has_spoiler,
-                show_caption_above_media=show_caption_above
-            )
+            is_paid = post_data.get('is_paid', False)
+            paid_price = post_data.get('paid_price', 1)
+            if is_paid:
+                # Pulli media sifatida yuborish
+                from aiogram.types import InputPaidMediaPhoto
+                sent_message = await message.answer_paid_media(
+                    star_count=paid_price,
+                    media=[InputPaidMediaPhoto(media=file_id)],
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    reply_markup=keyboard
+                )
+            else:
+                sent_message = await message.answer_photo(
+                    file_id,
+                    caption=caption,
+                    reply_markup=keyboard,
+                    parse_mode=parse_mode,
+                    has_spoiler=has_spoiler,
+                    show_caption_above_media=show_caption_above
+                )
         elif content_type == 'video':
-            sent_message = await message.answer_video(
-                file_id,
-                caption=caption,
-                reply_markup=keyboard,
-                parse_mode=parse_mode,
-                has_spoiler=has_spoiler,
-                show_caption_above_media=show_caption_above
-            )
+            is_paid = post_data.get('is_paid', False)
+            paid_price = post_data.get('paid_price', 1)
+            if is_paid:
+                # Pulli media sifatida yuborish
+                from aiogram.types import InputPaidMediaVideo
+                sent_message = await message.answer_paid_media(
+                    star_count=paid_price,
+                    media=[InputPaidMediaVideo(media=file_id)],
+                    caption=caption,
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    reply_markup=keyboard
+                )
+            else:
+                sent_message = await message.answer_video(
+                    file_id,
+                    caption=caption,
+                    reply_markup=keyboard,
+                    parse_mode=parse_mode,
+                    has_spoiler=has_spoiler,
+                    show_caption_above_media=show_caption_above
+                )
         elif content_type == 'audio':
             sent_message = await message.answer_audio(
                 file_id,
@@ -577,3 +620,179 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
 
     except Exception:
         pass
+
+
+@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_set_price")
+@media_router.callback_query(PostCreation.configuring_post, F.data == "media_set_price")
+async def media_set_price_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Media narxini o'rnatish - faqat orqaga tugmasi bilan"""
+    lang = await get_user_language(callback.from_user.id)
+
+    # Orqaga tugmasini yaratish
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('back_btn', lang), callback_data="back_to_media_settings")
+    keyboard = builder.as_markup()
+
+    # Media sozlamalari xabarini o'chirish
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    # Yangi xabar yuborish - faqat orqaga tugmasi bilan
+    await callback.message.answer(
+        get_text('enter_media_price_msg', lang),
+        reply_markup=keyboard
+    )
+
+    await state.set_state(PostCreation.waiting_for_paid_price)
+    await callback.answer()
+
+
+@media_router.callback_query(PostCreation.waiting_for_paid_price, F.data == "back_to_media_settings")
+async def back_from_price_setting(callback: types.CallbackQuery, state: FSMContext):
+    """Narx o'rnatishdan media sozlamalariga qaytish"""
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    lang = await get_user_language(callback.from_user.id)
+
+    content_type = post_data.get('content_type', 'photo')
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_caption = bool(post_data.get('caption'))
+
+    # Joriy xabarni o'chirish
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    # Media sozlamalarini qayta yuborish
+    await callback.message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1)
+        )
+    )
+
+    await state.set_state(PostCreation.waiting_for_media_settings)
+    await callback.answer()
+
+
+@media_router.message(PostCreation.waiting_for_paid_price)
+async def process_paid_price(message: Message, state: FSMContext):
+    """Foydalanuvchi kiritgan narxni qayta ishlash"""
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    lang = await get_user_language(message.from_user.id)
+
+    # Tekshirish - raqammi
+    try:
+        price = int(message.text.strip())
+        if price < 1 or price > 25000:
+            raise ValueError("Noto'g'ri diapazon")
+    except ValueError:
+        await message.answer(get_text('invalid_price_msg', lang))
+        return
+
+    # Narxni saqlash
+    post_data['paid_price'] = price
+    await state.update_data(post_data=post_data)
+
+    # Joriy xabarni o'chirish (narx soragan xabar)
+    try:
+        await message.delete()
+    except Exception:
+        pass
+
+    # Tepadagi postni o'chirish
+    chat_id = post_data.get('chat_id')
+    message_id = post_data.get('message_id')
+    if chat_id and message_id:
+        try:
+            await message.bot.delete_message(chat_id, message_id)
+        except Exception:
+            pass
+
+    # Yangi post yuborish (yangi narx bilan)
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    buttons_matrix = data.get('buttons_matrix', [])
+    new_keyboard = generate_post_keyboard(buttons_matrix, lang)
+
+    content_type = post_data.get('content_type', 'photo')
+    file_id = post_data.get('file_id')
+    caption = post_data.get('caption')
+    parse_mode = post_data.get('parse_mode', 'HTML')
+    show_caption_above = post_data.get('show_caption_above_media', False)
+
+    sent_message = None
+
+    try:
+        if content_type == 'photo':
+            from aiogram.types import InputPaidMediaPhoto
+            sent_message = await message.answer_paid_media(
+                star_count=price,
+                media=[InputPaidMediaPhoto(media=file_id)],
+                caption=caption,
+                parse_mode=parse_mode,
+                show_caption_above_media=show_caption_above,
+                reply_markup=new_keyboard
+            )
+        elif content_type == 'video':
+            from aiogram.types import InputPaidMediaVideo
+            sent_message = await message.answer_paid_media(
+                star_count=price,
+                media=[InputPaidMediaVideo(media=file_id)],
+                caption=caption,
+                parse_mode=parse_mode,
+                show_caption_above_media=show_caption_above,
+                reply_markup=new_keyboard
+            )
+
+        if sent_message:
+            post_data['message_id'] = sent_message.message_id
+            post_data['chat_id'] = sent_message.chat.id
+            await state.update_data(post_data=post_data)
+
+    except Exception:
+        pass
+
+    # Muvaffaqiyat xabarini yuborish va o'chirish
+    success_msg = await message.answer(
+        get_text('price_set_success', lang).format(price=price)
+    )
+
+    await asyncio.sleep(2)
+
+    try:
+        await success_msg.delete()
+    except Exception:
+        pass
+
+    # Media sozlamalarini eng pastga yuborish
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    has_caption = bool(post_data.get('caption'))
+
+    await message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            paid_price=price
+        )
+    )
+
+    await state.set_state(PostCreation.waiting_for_media_settings)
