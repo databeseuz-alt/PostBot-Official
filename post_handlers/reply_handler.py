@@ -376,3 +376,12 @@ async def edit_content_handler(message: types.Message, state: FSMContext):
             get_text('ask_new_content_msg', lang),
             reply_markup=get_edit_content_kb(post_data, lang)
         )
+
+
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('edit_content_btn')
+)
+async def edit_content_handler_media_state(message: types.Message, state: FSMContext):
+    """Tahrirlash tugmasi - waiting_for_media_settings state'da ham ishlaydi"""
+    await edit_content_handler(message, state)
