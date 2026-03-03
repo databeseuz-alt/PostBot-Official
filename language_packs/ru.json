@@ -218,5 +218,21 @@
     "your_buttons_list_msg": "<b>🔢 Ваши кнопки</b>",
     "button_type_text_btn_sub": "для подписчиков",
     "button_type_text_btn_nonsub": "для неподписчиков",
-    "button_value_none": "без значения"
+    "button_value_none": "без значения",
+    "auto_signature_btn": "✍️ Авто подпись",
+    "auto_signature_settings_title": "<b>✍️ Настройки Авто Подписи</b>",
+    "auto_signature_enable_btn": "✅ Включить подпись",
+    "auto_signature_disable_btn": "❌ Выключить подпись",
+    "auto_signature_edit_btn": "📝 Изменить подпись",
+    "auto_signature_position_btn": "📍 Расположение",
+    "auto_signature_newline_btn": "⏎ Отдельная строка",
+    "auto_signature_preview": "<b>Пример подписи:</b>\n\n{signature}",
+    "auto_signature_enter_text": "<b>Введите текст подписи:</b>\n\nПример: @channel_name | Подпишитесь на канал!",
+    "auto_signature_saved": "✅ Подпись сохранена!",
+    "auto_signature_position_top": "📍 В начале текста",
+    "auto_signature_position_bottom": "📍 В конце текста",
+    "auto_signature_newline_yes": "⏎ Отдельная строка",
+    "auto_signature_newline_no": "⏎ Вместе с текстом",
+    "auto_signature_enabled_msg": "✅ Авто подпись включена",
+    "auto_signature_disabled_msg": "❌ Авто подпись выключена"
 }

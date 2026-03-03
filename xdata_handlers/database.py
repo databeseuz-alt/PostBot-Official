@@ -1996,3 +1996,154 @@ async def init_db():
             if conn: release_connection(conn)
 
     await asyncio.to_thread(_sync)
+
+
+# ============ AVTO IMZO FUNKSIYALARI ============
+
+async def get_user_auto_signature(user_id: int) -> dict:
+    """Foydalanuvchining avto imzo sozlamalarini qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT auto_signature_enabled, auto_signature_text, 
+                       auto_signature_position, auto_signature_newline
+                FROM users WHERE user_id = %s
+            """, (user_id,))
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'enabled': result[0] or False,
+                    'text': result[1] or '',
+                    'position': result[2] or 'bottom',
+                    'newline': result[3] if result[3] is not None else True
+                }
+            return {
+                'enabled': False,
+                'text': '',
+                'position': 'bottom',
+                'newline': True
+            }
+        except Exception as e:
+            logger.error(f"get_user_auto_signature xatolik: {e}")
+            return {
+                'enabled': False,
+                'text': '',
+                'position': 'bottom',
+                'newline': True
+            }
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def toggle_auto_signature(user_id: int) -> bool:
+    """Avto imzoni yoqish/o'chirish. Yangi holatni qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            # Avval hozirgi holatni olish
+            cursor.execute(
+                "SELECT auto_signature_enabled FROM users WHERE user_id = %s",
+                (user_id,)
+            )
+            result = cursor.fetchone()
+            current = result[0] if result and result[0] is not None else False
+            new_state = not current
+            
+            cursor.execute("""
+                INSERT INTO users (user_id, auto_signature_enabled)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    auto_signature_enabled = EXCLUDED.auto_signature_enabled;
+            """, (user_id, new_state))
+            conn.commit()
+            return new_state
+        except Exception as e:
+            logger.error(f"toggle_auto_signature xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def update_auto_signature_text(user_id: int, text: str) -> bool:
+    """Avto imzo matnini yangilash."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO users (user_id, auto_signature_text)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    auto_signature_text = EXCLUDED.auto_signature_text;
+            """, (user_id, text))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"update_auto_signature_text xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def update_auto_signature_position(user_id: int, position: str) -> bool:
+    """Avto imzo joylashuvini yangilash ('top' yoki 'bottom')."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO users (user_id, auto_signature_position)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    auto_signature_position = EXCLUDED.auto_signature_position;
+            """, (user_id, position))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"update_auto_signature_position xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def toggle_auto_signature_newline(user_id: int) -> bool:
+    """Yangi qator sozlamasini o'zgartirish. Yangi holatni qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            # Avval hozirgi holatni olish
+            cursor.execute(
+                "SELECT auto_signature_newline FROM users WHERE user_id = %s",
+                (user_id,)
+            )
+            result = cursor.fetchone()
+            current = result[0] if result and result[0] is not None else True
+            new_state = not current
+            
+            cursor.execute("""
+                INSERT INTO users (user_id, auto_signature_newline)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET
+                    auto_signature_newline = EXCLUDED.auto_signature_newline;
+            """, (user_id, new_state))
+            conn.commit()
+            return new_state
+        except Exception as e:
+            logger.error(f"toggle_auto_signature_newline xatolik: {e}")
+            return True
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)

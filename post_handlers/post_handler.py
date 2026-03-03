@@ -17,7 +17,7 @@ from aiogram.fsm.state import State, StatesGroup
 from xdata_handlers import config
 from post_handlers.xreply_keyboard import get_post_settings_kb
 from post_handlers.xinline_keyboard import generate_post_keyboard
-from xdata_handlers.database import get_user_language, get_user_post_settings
+from xdata_handlers.database import get_user_language, get_user_post_settings, get_user_auto_signature
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
 
@@ -62,6 +62,10 @@ class PostCreation(StatesGroup):
     waiting_for_watermark_text = State()
     waiting_for_watermark_image = State()
 
+    waiting_for_thumbnail = State()
+    waiting_for_reply_message_id = State()
+    waiting_for_auto_delete_time = State()
+
 def clean_text_for_default_mode(text: str | None) -> str | None:
     """Matndan barcha HTML va Markdown formatlash belgilarini olib tashlaydi."""
     if not text:
@@ -77,6 +81,56 @@ def clean_text_for_default_mode(text: str | None) -> str | None:
     markdown_chars = ['*', '_', '~', '`', '|']
     for char in markdown_chars:
         cleaned_text = cleaned_text.replace(char, '')
+
+
+async def apply_auto_signature(user_id: int, text: str | None) -> str | None:
+    """Foydalanuvchining avto imzosini matnga qo'shadi."""
+    if not text:
+        return text
+    
+    try:
+        settings = await get_user_auto_signature(user_id)
+        
+        if not settings or not settings.get('enabled'):
+            return text
+        
+        signature = settings.get('text', '').strip()
+        if not signature:
+            return text
+        
+        position = settings.get('position', 'bottom')
+        newline = settings.get('newline', True)
+        
+        separator = '\n\n' if newline else '\n'
+        
+        if position == 'top':
+            return f"{signature}{separator}{text}"
+        else:  # bottom
+            return f"{text}{separator}{signature}"
+    except Exception:
+        return text
+
+
+async def maybe_apply_auto_signature(user_id: int, post_data: dict) -> dict:
+    """Post ma'lumotlariga avto imzoni qo'llaydi (agar yoqilgan bo'lsa)."""
+    if not post_data:
+        return post_data
+    
+    content_type = post_data.get('content_type', 'text')
+    
+    if content_type == 'text':
+        original_text = post_data.get('text')
+        if original_text:
+            signed_text = await apply_auto_signature(user_id, original_text)
+            post_data['text'] = signed_text
+    else:
+        # Media uchun caption ga qo'shish
+        original_caption = post_data.get('caption')
+        if original_caption:
+            signed_caption = await apply_auto_signature(user_id, original_caption)
+            post_data['caption'] = signed_caption
+    
+    return post_data
 
     return cleaned_text
 
@@ -746,6 +800,14 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
         current_type = post_data.get('content_type', 'text')
         file_id = post_data.get('file_id')
         caption = post_data.get('caption')
+        
+        # Avto imzoni qo'llash
+        post_data = await maybe_apply_auto_signature(message.from_user.id, post_data)
+        # Yangilangan caption ni olish
+        caption = post_data.get('caption') if current_type != 'text' else None
+        # Text uchun ham yangilash
+        if current_type == 'text':
+            text = post_data.get('text')
 
         if current_type == 'location':
             preview_message = await bot.send_location(

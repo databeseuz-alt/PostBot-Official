@@ -335,11 +335,12 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder = InlineKeyboardBuilder()
     builder.button(text="vaqt mintaqasi: Toshkent (00:00)", callback_data="settings_timezone")
     builder.button(text=get_text('ai_assistant_btn', lang), callback_data="settings_ai_assistant")
+    builder.button(text=get_text('auto_signature_btn', lang), callback_data="auto_sig_settings")
     builder.adjust(1)
     return builder.as_markup()
 
-def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1):
-    """Media sozlamalari uchun inline klaviatura - layout 1, 2, 1 (faqat caption bo'lsa joylashuv ko'rsatiladi)"""
+def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1, has_thumbnail: bool = False, send_as_document: bool = False):
+    """Media sozlamalari uchun inline klaviatura"""
     builder = InlineKeyboardBuilder()
 
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
@@ -352,22 +353,48 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
 
     if content_type in ['photo', 'video', 'animation', 'paid_media']:
         if is_paid:
-            # Pulli media yoqilganda spoiler o'rniga faqat media narxi yozuvi chiqadi
             price_text = get_text('media_price_btn', lang)
             builder.button(text=price_text, callback_data="media_set_price")
         else:
-            # Pulli media o'chiq bo'lsa spoiler tugmasi ko'rsatiladi
             spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
             builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
 
+    # Thumbnail tugmasi - faqat video, animation, audio, video_note uchun
+    if content_type in ['video', 'animation', 'audio', 'video_note']:
+        thumb_text = get_text('thumbnail_btn', lang)
+        if has_thumbnail:
+            thumb_text += " ✅"
+        builder.button(text=thumb_text, callback_data="media_set_thumbnail")
+
+    # Siqish sifati - faqat video va animation uchun
+    if content_type in ['video', 'animation']:
+        if send_as_document:
+            comp_text = get_text('compression_high_btn', lang)
+        else:
+            comp_text = get_text('compression_low_btn', lang)
+        builder.button(text=comp_text, callback_data="media_toggle_compression")
+
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
 
+    # Layout hisoblash
+    rows = []
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
-        builder.adjust(1, 2, 1)
-    else:
-        builder.adjust(2, 1)
+        rows.append(1)  # position
+    if content_type in ['photo', 'video', 'animation', 'paid_media']:
+        rows.append(2)  # paid + spoiler/price
+    # thumbnail va compression
+    extra_count = 0
+    if content_type in ['video', 'animation', 'audio', 'video_note']:
+        extra_count += 1  # thumbnail
+    if content_type in ['video', 'animation']:
+        extra_count += 1  # compression
+    if extra_count > 0:
+        rows.append(extra_count)
+    rows.append(1)  # back
+    builder.adjust(*rows)
 
     return builder.as_markup()
+
 
 def create_timezone_keyboard(lang: str = 'uzl'):
     """Vaqt mintaqasi uchun sozlamalar."""
@@ -427,13 +454,52 @@ def get_button_color_keyboard(lang: str = 'uzl'):
     )
     return builder.as_markup()
 
-def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None):
+def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None, print_settings: dict = None):
     """Chop etish sozlamalari uchun inline klaviatura."""
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('print_delete_timer', lang), callback_data=f"print:{post_code or 'none'}:delete_timer")
-    builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:back")
-    builder.adjust(1, 1)
+    ps = print_settings or {}
+    pc = post_code or 'none'
+
+    # Jimjitlik rejimi
+    if ps.get('silent_mode'):
+        builder.button(text=get_text('print_silent_enabled_btn', lang), callback_data=f"print:{pc}:silent")
+    else:
+        builder.button(text=get_text('print_silent_btn', lang), callback_data=f"print:{pc}:silent")
+
+    # Kontent himoyasi
+    if ps.get('protect_content'):
+        builder.button(text=get_text('print_protect_enabled_btn', lang), callback_data=f"print:{pc}:protect")
+    else:
+        builder.button(text=get_text('print_protect_btn', lang), callback_data=f"print:{pc}:protect")
+
+    # Avtomatik pin
+    if ps.get('auto_pin'):
+        builder.button(text=get_text('print_pin_enabled_btn', lang), callback_data=f"print:{pc}:pin")
+    else:
+        builder.button(text=get_text('print_pin_btn', lang), callback_data=f"print:{pc}:pin")
+
+    # Javob berish (reply)
+    reply_text = get_text('print_reply_btn', lang)
+    if ps.get('reply_to_message_id'):
+        reply_text += " ✅"
+    builder.button(text=reply_text, callback_data=f"print:{pc}:reply")
+
+    # Avto o'chirish
+    auto_del_text = get_text('print_auto_delete_btn', lang)
+    if ps.get('delete_timer_seconds'):
+        auto_del_text += " ✅"
+    builder.button(text=auto_del_text, callback_data=f"print:{pc}:auto_delete")
+
+    # Izohlar
+    # Note: Telegram API does not have a parameter for comments; 
+    # this is controlled by channel settings. We store it for user awareness.
+
+    # Orqaga
+    builder.button(text=get_text('back_btn', lang), callback_data=f"print:{pc}:back")
+
+    builder.adjust(2, 2, 1, 1)
     return builder.as_markup()
+
 
 def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
     """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (faqat media uchun)"""
@@ -456,3 +522,54 @@ def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
 def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
     """Post sozlamalari uchun inline klaviatura - tugmalar olib tashlangan"""
     return None
+
+
+def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):
+    """Avto imzo sozlamalari uchun klaviatura"""
+    builder = InlineKeyboardBuilder()
+    
+    enabled = signature_settings.get('enabled', False)
+    text = signature_settings.get('text', '')
+    position = signature_settings.get('position', 'bottom')
+    newline = signature_settings.get('newline', True)
+    
+    # Imzo matnini ko'rsatish
+    if text:
+        text_display = text[:30] + "..." if len(text) > 30 else text
+        builder.button(text=f"✍️ {text_display}", callback_data="auto_sig_edit_text")
+    else:
+        builder.button(text=get_text('auto_signature_text_btn', lang), callback_data="auto_sig_edit_text")
+    
+    builder.adjust(1)
+    
+    # Yoqish/o'chirish tugmasi
+    if enabled:
+        builder.button(text=get_text('auto_signature_disable_btn', lang), callback_data="auto_sig_toggle")
+    else:
+        builder.button(text=get_text('auto_signature_enable_btn', lang), callback_data="auto_sig_toggle")
+    
+    # Joylashuv tugmasi
+    if position == 'top':
+        builder.button(text=get_text('auto_signature_position_top_btn', lang), callback_data="auto_sig_position")
+    else:
+        builder.button(text=get_text('auto_signature_position_bottom_btn', lang), callback_data="auto_sig_position")
+    
+    # Yangi qator tugmasi
+    if newline:
+        builder.button(text=get_text('auto_signature_newline_enabled_btn', lang), callback_data="auto_sig_newline")
+    else:
+        builder.button(text=get_text('auto_signature_newline_btn', lang), callback_data="auto_sig_newline")
+    
+    builder.adjust(1)
+    
+    # Orqaga tugmasi
+    builder.button(text=get_text('back_btn', lang), callback_data="settings_back")
+    
+    return builder.as_markup()
+
+
+def get_auto_signature_back_kb(lang: str = 'uzl'):
+    """Avto imzo matnini kiritishdan keyin qaytish tugmasi"""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('cancel_btn', lang), callback_data="auto_sig_settings")
+    return builder.as_markup()

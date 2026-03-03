@@ -519,6 +519,7 @@ async def done_back_handler(callback: types.CallbackQuery, state: FSMContext, bo
 async def print_settings_handler(callback: types.CallbackQuery, state: FSMContext):
     """Chop etish sozlamalari tugmasi bosilganda."""
     from post_handlers.xinline_keyboard import get_print_settings_keyboard
+    from xdata_handlers.database import get_post_from_db
 
     post_code = None
     try:
@@ -531,9 +532,17 @@ async def print_settings_handler(callback: types.CallbackQuery, state: FSMContex
         pass
 
     lang = await get_user_language(callback.from_user.id)
+
+    # Print settings ni bazadan olish
+    print_settings = {}
+    if post_code:
+        full_post = await get_post_from_db(post_code)
+        if full_post:
+            print_settings = full_post.get('print_settings', {})
+
     await callback.message.answer(
         get_text('print_settings_title', lang),
-        reply_markup=get_print_settings_keyboard(lang, post_code),
+        reply_markup=get_print_settings_keyboard(lang, post_code, print_settings),
         parse_mode="HTML"
     )
     await callback.answer()
@@ -541,23 +550,32 @@ async def print_settings_handler(callback: types.CallbackQuery, state: FSMContex
 @done_router.callback_query(F.data.startswith("print:"))
 async def print_settings_callback(callback: types.CallbackQuery, state: FSMContext):
     """Chop etish sozlamalari callbacklari."""
+    from post_handlers.xinline_keyboard import get_print_settings_keyboard
+    from xdata_handlers.database import update_post_print_settings, get_post_from_db
+
     parts = callback.data.split(":")
     post_code = parts[1] if len(parts) > 1 and parts[1] != 'none' else None
     action = parts[2] if len(parts) > 2 else None
 
     lang = await get_user_language(callback.from_user.id)
 
+    # Print settings ni bazadan olish
+    print_settings = {}
+    if post_code:
+        full_post = await get_post_from_db(post_code)
+        if full_post:
+            print_settings = full_post.get('print_settings', {})
+
     if action == "menu" or action is None:
-        from post_handlers.xinline_keyboard import get_print_settings_keyboard
         try:
             await callback.message.edit_text(
                 get_text('print_settings_title', lang),
-                reply_markup=get_print_settings_keyboard(lang, post_code)
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
             )
         except:
             await callback.message.answer(
                 get_text('print_settings_title', lang),
-                reply_markup=get_print_settings_keyboard(lang, post_code),
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings),
                 parse_mode="HTML"
             )
         await callback.answer()
@@ -585,22 +603,205 @@ async def print_settings_callback(callback: types.CallbackQuery, state: FSMConte
         await callback.answer()
         return
 
-    if action == "delete_timer":
-        from post_handlers.xreply_keyboard import get_cancel_reply_kb
-        from post_handlers.post_handler import PostCreation
+    # ===== JIMJITLIK REJIMI =====
+    if action == "silent":
+        current = print_settings.get('silent_mode', False)
+        print_settings['silent_mode'] = not current
+        if post_code:
+            await update_post_print_settings(post_code, print_settings)
+        
+        msg = get_text('print_silent_toggled_on', lang) if not current else get_text('print_silent_toggled_off', lang)
+        await callback.answer(msg, show_alert=True)
+        
+        try:
+            await callback.message.edit_reply_markup(
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+            )
+        except:
+            pass
+        return
 
-        await state.set_state(PostCreation.waiting_for_delete_timer)
-        await state.update_data(post_code_for_delete_timer=post_code)
+    # ===== KONTENT HIMOYASI =====
+    if action == "protect":
+        current = print_settings.get('protect_content', False)
+        print_settings['protect_content'] = not current
+        if post_code:
+            await update_post_print_settings(post_code, print_settings)
+        
+        msg = get_text('print_protect_toggled_on', lang) if not current else get_text('print_protect_toggled_off', lang)
+        await callback.answer(msg, show_alert=True)
+        
+        try:
+            await callback.message.edit_reply_markup(
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+            )
+        except:
+            pass
+        return
+
+    # ===== AVTOMATIK PIN =====
+    if action == "pin":
+        current = print_settings.get('auto_pin', False)
+        print_settings['auto_pin'] = not current
+        if post_code:
+            await update_post_print_settings(post_code, print_settings)
+        
+        msg = get_text('print_pin_toggled_on', lang) if not current else get_text('print_pin_toggled_off', lang)
+        await callback.answer(msg, show_alert=True)
+        
+        try:
+            await callback.message.edit_reply_markup(
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+            )
+        except:
+            pass
+        return
+
+    # ===== JAVOB BERISH (REPLY) =====
+    if action == "reply":
+        if print_settings.get('reply_to_message_id'):
+            # Allaqachon reply o'rnatilgan - menyuga reply_to o'chirish va qaytish
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            builder = InlineKeyboardBuilder()
+            builder.button(text=get_text('print_reply_remove_btn', lang), callback_data=f"print:{post_code or 'none'}:reply_remove")
+            builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:menu")
+            builder.adjust(1)
+            
+            try:
+                await callback.message.edit_text(
+                    get_text('print_reply_prompt', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except:
+                pass
+        else:
+            # Reply o'rnatish uchun matn kiritishni so'rash
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            builder = InlineKeyboardBuilder()
+            builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:menu")
+            builder.adjust(1)
+
+            await state.set_state(PostCreation.waiting_for_reply_message_id)
+            await state.update_data(post_code_for_reply=post_code)
+
+            try:
+                await callback.message.edit_text(
+                    get_text('print_reply_prompt', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except:
+                await callback.message.answer(
+                    get_text('print_reply_prompt', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+        await callback.answer()
+        return
+
+    # ===== REPLY O'CHIRISH =====
+    if action == "reply_remove":
+        print_settings.pop('reply_to_message_id', None)
+        if post_code:
+            await update_post_print_settings(post_code, print_settings)
+        
+        await callback.answer(get_text('print_reply_removed', lang), show_alert=True)
+        
+        try:
+            await callback.message.edit_text(
+                get_text('print_settings_title', lang),
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+            )
+        except:
+            pass
+        return
+
+    # ===== AVTO O'CHIRISH =====
+    if action == "auto_delete":
+        if print_settings.get('delete_timer_seconds'):
+            # Allaqachon taymer o'rnatilgan - o'chirish opsiyasini ko'rsatish
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            builder = InlineKeyboardBuilder()
+            builder.button(text=get_text('print_auto_delete_remove_btn', lang), callback_data=f"print:{post_code or 'none'}:auto_delete_remove")
+            builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:menu")
+            builder.adjust(1)
+
+            await state.set_state(PostCreation.waiting_for_auto_delete_time)
+            await state.update_data(post_code_for_auto_delete=post_code)
+
+            try:
+                await callback.message.edit_text(
+                    get_text('print_auto_delete_prompt', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except:
+                pass
+        else:
+            # Taymer o'rnatish uchun matn kiritishni so'rash
+            from aiogram.utils.keyboard import InlineKeyboardBuilder
+            builder = InlineKeyboardBuilder()
+            builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:menu")
+            builder.adjust(1)
+
+            await state.set_state(PostCreation.waiting_for_auto_delete_time)
+            await state.update_data(post_code_for_auto_delete=post_code)
+
+            try:
+                await callback.message.edit_text(
+                    get_text('print_auto_delete_prompt', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except:
+                await callback.message.answer(
+                    get_text('print_auto_delete_prompt', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+        await callback.answer()
+        return
+
+    # ===== AVTO O'CHIRISH TAYMERNI OLIB TASHLASH =====
+    if action == "auto_delete_remove":
+        print_settings.pop('delete_timer_seconds', None)
+        print_settings.pop('delete_timer_display', None)
+        if post_code:
+            await update_post_print_settings(post_code, print_settings)
+        
+        await state.clear()
+        await callback.answer(get_text('print_auto_delete_removed', lang), show_alert=True)
+        
+        try:
+            await callback.message.edit_text(
+                get_text('print_settings_title', lang),
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+            )
+        except:
+            pass
+        return
+
+    # Eski delete_timer action ni ham qo'llab-quvvatlash (orqaga moslik)
+    if action == "delete_timer":
+        from aiogram.utils.keyboard import InlineKeyboardBuilder
+        builder = InlineKeyboardBuilder()
+        builder.button(text=get_text('back_btn', lang), callback_data=f"print:{post_code or 'none'}:menu")
+        builder.adjust(1)
+
+        await state.set_state(PostCreation.waiting_for_auto_delete_time)
+        await state.update_data(post_code_for_auto_delete=post_code)
 
         try:
             await callback.message.edit_text(
-                get_text('delete_timer_prompt', lang),
-                reply_markup=get_cancel_reply_kb(lang)
+                get_text('print_auto_delete_prompt', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
             )
         except:
             await callback.message.answer(
-                get_text('delete_timer_prompt', lang),
-                reply_markup=get_cancel_reply_kb(lang),
+                get_text('print_auto_delete_prompt', lang),
+                reply_markup=builder.as_markup(),
                 parse_mode="HTML"
             )
         await callback.answer()
@@ -608,25 +809,52 @@ async def print_settings_callback(callback: types.CallbackQuery, state: FSMConte
 
     await callback.answer()
 
-@done_router.message(PostCreation.waiting_for_delete_timer)
-async def process_delete_timer(message: types.Message, state: FSMContext):
-    """Foydalanuvchi vaqtni kiritganda."""
+@done_router.callback_query(PostCreation.waiting_for_auto_delete_time, F.data.startswith("print:"))
+async def back_from_auto_delete_input(callback: types.CallbackQuery, state: FSMContext):
+    """Avto o'chirish kiritishdan orqaga qaytish."""
+    from post_handlers.xinline_keyboard import get_print_settings_keyboard
+    from xdata_handlers.database import get_post_from_db
+
+    parts = callback.data.split(":")
+    post_code = parts[1] if len(parts) > 1 and parts[1] != 'none' else None
+    
+    lang = await get_user_language(callback.from_user.id)
+    await state.clear()
+
+    print_settings = {}
+    if post_code:
+        full_post = await get_post_from_db(post_code)
+        if full_post:
+            print_settings = full_post.get('print_settings', {})
+
+    try:
+        await callback.message.edit_text(
+            get_text('print_settings_title', lang),
+            reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+        )
+    except:
+        await callback.message.answer(
+            get_text('print_settings_title', lang),
+            reply_markup=get_print_settings_keyboard(lang, post_code, print_settings),
+            parse_mode="HTML"
+        )
+    await callback.answer()
+
+@done_router.message(PostCreation.waiting_for_auto_delete_time)
+async def process_auto_delete_time(message: types.Message, state: FSMContext):
+    """Avto o'chirish vaqtini kiritish."""
     import re
     from datetime import datetime, timedelta
     import pytz
+    from xdata_handlers.database import update_post_print_settings
+    from post_handlers.xinline_keyboard import get_print_settings_keyboard
 
     lang = await get_user_language(message.from_user.id)
     user_input = message.text.strip()
 
     if user_input == get_text('cancel_btn', lang) or user_input == get_text('back_btn', lang):
         await state.clear()
-        await message.answer(get_text('delete_timer_cancelled', lang))
-        from post_handlers.xinline_keyboard import get_print_settings_keyboard
-        await message.answer(
-            get_text('print_settings_title', lang),
-            reply_markup=get_print_settings_keyboard(lang),
-            parse_mode="HTML"
-        )
+        await message.answer(get_text('print_auto_delete_removed', lang))
         return
 
     delete_after_seconds = None
@@ -652,10 +880,10 @@ async def process_delete_timer(message: types.Message, state: FSMContext):
             display_time = f"{amount} sekund"
     else:
         formats = [
-            "%d.%m %H:%M",      # 06.03 20:00
-            "%d.%m.%Y %H:%M",   # 06.03.2025 20:00
-            "%d.%m.%Y",         # 06.03.2025
-            "%H:%M",            # 20:00
+            "%d.%m %H:%M",
+            "%d.%m.%Y %H:%M",
+            "%d.%m.%Y",
+            "%H:%M",
         ]
 
         tz = pytz.timezone('Asia/Tashkent')
@@ -687,16 +915,15 @@ async def process_delete_timer(message: types.Message, state: FSMContext):
 
     if delete_after_seconds is None or delete_after_seconds <= 0:
         await message.answer(
-            get_text('delete_timer_invalid', lang),
+            get_text('print_auto_delete_invalid', lang),
             parse_mode="HTML"
         )
         return
 
     data = await state.get_data()
-    post_code = data.get("post_code_for_delete_timer")
+    post_code = data.get("post_code_for_auto_delete")
 
     if post_code:
-        from xdata_handlers.database import update_post_print_settings
         await update_post_print_settings(post_code, {
             'delete_timer_seconds': delete_after_seconds,
             'delete_timer_display': display_time
@@ -705,18 +932,121 @@ async def process_delete_timer(message: types.Message, state: FSMContext):
     await state.clear()
 
     await message.answer(
-        get_text('delete_timer_set', lang).format(time=display_time),
+        get_text('print_auto_delete_set', lang).format(time=display_time),
         parse_mode="HTML"
     )
 
-    from post_handlers.xinline_keyboard import get_print_settings_keyboard
+    # Print settings ni bazadan olish va klaviaturani ko'rsatish
+    from xdata_handlers.database import get_post_from_db
+    print_settings = {}
+    if post_code:
+        full_post = await get_post_from_db(post_code)
+        if full_post:
+            print_settings = full_post.get('print_settings', {})
+
     await message.answer(
         get_text('print_settings_title', lang),
-        reply_markup=get_print_settings_keyboard(lang, post_code),
+        reply_markup=get_print_settings_keyboard(lang, post_code, print_settings),
         parse_mode="HTML"
     )
 
+
+# ===== REPLY MESSAGE ID INPUT HANDLER =====
+
+@done_router.callback_query(PostCreation.waiting_for_reply_message_id, F.data.startswith("print:"))
+async def back_from_reply_input(callback: types.CallbackQuery, state: FSMContext):
+    """Reply kiritishdan orqaga qaytish."""
+    from post_handlers.xinline_keyboard import get_print_settings_keyboard
+    from xdata_handlers.database import get_post_from_db
+
+    parts = callback.data.split(":")
+    post_code = parts[1] if len(parts) > 1 and parts[1] != 'none' else None
+    
+    lang = await get_user_language(callback.from_user.id)
     await state.clear()
+
+    print_settings = {}
+    if post_code:
+        full_post = await get_post_from_db(post_code)
+        if full_post:
+            print_settings = full_post.get('print_settings', {})
+
+    try:
+        await callback.message.edit_text(
+            get_text('print_settings_title', lang),
+            reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+        )
+    except:
+        await callback.message.answer(
+            get_text('print_settings_title', lang),
+            reply_markup=get_print_settings_keyboard(lang, post_code, print_settings),
+            parse_mode="HTML"
+        )
+    await callback.answer()
+
+@done_router.message(PostCreation.waiting_for_reply_message_id)
+async def process_reply_message_id(message: types.Message, state: FSMContext):
+    """Javob berish uchun xabar ID sini kiritish."""
+    import re
+    from xdata_handlers.database import update_post_print_settings
+    from post_handlers.xinline_keyboard import get_print_settings_keyboard
+
+    lang = await get_user_language(message.from_user.id)
+    user_input = message.text.strip()
+
+    if user_input == get_text('cancel_btn', lang) or user_input == get_text('back_btn', lang):
+        await state.clear()
+        await message.answer(get_text('print_reply_removed', lang))
+        return
+
+    msg_id = None
+
+    # URL formatini tekshirish: https://t.me/channel/123 yoki https://t.me/c/123456/789
+    url_match = re.search(r't\.me/(?:c/\d+/|[^/]+/)(\d+)', user_input)
+    if url_match:
+        msg_id = int(url_match.group(1))
+    else:
+        # Oddiy raqam
+        try:
+            msg_id = int(user_input)
+        except ValueError:
+            pass
+
+    if msg_id is None:
+        await message.answer(
+            get_text('print_reply_invalid', lang),
+            parse_mode="HTML"
+        )
+        return
+
+    data = await state.get_data()
+    post_code = data.get("post_code_for_reply")
+
+    if post_code:
+        await update_post_print_settings(post_code, {
+            'reply_to_message_id': msg_id
+        })
+
+    await state.clear()
+
+    await message.answer(
+        get_text('print_reply_saved', lang).format(msg_id=msg_id),
+        parse_mode="HTML"
+    )
+
+    # Print settings ni bazadan olish va klaviaturani ko'rsatish
+    from xdata_handlers.database import get_post_from_db
+    print_settings = {}
+    if post_code:
+        full_post = await get_post_from_db(post_code)
+        if full_post:
+            print_settings = full_post.get('print_settings', {})
+
+    await message.answer(
+        get_text('print_settings_title', lang),
+        reply_markup=get_print_settings_keyboard(lang, post_code, print_settings),
+        parse_mode="HTML"
+    )
 
 @done_router.callback_query(F.data == "cancel_action")
 async def cancel_action_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):

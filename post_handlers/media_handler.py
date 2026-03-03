@@ -40,7 +40,9 @@ async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMCont
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
         )
     )
     await callback.answer()
@@ -78,7 +80,9 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
                 show_caption_above=new_show_caption_above,
                 has_caption=has_caption,
                 content_type=content_type,
-                paid_price=post_data.get('paid_price', 1)
+                paid_price=post_data.get('paid_price', 1),
+                has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+                send_as_document=post_data.get('send_as_document', False)
             )
         )
     except Exception as e:
@@ -94,7 +98,9 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
                     show_caption_above=new_show_caption_above,
                     has_caption=has_caption,
                     content_type=content_type,
-                    paid_price=post_data.get('paid_price', 1)
+                    paid_price=post_data.get('paid_price', 1),
+                    has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+                    send_as_document=post_data.get('send_as_document', False)
                 )
             )
         except Exception:
@@ -128,7 +134,9 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
         )
     )
 
@@ -179,7 +187,9 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
                 show_caption_above=show_caption_above,
                 has_caption=has_caption,
                 content_type=content_type,
-                paid_price=post_data.get('paid_price', 1)
+                paid_price=post_data.get('paid_price', 1),
+                has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+                send_as_document=post_data.get('send_as_document', False)
             )
         )
     except Exception:
@@ -195,7 +205,9 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
                     show_caption_above=show_caption_above,
                     has_caption=has_caption,
                     content_type=content_type,
-                    paid_price=post_data.get('paid_price', 1)
+                    paid_price=post_data.get('paid_price', 1),
+                    has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+                    send_as_document=post_data.get('send_as_document', False)
                 )
             )
         except Exception:
@@ -291,7 +303,9 @@ async def open_media_settings(message: Message, state: FSMContext):
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
         )
     )
 
@@ -319,7 +333,9 @@ async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMCo
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
         )
     )
     await callback.answer()
@@ -721,7 +737,9 @@ async def back_from_price_setting(callback: types.CallbackQuery, state: FSMConte
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
         )
     )
 
@@ -833,8 +851,204 @@ async def process_paid_price(message: Message, state: FSMContext):
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=price
+            paid_price=price,
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
         )
     )
 
     await state.set_state(PostCreation.waiting_for_media_settings)
+
+
+# ====== THUMBNAIL HANDLER ======
+
+@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_set_thumbnail")
+async def media_set_thumbnail_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Thumbnail o'rnatish - rasm yuborishni so'rash"""
+    data = await state.get_data()
+    post_data = data.get('post_data', {})
+    lang = await get_user_language(callback.from_user.id)
+
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    builder = InlineKeyboardBuilder()
+    if post_data.get('thumbnail_file_id'):
+        builder.button(text=get_text('thumbnail_remove_btn', lang), callback_data="media_remove_thumbnail")
+    builder.button(text=get_text('back_btn', lang), callback_data="back_to_media_settings")
+    builder.adjust(1)
+
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    await callback.message.answer(
+        get_text('thumbnail_prompt', lang),
+        reply_markup=builder.as_markup()
+    )
+
+    await state.set_state(PostCreation.waiting_for_thumbnail)
+    await callback.answer()
+
+
+@media_router.callback_query(PostCreation.waiting_for_thumbnail, F.data == "media_remove_thumbnail")
+async def media_remove_thumbnail_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Thumbnailni o'chirish"""
+    data = await state.get_data()
+    post_data = data.get('post_data', {})
+    lang = await get_user_language(callback.from_user.id)
+
+    post_data.pop('thumbnail_file_id', None)
+    await state.update_data(post_data=post_data)
+
+    await callback.answer(get_text('thumbnail_removed', lang), show_alert=False)
+
+    # Media sozlamalariga qaytish
+    content_type = post_data.get('content_type', 'photo')
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_caption = bool(post_data.get('caption'))
+
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    await callback.message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=False,
+            send_as_document=post_data.get('send_as_document', False)
+        )
+    )
+    await state.set_state(PostCreation.waiting_for_media_settings)
+
+
+@media_router.callback_query(PostCreation.waiting_for_thumbnail, F.data == "back_to_media_settings")
+async def back_from_thumbnail_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Thumbnail sozlamasidan media sozlamalariga qaytish"""
+    data = await state.get_data()
+    post_data = data.get('post_data', {})
+    lang = await get_user_language(callback.from_user.id)
+
+    content_type = post_data.get('content_type', 'photo')
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_caption = bool(post_data.get('caption'))
+
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+
+    await callback.message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+            send_as_document=post_data.get('send_as_document', False)
+        )
+    )
+    await state.set_state(PostCreation.waiting_for_media_settings)
+    await callback.answer()
+
+
+@media_router.message(PostCreation.waiting_for_thumbnail, F.photo)
+async def process_thumbnail_photo(message: Message, state: FSMContext):
+    """Foydalanuvchi thumbnail rasmini yubordi"""
+    data = await state.get_data()
+    post_data = data.get('post_data', {})
+    lang = await get_user_language(message.from_user.id)
+
+    # Rasmning file_id ni saqlash
+    thumbnail_file_id = message.photo[-1].file_id
+    post_data['thumbnail_file_id'] = thumbnail_file_id
+    await state.update_data(post_data=post_data)
+
+    # Muvaffaqiyat xabarini ko'rsatish
+    await message.answer(get_text('thumbnail_saved', lang))
+
+    # Media sozlamalariga qaytish
+    content_type = post_data.get('content_type', 'photo')
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_caption = bool(post_data.get('caption'))
+
+    await message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=is_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=True,
+            send_as_document=post_data.get('send_as_document', False)
+        )
+    )
+    await state.set_state(PostCreation.waiting_for_media_settings)
+
+
+@media_router.message(PostCreation.waiting_for_thumbnail)
+async def process_thumbnail_invalid(message: Message, state: FSMContext):
+    """Noto'g'ri thumbnail format"""
+    lang = await get_user_language(message.from_user.id)
+    await message.answer(get_text('thumbnail_invalid', lang))
+
+
+# ====== COMPRESSION TOGGLE HANDLER ======
+
+@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_compression")
+async def media_toggle_compression_handler(callback: types.CallbackQuery, state: FSMContext):
+    """Siqish sifatini almashtirish (oddiy <-> yuqori sifat)"""
+    data = await state.get_data()
+    post_data = data.get('post_data', {})
+    lang = await get_user_language(callback.from_user.id)
+
+    # Toggle send_as_document
+    current = post_data.get('send_as_document', False)
+    post_data['send_as_document'] = not current
+    await state.update_data(post_data=post_data)
+
+    # Xabar
+    await callback.answer(get_text('compression_toggled', lang), show_alert=False)
+
+    content_type = post_data.get('content_type', 'photo')
+    has_spoiler = post_data.get('has_spoiler', False)
+    is_paid = post_data.get('is_paid', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_caption = bool(post_data.get('caption'))
+
+    try:
+        await callback.message.edit_reply_markup(
+            reply_markup=get_media_settings_inline_kb(
+                lang=lang,
+                has_spoiler=has_spoiler,
+                is_paid=is_paid,
+                show_caption_above=show_caption_above,
+                has_caption=has_caption,
+                content_type=content_type,
+                paid_price=post_data.get('paid_price', 1),
+                has_thumbnail=bool(post_data.get('thumbnail_file_id')),
+                send_as_document=not current
+            )
+        )
+    except Exception:
+        pass

@@ -297,9 +297,30 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
     keyboard = generate_final_keyboard(buttons_matrix)
 
     parse_mode = post_data.get('parse_mode', 'HTML')
-    disable_preview = post_data.get('disable_web_page_preview', False)  # Standart yoqilgan
-    show_caption_above = post_data.get('show_caption_above_media', False)  # Caption joylashuvi
-    has_spoiler = post_data.get('has_spoiler', False)  # Spoiler effekti
+    disable_preview = post_data.get('disable_web_page_preview', False)
+    show_caption_above = post_data.get('show_caption_above_media', False)
+    has_spoiler = post_data.get('has_spoiler', False)
+
+    # Print settings olish
+    print_settings = full_post.get('print_settings', {})
+    disable_notification = print_settings.get('silent_mode', False)
+    protect_content = print_settings.get('protect_content', False)
+    reply_to_message_id = print_settings.get('reply_to_message_id', None)
+    auto_pin = print_settings.get('auto_pin', False)
+
+    # Media settings
+    thumbnail_file_id = post_data.get('thumbnail_file_id', None)
+    send_as_document = post_data.get('send_as_document', False)
+
+    # Thumbnail ni InputFile ga aylantirish
+    thumbnail = None
+    if thumbnail_file_id:
+        try:
+            thumb_file = await bot.get_file(thumbnail_file_id)
+            thumb_data = await bot.download_file(thumb_file.file_path)
+            thumbnail = BufferedInputFile(thumb_data.read(), filename="thumb.jpg")
+        except Exception:
+            thumbnail = None
 
     try:
         content_type = post_data.get('content_type')
@@ -320,10 +341,21 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 caption=post_data.get('caption', ''),
                 parse_mode=parse_mode,
                 show_caption_above_media=show_caption_above,
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'text':
-            sent_message = await bot.send_message(channel_id, post_data.get('text', ''), reply_markup=keyboard, parse_mode=parse_mode, disable_web_page_preview=disable_preview)
+            sent_message = await bot.send_message(
+                channel_id, post_data.get('text', ''), 
+                reply_markup=keyboard, 
+                parse_mode=parse_mode, 
+                disable_web_page_preview=disable_preview,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
+            )
         elif content_type == 'photo':
             sent_message = await bot.send_photo(
                 channel_id,
@@ -332,25 +364,49 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 reply_markup=keyboard,
                 parse_mode=parse_mode,
                 show_caption_above_media=show_caption_above,
-                has_spoiler=has_spoiler
+                has_spoiler=has_spoiler,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'video':
-            sent_message = await bot.send_video(
-                channel_id, 
-                post_data.get('file_id'), 
-                caption=post_data.get('caption', ''), 
-                reply_markup=keyboard, 
-                parse_mode=parse_mode,
-                show_caption_above_media=show_caption_above,
-                has_spoiler=has_spoiler
-            )
+            if send_as_document:
+                sent_message = await bot.send_document(
+                    channel_id,
+                    post_data.get('file_id'),
+                    caption=post_data.get('caption', ''),
+                    reply_markup=keyboard,
+                    parse_mode=parse_mode,
+                    thumbnail=thumbnail,
+                    disable_notification=disable_notification,
+                    protect_content=protect_content,
+                    reply_to_message_id=reply_to_message_id
+                )
+            else:
+                sent_message = await bot.send_video(
+                    channel_id, 
+                    post_data.get('file_id'), 
+                    caption=post_data.get('caption', ''), 
+                    reply_markup=keyboard, 
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    has_spoiler=has_spoiler,
+                    thumbnail=thumbnail,
+                    disable_notification=disable_notification,
+                    protect_content=protect_content,
+                    reply_to_message_id=reply_to_message_id
+                )
         elif content_type == 'audio':
             sent_message = await bot.send_audio(
                 channel_id, 
                 post_data.get('file_id'), 
                 caption=post_data.get('caption', ''), 
                 reply_markup=keyboard, 
-                parse_mode=parse_mode
+                parse_mode=parse_mode,
+                thumbnail=thumbnail,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'document':
             sent_message = await bot.send_document(
@@ -358,7 +414,11 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 post_data.get('file_id'), 
                 caption=post_data.get('caption', ''), 
                 reply_markup=keyboard, 
-                parse_mode=parse_mode
+                parse_mode=parse_mode,
+                thumbnail=thumbnail,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'voice':
             sent_message = await bot.send_voice(
@@ -366,22 +426,54 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 post_data.get('file_id'), 
                 caption=post_data.get('caption', ''), 
                 reply_markup=keyboard, 
-                parse_mode=parse_mode
+                parse_mode=parse_mode,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'animation':
-            sent_message = await bot.send_animation(
-                channel_id, 
-                post_data.get('file_id'), 
-                caption=post_data.get('caption', ''), 
-                reply_markup=keyboard, 
-                parse_mode=parse_mode,
-                show_caption_above_media=show_caption_above,
-                has_spoiler=has_spoiler
-            )
+            if send_as_document:
+                sent_message = await bot.send_document(
+                    channel_id,
+                    post_data.get('file_id'),
+                    caption=post_data.get('caption', ''),
+                    reply_markup=keyboard,
+                    parse_mode=parse_mode,
+                    thumbnail=thumbnail,
+                    disable_notification=disable_notification,
+                    protect_content=protect_content,
+                    reply_to_message_id=reply_to_message_id
+                )
+            else:
+                sent_message = await bot.send_animation(
+                    channel_id, 
+                    post_data.get('file_id'), 
+                    caption=post_data.get('caption', ''), 
+                    reply_markup=keyboard, 
+                    parse_mode=parse_mode,
+                    show_caption_above_media=show_caption_above,
+                    has_spoiler=has_spoiler,
+                    disable_notification=disable_notification,
+                    protect_content=protect_content,
+                    reply_to_message_id=reply_to_message_id
+                )
         elif content_type == 'video_note':
-            sent_message = await bot.send_video_note(channel_id, post_data.get('file_id'), reply_markup=keyboard)
+            sent_message = await bot.send_video_note(
+                channel_id, post_data.get('file_id'), 
+                reply_markup=keyboard,
+                thumbnail=thumbnail,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
+            )
         elif content_type == 'sticker':
-            sent_message = await bot.send_sticker(channel_id, post_data.get('file_id'), reply_markup=keyboard)
+            sent_message = await bot.send_sticker(
+                channel_id, post_data.get('file_id'), 
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
+            )
         elif content_type == 'poll':
             sent_message = await bot.send_poll(
                 channel_id,
@@ -392,20 +484,29 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 correct_option_id=post_data.get('poll_correct_option_id'),
                 type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
                 explanation=post_data.get('poll_explanation'),
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'dice':
             sent_message = await bot.send_dice(
                 channel_id,
                 emoji=post_data.get('dice_emoji', '🎲'),
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'location':
             sent_message = await bot.send_location(
                 channel_id,
                 latitude=post_data.get('latitude'),
                 longitude=post_data.get('longitude'),
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
         elif content_type == 'paid_media':
             from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
@@ -427,7 +528,10 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 caption=post_data.get('caption', ''),
                 parse_mode=parse_mode,
                 show_caption_above_media=show_caption_above,
-                reply_markup=keyboard
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
             )
 
         if sent_message:
@@ -440,7 +544,18 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 message_id=sent_message.message_id
             )
 
-            print_settings = full_post.get('print_settings', {})
+            # Avtomatik pin
+            if auto_pin:
+                try:
+                    await bot.pin_chat_message(
+                        chat_id=channel_id,
+                        message_id=sent_message.message_id,
+                        disable_notification=disable_notification
+                    )
+                except Exception:
+                    pass
+
+            # Avto o'chirish timer
             delete_timer_seconds = print_settings.get('delete_timer_seconds')
 
             if delete_timer_seconds and delete_timer_seconds > 0:
