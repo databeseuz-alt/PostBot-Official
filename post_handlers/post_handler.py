@@ -121,12 +121,16 @@ async def maybe_apply_auto_signature(user_id: int, post_data: dict) -> dict:
     if content_type == 'text':
         original_text = post_data.get('text')
         if original_text:
+            # Asl matnni saqlash
+            post_data['original_text'] = original_text
             signed_text = await apply_auto_signature(user_id, original_text)
             post_data['text'] = signed_text
     else:
         # Media uchun caption ga qo'shish
         original_caption = post_data.get('caption')
         if original_caption:
+            # Asl caption ni saqlash
+            post_data['original_caption'] = original_caption
             signed_caption = await apply_auto_signature(user_id, original_caption)
             post_data['caption'] = signed_caption
     

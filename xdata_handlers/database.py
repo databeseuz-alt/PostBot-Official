@@ -367,6 +367,25 @@ async def get_user_channels(user_id: int) -> List[Dict]:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
+async def get_channel_name(user_id: int, channel_id: int) -> str | None:
+    """Kanal nomini user_id va channel_id bo'yicha qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT channel_name FROM channels 
+                WHERE user_id = %s AND channel_id = %s
+            """, (user_id, channel_id))
+            result = cursor.fetchone()
+            return result[0] if result else None
+        except Exception:
+            return None
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
 async def remove_user_channel(user_id: int, channel_id: int) -> bool:
     """Foydalanuvchi kanalini o'chiradi."""
     def _sync():
@@ -437,7 +456,7 @@ async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = No
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int = None) -> int | None:
+async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int = None, channel_name: str = None) -> int | None:
     """Rejalashtirilgan post qo'shadi va post_id qaytaradi."""
     def _sync():
         conn = None
@@ -445,10 +464,10 @@ async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datet
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO send_posts (post_code, user_id, channel_id, schedule_time, status)
-                VALUES (%s, %s, %s, %s, 'pending')
+                INSERT INTO send_posts (post_code, user_id, channel_id, channel_name, schedule_time, status)
+                VALUES (%s, %s, %s, %s, %s, 'pending')
                 RETURNING id
-            """, (post_code, user_id, channel_id, scheduled_time))
+            """, (post_code, user_id, channel_id, channel_name, scheduled_time))
             post_id = cursor.fetchone()[0]
             conn.commit()
             return post_id

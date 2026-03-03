@@ -7,7 +7,7 @@ from aiogram.filters import StateFilter
 
 from xdata_handlers.database import (
     add_scheduled_post, get_user_language, get_post_from_db, 
-    mark_scheduled_post_as_sent, save_sent_post
+    mark_scheduled_post_as_sent, save_sent_post, get_channel_name
 )
 from xdata_handlers.translator import get_text
 from post_handlers.send_handler import PostSending
@@ -103,13 +103,18 @@ async def _finalize_schedule(message: types.Message, state: FSMContext, post_cod
     """Rejalashtirishni yakunlaydi va bazaga yozadi."""
     data = await state.get_data()
     channel_id = data.get('schedule_channel_id') or data.get('selected_channel_id')
+    channel_name = data.get('selected_channel_name')
     user_id = message.from_user.id
 
     if not channel_id:
         await message.answer(get_text('unknown_error', lang))
         return
+    
+    # Agar channel_name state'da bo'lmasa, bazadan olish
+    if not channel_name:
+        channel_name = await get_channel_name(user_id, channel_id)
 
-    post_id = await add_scheduled_post(user_id, post_code, scheduled_time, channel_id=channel_id)
+    post_id = await add_scheduled_post(user_id, post_code, scheduled_time, channel_id=channel_id, channel_name=channel_name)
 
     if post_id:
         if bot:
@@ -345,7 +350,7 @@ async def load_pending_jobs(bot: Bot):
             user_id=post['user_id'],
             post_code=post['post_code'],
             channel_id=post['channel_id'],
-            run_time=post['scheduled_time']
+            run_time=post['schedule_time']
         )
 
 def start_scheduler(bot: Bot):

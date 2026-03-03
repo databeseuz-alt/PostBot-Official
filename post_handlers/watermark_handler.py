@@ -174,9 +174,7 @@ def get_watermark_settings_inline_kb(lang: str, current_position: str = "bottom_
     scale_text = get_text('watermark_scale_btn', lang)
     builder.button(text=f"{scale_text}: {int(scale*100)}%", callback_data=WatermarkCallbackFactory(action="select_scale"))
 
-    builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
-
-    builder.adjust(2, 2, 2, 1)
+    builder.adjust(2, 2, 2)
     return builder.as_markup()
 
 def get_watermark_position_kb(lang: str, current_position: str = "bottom_right"):
@@ -961,17 +959,13 @@ async def watermark_settings_handler(event: types.Message | types.CallbackQuery,
 
     await state.set_state(PostCreation.waiting_for_watermark_text)
 
-    builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('back_btn', lang), callback_data="back_to_post_settings")
-
     text = get_text('watermark_enter_text', lang)
-    reply_markup = builder.as_markup()
 
     if isinstance(event, types.CallbackQuery):
-        await event.message.edit_text(text, reply_markup=reply_markup)
+        await event.message.edit_text(text)
         await event.answer()
     else:
-        await event.answer(text, reply_markup=reply_markup)
+        await event.answer(text)
 
 @watermark_router.callback_query(F.data == "watermark_settings")
 async def open_watermark_settings(callback: types.CallbackQuery, state: FSMContext):

@@ -40,9 +40,7 @@ async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMCont
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            paid_price=post_data.get('paid_price', 1)
         )
     )
     await callback.answer()
@@ -81,8 +79,7 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
                 has_caption=has_caption,
                 content_type=content_type,
                 paid_price=post_data.get('paid_price', 1),
-                has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-                send_as_document=post_data.get('send_as_document', False)
+                has_thumbnail=bool(post_data.get('thumbnail_file_id'))
             )
         )
     except Exception as e:
@@ -99,8 +96,7 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
                     has_caption=has_caption,
                     content_type=content_type,
                     paid_price=post_data.get('paid_price', 1),
-                    has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-                    send_as_document=post_data.get('send_as_document', False)
+                    has_thumbnail=bool(post_data.get('thumbnail_file_id'))
                 )
             )
         except Exception:
@@ -134,9 +130,7 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -188,8 +182,7 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
                 has_caption=has_caption,
                 content_type=content_type,
                 paid_price=post_data.get('paid_price', 1),
-                has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-                send_as_document=post_data.get('send_as_document', False)
+                has_thumbnail=bool(post_data.get('thumbnail_file_id'))
             )
         )
     except Exception:
@@ -206,8 +199,7 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
                     has_caption=has_caption,
                     content_type=content_type,
                     paid_price=post_data.get('paid_price', 1),
-                    has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-                    send_as_document=post_data.get('send_as_document', False)
+                    has_thumbnail=bool(post_data.get('thumbnail_file_id'))
                 )
             )
         except Exception:
@@ -307,9 +299,7 @@ async def open_media_settings_from_reply(message: Message, state: FSMContext):
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -337,9 +327,7 @@ async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMCo
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            paid_price=post_data.get('paid_price', 1)
         )
     )
     await callback.answer()
@@ -741,9 +729,7 @@ async def back_from_price_setting(callback: types.CallbackQuery, state: FSMConte
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            paid_price=post_data.get('paid_price', 1)
         )
     )
 
@@ -856,8 +842,7 @@ async def process_paid_price(message: Message, state: FSMContext):
             has_caption=has_caption,
             content_type=content_type,
             paid_price=price,
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            has_thumbnail=bool(post_data.get('thumbnail_file_id'))
         )
     )
 
@@ -929,8 +914,7 @@ async def media_remove_thumbnail_handler(callback: types.CallbackQuery, state: F
             has_caption=has_caption,
             content_type=content_type,
             paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=False,
-            send_as_document=post_data.get('send_as_document', False)
+            has_thumbnail=False
         )
     )
     await state.set_state(PostCreation.waiting_for_media_settings)
@@ -963,9 +947,7 @@ async def back_from_thumbnail_handler(callback: types.CallbackQuery, state: FSMC
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-            send_as_document=post_data.get('send_as_document', False)
+            paid_price=post_data.get('paid_price', 1)
         )
     )
     await state.set_state(PostCreation.waiting_for_media_settings)
@@ -1005,8 +987,7 @@ async def process_thumbnail_photo(message: Message, state: FSMContext):
             has_caption=has_caption,
             content_type=content_type,
             paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=True,
-            send_as_document=post_data.get('send_as_document', False)
+            has_thumbnail=True
         )
     )
     await state.set_state(PostCreation.waiting_for_media_settings)
@@ -1019,43 +1000,3 @@ async def process_thumbnail_invalid(message: Message, state: FSMContext):
     await message.answer(get_text('thumbnail_invalid', lang))
 
 
-# ====== COMPRESSION TOGGLE HANDLER ======
-
-@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_compression")
-async def media_toggle_compression_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Siqish sifatini almashtirish (oddiy <-> yuqori sifat)"""
-    data = await state.get_data()
-    post_data = data.get('post_data', {})
-    lang = await get_user_language(callback.from_user.id)
-
-    # Toggle send_as_document
-    current = post_data.get('send_as_document', False)
-    post_data['send_as_document'] = not current
-    await state.update_data(post_data=post_data)
-    logger.info(f"Video siqish o'zgartirildi: user_id={callback.from_user.id}, send_as_document={not current}")
-
-    # Xabar
-    await callback.answer(get_text('compression_toggled', lang), show_alert=False)
-
-    content_type = post_data.get('content_type', 'photo')
-    has_spoiler = post_data.get('has_spoiler', False)
-    is_paid = post_data.get('is_paid', False)
-    show_caption_above = post_data.get('show_caption_above_media', False)
-    has_caption = bool(post_data.get('caption'))
-
-    try:
-        await callback.message.edit_reply_markup(
-            reply_markup=get_media_settings_inline_kb(
-                lang=lang,
-                has_spoiler=has_spoiler,
-                is_paid=is_paid,
-                show_caption_above=show_caption_above,
-                has_caption=has_caption,
-                content_type=content_type,
-                paid_price=post_data.get('paid_price', 1),
-                has_thumbnail=bool(post_data.get('thumbnail_file_id')),
-                send_as_document=not current
-            )
-        )
-    except Exception:
-        pass

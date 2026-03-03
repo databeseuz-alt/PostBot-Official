@@ -336,7 +336,7 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder.adjust(1)
     return builder.as_markup()
 
-def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1, has_thumbnail: bool = False, send_as_document: bool = False):
+def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1):
     """Media sozlamalari uchun inline klaviatura"""
     builder = InlineKeyboardBuilder()
 
@@ -356,35 +356,12 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
             spoiler_text = get_text('spoiler_enabled_btn', lang) if has_spoiler else get_text('spoiler_btn', lang)
             builder.button(text=spoiler_text, callback_data="media_toggle_spoiler")
 
-    # Thumbnail tugmasi - faqat video, animation, audio, video_note uchun
-    if content_type in ['video', 'animation', 'audio', 'video_note']:
-        thumb_text = get_text('thumbnail_btn', lang)
-        if has_thumbnail:
-            thumb_text += " ✅"
-        builder.button(text=thumb_text, callback_data="media_set_thumbnail")
-
-    # Siqish sifati - faqat video va animation uchun
-    if content_type in ['video', 'animation']:
-        if send_as_document:
-            comp_text = get_text('compression_high_btn', lang)
-        else:
-            comp_text = get_text('compression_low_btn', lang)
-        builder.button(text=comp_text, callback_data="media_toggle_compression")
-
     # Layout hisoblash
     rows = []
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
         rows.append(1)  # position
     if content_type in ['photo', 'video', 'animation', 'paid_media']:
         rows.append(2)  # paid + spoiler/price
-    # thumbnail va compression
-    extra_count = 0
-    if content_type in ['video', 'animation', 'audio', 'video_note']:
-        extra_count += 1  # thumbnail
-    if content_type in ['video', 'animation']:
-        extra_count += 1  # compression
-    if extra_count > 0:
-        rows.append(extra_count)
     builder.adjust(*rows)
 
     return builder.as_markup()

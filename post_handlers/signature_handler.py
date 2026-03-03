@@ -189,12 +189,18 @@ async def save_signature_text(message: Message, state: FSMContext):
 
         # Avto imzoni qo'llash
         if content_type == 'text':
-            original_text = post_data.get('text', '')
+            # Asl matnni olish (imzosiz) - agar saqlangan bo'lsa
+            original_text = post_data.get('original_text') or post_data.get('text', '')
+            # Asl matnni saqlash
+            post_data['original_text'] = original_text
             if original_text:
                 signed_text = await apply_auto_signature(user_id, original_text)
                 post_data['text'] = signed_text
         else:
-            original_caption = post_data.get('caption', '')
+            # Asl caption ni olish (imzosiz) - agar saqlangan bo'lsa
+            original_caption = post_data.get('original_caption') or post_data.get('caption', '')
+            # Asl caption ni saqlash
+            post_data['original_caption'] = original_caption
             if original_caption:
                 signed_caption = await apply_auto_signature(user_id, original_caption)
                 post_data['caption'] = signed_caption
