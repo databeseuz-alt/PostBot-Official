@@ -502,14 +502,10 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None, print_
 
 
 def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
-    """Asosiy sozlamalar menyusi - Watermark tugmasi (faqat photo uchun)"""
+    """Asosiy sozlamalar menyusi - endi bo'sh, barcha tugmalar reply markup'da"""
     builder = InlineKeyboardBuilder()
-
-    # Watermark faqat photo uchun inline menyuda qoladi
-    if content_type == 'photo':
-        builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
-        builder.adjust(1)
-
+    # Barcha asosiy tugmalar endi reply markup'da
+    # Bu funksiya endi bo'sh inline klaviatura qaytaradi
     return builder.as_markup()
 
 def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):

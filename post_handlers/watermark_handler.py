@@ -977,6 +977,25 @@ async def watermark_settings_handler(event: types.Message | types.CallbackQuery,
 async def open_watermark_settings(callback: types.CallbackQuery, state: FSMContext):
     await watermark_settings_handler(callback, state)
 
+async def show_watermark_settings_reply(message: Message, state: FSMContext):
+    """Suv belgisi sozlamalarini ko'rsatish - reply tugmadan chaqirish uchun"""
+    lang = await get_user_language(message.from_user.id)
+    
+    data = await state.get_data()
+    post_data = data.get("post_data", {})
+    
+    watermark_text = post_data.get('watermark_text', '')
+    transparency = post_data.get('watermark_transparency', 200)
+    rotation = post_data.get('watermark_rotation', 0)
+    scale = post_data.get('watermark_scale', 1.0)
+    position = post_data.get('watermark_position', 'bottom_right')
+    watermark_type = post_data.get('watermark_type', 'text')
+    
+    await message.answer(
+        get_text('watermark_info', lang),
+        reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
+    )
+
 async def apply_watermark_to_post(bot: Bot, post_data: dict) -> dict:
     """
     Post ma'lumotlariga watermark qo'llash
