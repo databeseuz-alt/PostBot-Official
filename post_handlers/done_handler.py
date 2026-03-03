@@ -657,6 +657,25 @@ async def print_settings_callback(callback: types.CallbackQuery, state: FSMConte
             pass
         return
 
+    # ===== IZOHLAR (COMMENTS) =====
+    if action == "comments":
+        current = print_settings.get('comments_enabled', False)
+        print_settings['comments_enabled'] = not current
+        if post_code:
+            await update_post_print_settings(post_code, print_settings)
+        
+        # Show an informative alert since telegram's native comments rely on discussion groups
+        msg = get_text('print_comments_info', lang)
+        await callback.answer(msg, show_alert=True)
+        
+        try:
+            await callback.message.edit_reply_markup(
+                reply_markup=get_print_settings_keyboard(lang, post_code, print_settings)
+            )
+        except:
+            pass
+        return
+
     # ===== JAVOB BERISH (REPLY) =====
     if action == "reply":
         if print_settings.get('reply_to_message_id'):

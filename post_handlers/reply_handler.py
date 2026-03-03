@@ -219,6 +219,9 @@ async def settings_menu_handler(message: types.Message, state: FSMContext):
     from post_handlers.xinline_keyboard import get_settings_menu_inline_kb
     settings_kb = get_settings_menu_inline_kb(lang, content_type)
 
+    # Set state to waiting_for_media_settings so media settings button works
+    await state.set_state(PostCreation.waiting_for_media_settings)
+
     await message.answer(
         get_text('settings_menu_msg', lang),
         reply_markup=settings_kb

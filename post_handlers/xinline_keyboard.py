@@ -11,7 +11,6 @@ EMOJI_STYLES = {
     '🟢': 'success',
     '🔴': 'danger',
     '🔵': 'primary',
-    '⚪': None
 }
 
 
@@ -491,13 +490,15 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None, print_
     builder.button(text=auto_del_text, callback_data=f"print:{pc}:auto_delete")
 
     # Izohlar
-    # Note: Telegram API does not have a parameter for comments; 
-    # this is controlled by channel settings. We store it for user awareness.
+    if ps.get('comments_enabled'):
+        builder.button(text=get_text('print_comments_enabled_btn', lang), callback_data=f"print:{pc}:comments")
+    else:
+        builder.button(text=get_text('print_comments_btn', lang), callback_data=f"print:{pc}:comments")
 
     # Orqaga
     builder.button(text=get_text('back_btn', lang), callback_data=f"print:{pc}:back")
 
-    builder.adjust(2, 2, 1, 1)
+    builder.adjust(2, 2, 2, 1)
     return builder.as_markup()
 
 
