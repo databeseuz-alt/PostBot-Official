@@ -234,8 +234,10 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
                 """, (today,))
             
             conn.commit()
-        except Exception:
-            pass
+            if not user_exists:
+                logger.info(f"Yangi foydalanuvchi qo'shildi: {user_id}, stat_date: {today}")
+        except Exception as e:
+            logger.error(f"add_or_update_user xatolik: {e}")
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
@@ -1786,8 +1788,10 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
             cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
             monthly = int(cursor.fetchone()[0] or 0)
 
+            logger.info(f"Statistika: today={today}, daily={daily}, weekly={weekly}, monthly={monthly}")
             return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
-        except Exception:
+        except Exception as e:
+            logger.error(f"get_new_users_stats_extended xatolik: {e}")
             return {'daily': 0, 'weekly': 0, 'monthly': 0}
         finally:
             if conn: release_connection(conn)

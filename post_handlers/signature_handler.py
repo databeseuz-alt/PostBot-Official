@@ -77,8 +77,15 @@ async def show_auto_signature_settings(callback: CallbackQuery):
 
 async def show_auto_signature_settings_reply(message: Message, state: FSMContext):
     """Avto imzo sozlamalari menyusini ko'rsatadi (reply button orqali)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
+    
+    # State ma'lumotlarini tekshirish
+    data = await state.get_data()
+    logger.info(f"show_auto_signature_settings_reply: user_id={user_id}, post_data_exists={bool(data.get('post_data'))}, state={await state.get_state()}")
 
     # Foydalanuvchi sozlamalarini olish
     settings = await get_user_auto_signature(user_id)
@@ -87,6 +94,8 @@ async def show_auto_signature_settings_reply(message: Message, state: FSMContext
     if not settings.get('text'):
         await state.set_state(AutoSignatureState.enter_text)
         await state.update_data(auto_sig_source='reply_button')
+        
+        logger.info(f"Yangi imzo matni kiritish rejimi: user_id={user_id}")
 
         text = get_text('auto_signature_enter_text', lang)
         keyboard = get_auto_signature_back_kb(lang)
@@ -134,8 +143,9 @@ async def start_edit_signature_text(callback: CallbackQuery, state: FSMContext):
     """Imzo matnini o'zgartirishni boshlaydi"""
     lang = await get_user_language(callback.from_user.id)
     
-    # State'ga o'tish
+    # State'ga o'tish va manba ni saqlash
     await state.set_state(AutoSignatureState.enter_text)
+    await state.update_data(auto_sig_source='edit_button')
     
     text = get_text('auto_signature_enter_text', lang)
     keyboard = get_auto_signature_back_kb(lang)
@@ -149,10 +159,14 @@ async def save_signature_text(message: Message, state: FSMContext):
     """Foydalanuvchi kiritgan imzo matnini saqlaydi va postni yangilaydi"""
     from post_handlers.xinline_keyboard import generate_post_keyboard
     from post_handlers.post_handler import PostCreation, apply_auto_signature
+    import logging
+    logger = logging.getLogger(__name__)
 
     lang = await get_user_language(message.from_user.id)
     user_id = message.from_user.id
     text = message.text
+    
+    logger.info(f"save_signature_text chaqirildi: user_id={user_id}, text={text[:20]}...")
 
     # Matnni saqlash
     await update_auto_signature_text(user_id, text)
@@ -160,16 +174,16 @@ async def save_signature_text(message: Message, state: FSMContext):
     # State'dan ma'lumot olish
     data = await state.get_data()
     source = data.get('auto_sig_source')
-
-    # Post ma'lumotlarini olish
     post_data = data.get('post_data', {})
     buttons_matrix = data.get('buttons_matrix', [])
+    
+    logger.info(f"State ma'lumotlari: source={source}, post_data_exists={bool(post_data)}, buttons_count={len(buttons_matrix)}")
 
     # State'ni tozalash
     await state.clear()
 
-    # Agar reply button'dan kelgan bo'lsa va post mavjud bo'lsa, postni yangilash
-    if source == 'reply_button' and post_data:
+    # Agar reply button yoki edit button'dan kelgan bo'lsa va post mavjud bo'lsa, postni yangilash
+    if source in ('reply_button', 'edit_button') and post_data:
         # Post ma'lumotlarini yangilash
         content_type = post_data.get('content_type', 'text')
 
@@ -238,7 +252,7 @@ async def save_signature_text(message: Message, state: FSMContext):
                     await state.set_state(PostCreation.configuring_post)
 
             except Exception as e:
-                pass  # Xatolik bo'lsa, davom etish
+                logger.error(f"Postni yangilashda xatolik: {e}")  # Xatolikni log qilish
 
     # Yangilangan sozlamalarni olish
     settings = await get_user_auto_signature(user_id)
