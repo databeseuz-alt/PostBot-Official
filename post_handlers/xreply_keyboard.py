@@ -28,8 +28,10 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     if content_type in ['poll', 'location']:
         builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
-    # Avto imzo tugmasi
+    # Avto imzo, Media va Viktorina tugmalari
     builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
+    builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
+    builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
 
     builder.add(KeyboardButton(text=get_text('cancel_btn', lang))) # Bekor qilish
 
@@ -38,7 +40,7 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     else:
         builder.add(KeyboardButton(text=get_text('done_btn', lang))) # Tayyor
 
-    builder.adjust(4, 1, 2)
+    builder.adjust(4, 3, 2)
 
     return builder.as_markup(resize_keyboard=True)
 

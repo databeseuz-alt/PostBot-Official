@@ -58,7 +58,7 @@ def _build_settings_text(settings: dict, lang: str) -> str:
 
 @router.callback_query(F.data == "auto_sig_settings")
 async def show_auto_signature_settings(callback: CallbackQuery):
-    """Avto imzo sozlamalari menyusini ko'rsatadi"""
+    """Avto imzo sozlamalari menyusini ko'rsatadi (callback orqali)"""
     lang = _normalize_lang(callback.from_user.language_code)
     user_id = callback.from_user.id
     
@@ -78,6 +78,24 @@ async def show_auto_signature_settings(callback: CallbackQuery):
         await callback.message.answer(text, reply_markup=keyboard)
     
     await callback.answer()
+
+
+async def show_auto_signature_settings_reply(message: Message, state: FSMContext):
+    """Avto imzo sozlamalari menyusini ko'rsatadi (reply button orqali)"""
+    lang = _normalize_lang(message.from_user.language_code)
+    user_id = message.from_user.id
+    
+    # Foydalanuvchi sozlamalarini olish
+    settings = await get_user_auto_signature(user_id)
+    
+    # Xabar matnini yaratish
+    text = _build_settings_text(settings, lang)
+    
+    # Klaviaturani olish
+    keyboard = get_auto_signature_settings_kb(settings, lang)
+    
+    # Yangi xabar yuborish
+    await message.answer(text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "auto_sig_toggle")

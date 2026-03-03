@@ -282,6 +282,10 @@ async def back_to_settings_menu_handler(callback: types.CallbackQuery, state: FS
 )
 async def open_media_settings(message: Message, state: FSMContext):
     """Media sozlamalari menyusini ochish - inline klaviatura"""
+    await open_media_settings_from_reply(message, state)
+
+async def open_media_settings_from_reply(message: Message, state: FSMContext):
+    """Media sozlamalari menyusini ochish - reply tugmadan chaqirish uchun"""
     data = await state.get_data()
     post_data = data.get("post_data", {})
     lang = await get_user_language(message.from_user.id)

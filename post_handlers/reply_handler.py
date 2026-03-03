@@ -7,7 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import (
     get_main_menu, get_cancel_kb, get_post_settings_kb,
-    get_button_creation_cancel_kb, get_edit_content_kb
+    get_button_creation_cancel_kb, get_edit_content_kb, get_back_button_kb
 )
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
@@ -208,6 +208,10 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
     PostCreation.configuring_post,
     LocalizedText('settings_btn')
 )
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('settings_btn')
+)
 async def settings_menu_handler(message: types.Message, state: FSMContext):
     """Sozlamalar tugmasi - sozlamalar menyusini ko'rsatish"""
     data = await state.get_data()
@@ -219,8 +223,8 @@ async def settings_menu_handler(message: types.Message, state: FSMContext):
     from post_handlers.xinline_keyboard import get_settings_menu_inline_kb
     settings_kb = get_settings_menu_inline_kb(lang, content_type)
 
-    # Set state to waiting_for_media_settings so media settings button works
-    await state.set_state(PostCreation.waiting_for_media_settings)
+    # State o'zgartirilmaydi - configuring_post da qoladi
+    # Chunki boshqa reply tugmalar (Tugma, Ko'rish, Media, Avto imzo) ham ishlayishi kerak
 
     await message.answer(
         get_text('settings_menu_msg', lang),
@@ -281,6 +285,61 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
 
 @reply_router.message(
     PostCreation.configuring_post,
+    LocalizedText('quiz_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('quiz_btn')
+)
+async def quiz_reply_handler(message: types.Message, state: FSMContext):
+    """Viktorina tugmasi - hozircha faqat xabar ko'rsatadi"""
+    lang = await get_user_language(message.from_user.id)
+    await message.answer("📊 Viktorina funksiyasi tez orada qo'shiladi!")
+
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('auto_signature_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('auto_signature_btn')
+)
+async def auto_signature_reply_handler(message: types.Message, state: FSMContext):
+    """Avto imzo tugmasi - sozlamalarni ko'rsatish"""
+    from post_handlers.auto_signature_handler import show_auto_signature_settings_reply
+    await show_auto_signature_settings_reply(message, state)
+
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('media_settings_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('media_settings_btn')
+)
+async def media_settings_reply_handler(message: types.Message, state: FSMContext):
+    """Media sozlamalari tugmasi - inline klaviaturani ko'rsatish"""
+    from post_handlers.media_handler import open_media_settings_from_reply
+    await open_media_settings_from_reply(message, state)
+
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('get_buttons_btn')
+)
+async def get_buttons_handler_media_state(message: types.Message, state: FSMContext):
+    """Tugma tugmasi - waiting_for_media_settings state'da ham ishlaydi"""
+    await get_buttons_handler(message, state)
+
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('preview_btn')
+)
+async def preview_post_handler_media_state(message: types.Message, state: FSMContext, bot: Bot):
+    """Ko'rish tugmasi - waiting_for_media_settings state'da ham ishlaydi"""
+    await preview_post_handler(message, state, bot)
+
+@reply_router.message(
+    PostCreation.configuring_post,
     LocalizedText('edit_content_btn')
 )
 async def edit_content_handler(message: types.Message, state: FSMContext):
@@ -296,7 +355,7 @@ async def edit_content_handler(message: types.Message, state: FSMContext):
     if content_type == 'text':
         await message.answer(
             get_text('ask_new_content_msg', lang),
-            reply_markup=get_cancel_kb(lang)
+            reply_markup=get_back_button_kb(lang)
         )
     else:
         from post_handlers.xreply_keyboard import get_edit_content_kb

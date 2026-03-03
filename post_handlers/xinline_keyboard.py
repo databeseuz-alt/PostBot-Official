@@ -6,7 +6,6 @@ from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
 
-# Emoji to style mapping - used across multiple functions
 EMOJI_STYLES = {
     '🟢': 'success',
     '🔴': 'danger',
@@ -503,20 +502,13 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None, print_
 
 
 def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
-    """Asosiy sozlamalar menyusi - Media va Watermark tugmalari (faqat media uchun)"""
+    """Asosiy sozlamalar menyusi - Watermark tugmasi (faqat photo uchun)"""
     builder = InlineKeyboardBuilder()
 
-    media_types = ['photo', 'video', 'audio', 'document', 'animation', 'voice', 'video_note', 'paid_media']
-    has_media = content_type in media_types
-
-    if has_media:
-        builder.button(text=get_text('media_settings_btn', lang), callback_data="open_media_settings_menu")
-
-        if content_type == 'photo':
-            builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
-            builder.adjust(2)
-        else:
-            builder.adjust(1)
+    # Watermark faqat photo uchun inline menyuda qoladi
+    if content_type == 'photo':
+        builder.button(text=get_text('watermark_btn', lang), callback_data="watermark_settings")
+        builder.adjust(1)
 
     return builder.as_markup()
 
