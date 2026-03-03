@@ -14,12 +14,12 @@ from xdata_handlers.database import (
     toggle_auto_signature,
     update_auto_signature_text,
     update_auto_signature_position,
-    toggle_auto_signature_newline
+    toggle_auto_signature_newline,
+    get_user_language
 )
 from post_handlers.xinline_keyboard import (
     get_auto_signature_settings_kb,
-    get_auto_signature_back_kb,
-    create_settings_main_keyboard
+    get_auto_signature_back_kb
 )
 
 router = Router()
@@ -59,8 +59,8 @@ def _build_settings_text(settings: dict, lang: str) -> str:
 @router.callback_query(F.data == "auto_sig_settings")
 async def show_auto_signature_settings(callback: CallbackQuery):
     """Avto imzo sozlamalari menyusini ko'rsatadi (callback orqali)"""
-    lang = _normalize_lang(callback.from_user.language_code)
     user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
     
     # Foydalanuvchi sozlamalarini olish
     settings = await get_user_auto_signature(user_id)
@@ -82,8 +82,8 @@ async def show_auto_signature_settings(callback: CallbackQuery):
 
 async def show_auto_signature_settings_reply(message: Message, state: FSMContext):
     """Avto imzo sozlamalari menyusini ko'rsatadi (reply button orqali)"""
-    lang = _normalize_lang(message.from_user.language_code)
     user_id = message.from_user.id
+    lang = await get_user_language(user_id)
     
     # Foydalanuvchi sozlamalarini olish
     settings = await get_user_auto_signature(user_id)
@@ -101,8 +101,8 @@ async def show_auto_signature_settings_reply(message: Message, state: FSMContext
 @router.callback_query(F.data == "auto_sig_toggle")
 async def toggle_auto_signature_handler(callback: CallbackQuery):
     """Avto imzoni yoqish/o'chirish"""
-    lang = _normalize_lang(callback.from_user.language_code)
     user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
     
     # Holatni o'zgartirish
     new_state = await toggle_auto_signature(user_id)
@@ -126,7 +126,7 @@ async def toggle_auto_signature_handler(callback: CallbackQuery):
 @router.callback_query(F.data == "auto_sig_edit_text")
 async def start_edit_signature_text(callback: CallbackQuery, state: FSMContext):
     """Imzo matnini o'zgartirishni boshlaydi"""
-    lang = _normalize_lang(callback.from_user.language_code)
+    lang = await get_user_language(callback.from_user.id)
     
     # State'ga o'tish
     await state.set_state(AutoSignatureState.enter_text)
@@ -141,7 +141,7 @@ async def start_edit_signature_text(callback: CallbackQuery, state: FSMContext):
 @router.message(AutoSignatureState.enter_text)
 async def save_signature_text(message: Message, state: FSMContext):
     """Foydalanuvchi kiritgan imzo matnini saqlaydi"""
-    lang = _normalize_lang(message.from_user.language_code)
+    lang = await get_user_language(message.from_user.id)
     
     user_id = message.from_user.id
     text = message.text
@@ -168,8 +168,8 @@ async def save_signature_text(message: Message, state: FSMContext):
 @router.callback_query(F.data == "auto_sig_position")
 async def change_signature_position(callback: CallbackQuery):
     """Imzo joylashuvini o'zgartirish (top <-> bottom)"""
-    lang = _normalize_lang(callback.from_user.language_code)
     user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
     
     # Hozirgi sozlamalarni olish
     settings = await get_user_auto_signature(user_id)
@@ -192,8 +192,8 @@ async def change_signature_position(callback: CallbackQuery):
 @router.callback_query(F.data == "auto_sig_newline")
 async def toggle_newline_setting(callback: CallbackQuery):
     """Yangi qator sozlamasini o'zgartirish"""
-    lang = _normalize_lang(callback.from_user.language_code)
     user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
     
     # Sozlamani o'zgartirish
     new_state = await toggle_auto_signature_newline(user_id)
@@ -216,13 +216,6 @@ async def toggle_newline_setting(callback: CallbackQuery):
 
 @router.callback_query(F.data == "settings_back")
 async def back_to_settings(callback: CallbackQuery):
-    """Asosiy sozlamalar menyusiga qaytish"""
-    lang = _normalize_lang(callback.from_user.language_code)
-    
-    keyboard = create_settings_main_keyboard(lang)
-    
-    await callback.message.edit_text(
-        get_text('settings_menu_msg', lang),
-        reply_markup=keyboard
-    )
-    await callback.answer()
+    """Post sozlamalari menyusiga qaytish (avto imzo endi faqat post yaratishda)"""
+    await callback.message.delete()
+    await callback.answer(get_text('back_to_settings_msg', await get_user_language(callback.from_user.id)))

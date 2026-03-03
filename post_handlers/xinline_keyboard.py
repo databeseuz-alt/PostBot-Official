@@ -333,7 +333,6 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder = InlineKeyboardBuilder()
     builder.button(text="vaqt mintaqasi: Toshkent (00:00)", callback_data="settings_timezone")
     builder.button(text=get_text('ai_assistant_btn', lang), callback_data="settings_ai_assistant")
-    builder.button(text=get_text('auto_signature_btn', lang), callback_data="auto_sig_settings")
     builder.adjust(1)
     return builder.as_markup()
 
