@@ -33,7 +33,7 @@ from post_handlers.mychannels_handler import mychannels_router
 from post_handlers.schedule_handler import schedule_router
 from post_handlers.assistant_handler import ai_assistant_router
 from post_handlers.watermark_handler import watermark_router
-from post_handlers.auto_signature_handler import router as auto_signature_router
+from post_handlers.signature_handler import router as auto_signature_router
 
 from user_handlers.feedback_handler import feedback_router
 from user_handlers.settings_handler import settings_router

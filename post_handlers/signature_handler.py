@@ -13,8 +13,6 @@ from xdata_handlers.database import (
     get_user_auto_signature,
     toggle_auto_signature,
     update_auto_signature_text,
-    update_auto_signature_position,
-    toggle_auto_signature_newline,
     get_user_language
 )
 from post_handlers.xinline_keyboard import (
@@ -42,17 +40,14 @@ def _normalize_lang(lang_code: str) -> str:
 
 
 def _build_settings_text(settings: dict, lang: str) -> str:
-    """Sozlamalar matnini yaratadi"""
+    """Sozlamalar matnini yaratadi - soddalashtirilgan"""
     enabled_text = "✅ Yoniq" if settings['enabled'] else "❌ Ochiq"
-    position_text = "Post yuqorisida" if settings['position'] == 'top' else "Post pastida"
-    newline_text = "✅ Ha" if settings['newline'] else "❌ Yo'q"
-    
+
     text = get_text('auto_signature_title', lang)
     text += f"\n\n{get_text('auto_signature_info', lang)}"
     text += f"\n\n<b>Imzo:</b> {settings['text'] or '—'}"
     text += f"\n<b>Holat:</b> {enabled_text}"
-    text += f"\n<b>Joylashuv:</b> {position_text}"
-    text += f"\n<b>Yangi qator:</b> {newline_text}"
+    text += f"\n\n<i>Imzo doimo post oxirida, alohida qatorda qo'shiladi.</i>"
     return text
 
 
@@ -84,16 +79,27 @@ async def show_auto_signature_settings_reply(message: Message, state: FSMContext
     """Avto imzo sozlamalari menyusini ko'rsatadi (reply button orqali)"""
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
-    
+
     # Foydalanuvchi sozlamalarini olish
     settings = await get_user_auto_signature(user_id)
-    
+
+    # Agar imzo matni kiritilmagan bo'lsa, birinchi matn kiritishni so'rash
+    if not settings.get('text'):
+        await state.set_state(AutoSignatureState.enter_text)
+        await state.update_data(auto_sig_source='reply_button')
+
+        text = get_text('auto_signature_enter_text', lang)
+        keyboard = get_auto_signature_back_kb(lang)
+
+        await message.answer(text, reply_markup=keyboard)
+        return
+
     # Xabar matnini yaratish
     text = _build_settings_text(settings, lang)
-    
+
     # Klaviaturani olish
     keyboard = get_auto_signature_settings_kb(settings, lang)
-    
+
     # Yangi xabar yuborish
     await message.answer(text, reply_markup=keyboard)
 
@@ -140,78 +146,111 @@ async def start_edit_signature_text(callback: CallbackQuery, state: FSMContext):
 
 @router.message(AutoSignatureState.enter_text)
 async def save_signature_text(message: Message, state: FSMContext):
-    """Foydalanuvchi kiritgan imzo matnini saqlaydi"""
+    """Foydalanuvchi kiritgan imzo matnini saqlaydi va postni yangilaydi"""
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    from post_handlers.post_handler import PostCreation, apply_auto_signature
+
     lang = await get_user_language(message.from_user.id)
-    
     user_id = message.from_user.id
     text = message.text
-    
+
     # Matnni saqlash
     await update_auto_signature_text(user_id, text)
-    
+
+    # State'dan ma'lumot olish
+    data = await state.get_data()
+    source = data.get('auto_sig_source')
+
+    # Post ma'lumotlarini olish
+    post_data = data.get('post_data', {})
+    buttons_matrix = data.get('buttons_matrix', [])
+
     # State'ni tozalash
     await state.clear()
-    
+
+    # Agar reply button'dan kelgan bo'lsa va post mavjud bo'lsa, postni yangilash
+    if source == 'reply_button' and post_data:
+        # Post ma'lumotlarini yangilash
+        content_type = post_data.get('content_type', 'text')
+
+        # Avto imzoni qo'llash
+        if content_type == 'text':
+            original_text = post_data.get('text', '')
+            if original_text:
+                signed_text = await apply_auto_signature(user_id, original_text)
+                post_data['text'] = signed_text
+        else:
+            original_caption = post_data.get('caption', '')
+            if original_caption:
+                signed_caption = await apply_auto_signature(user_id, original_caption)
+                post_data['caption'] = signed_caption
+
+        # Postni qayta chizish
+        chat_id = post_data.get('chat_id')
+        message_id = post_data.get('message_id')
+
+        if chat_id and message_id:
+            try:
+                # Avvalgi postni o'chirish
+                await message.bot.delete_message(chat_id=chat_id, message_id=message_id)
+
+                # Yangi keyboard
+                new_keyboard = generate_post_keyboard(buttons_matrix, lang)
+
+                # Postni qayta yuborish
+                file_id = post_data.get("file_id")
+                caption = post_data.get("caption")
+                post_text = post_data.get("text")
+                parse_mode = post_data.get("parse_mode", 'HTML')
+                has_spoiler = post_data.get('has_spoiler', False)
+
+                sent_message = None
+
+                if content_type == 'text':
+                    sent_message = await message.bot.send_message(
+                        chat_id=chat_id,
+                        text=post_text or '',
+                        reply_markup=new_keyboard,
+                        parse_mode=parse_mode
+                    )
+                elif content_type == 'photo':
+                    sent_message = await message.bot.send_photo(
+                        chat_id=chat_id,
+                        photo=file_id,
+                        caption=caption,
+                        reply_markup=new_keyboard,
+                        parse_mode=parse_mode,
+                        has_spoiler=has_spoiler
+                    )
+                elif content_type == 'video':
+                    sent_message = await message.bot.send_video(
+                        chat_id=chat_id,
+                        video=file_id,
+                        caption=caption,
+                        reply_markup=new_keyboard,
+                        parse_mode=parse_mode,
+                        has_spoiler=has_spoiler
+                    )
+
+                if sent_message:
+                    post_data['message_id'] = sent_message.message_id
+                    await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+                    await state.set_state(PostCreation.configuring_post)
+
+            except Exception as e:
+                pass  # Xatolik bo'lsa, davom etish
+
     # Yangilangan sozlamalarni olish
     settings = await get_user_auto_signature(user_id)
-    
+
     # Xabar matnini yaratish
     response_text = _build_settings_text(settings, lang)
     keyboard = get_auto_signature_settings_kb(settings, lang)
-    
+
     await message.answer(response_text, reply_markup=keyboard)
-    
+
     # Saqlanganligi haqida xabar
     await message.answer(get_text('auto_signature_text_saved', lang))
-
-
-@router.callback_query(F.data == "auto_sig_position")
-async def change_signature_position(callback: CallbackQuery):
-    """Imzo joylashuvini o'zgartirish (top <-> bottom)"""
-    user_id = callback.from_user.id
-    lang = await get_user_language(user_id)
-    
-    # Hozirgi sozlamalarni olish
-    settings = await get_user_auto_signature(user_id)
-    
-    # Joylashuvni o'zgartirish
-    new_position = 'bottom' if settings['position'] == 'top' else 'top'
-    await update_auto_signature_position(user_id, new_position)
-    
-    # Yangilangan sozlamalarni olish
-    settings = await get_user_auto_signature(user_id)
-    
-    # Xabar matnini yangilash
-    text = _build_settings_text(settings, lang)
-    keyboard = get_auto_signature_settings_kb(settings, lang)
-    
-    await callback.message.edit_text(text, reply_markup=keyboard)
-    await callback.answer(get_text('auto_signature_position_saved', lang))
-
-
-@router.callback_query(F.data == "auto_sig_newline")
-async def toggle_newline_setting(callback: CallbackQuery):
-    """Yangi qator sozlamasini o'zgartirish"""
-    user_id = callback.from_user.id
-    lang = await get_user_language(user_id)
-    
-    # Sozlamani o'zgartirish
-    new_state = await toggle_auto_signature_newline(user_id)
-    
-    # Yangilangan sozlamalarni olish
-    settings = await get_user_auto_signature(user_id)
-    
-    # Xabar matnini yangilash
-    text = _build_settings_text(settings, lang)
-    keyboard = get_auto_signature_settings_kb(settings, lang)
-    
-    await callback.message.edit_text(text, reply_markup=keyboard)
-    
-    # Alert ko'rsatish
-    if new_state:
-        await callback.answer(get_text('auto_signature_newline_enabled', lang))
-    else:
-        await callback.answer(get_text('auto_signature_newline_disabled', lang))
 
 
 @router.callback_query(F.data == "settings_back")

@@ -872,6 +872,7 @@ async def media_set_thumbnail_handler(callback: types.CallbackQuery, state: FSMC
     data = await state.get_data()
     post_data = data.get('post_data', {})
     lang = await get_user_language(callback.from_user.id)
+    logger.info(f"Thumbnail tugmasi bosildi: user_id={callback.from_user.id}")
 
     from aiogram.utils.keyboard import InlineKeyboardBuilder
     builder = InlineKeyboardBuilder()
@@ -982,6 +983,7 @@ async def process_thumbnail_photo(message: Message, state: FSMContext):
     thumbnail_file_id = message.photo[-1].file_id
     post_data['thumbnail_file_id'] = thumbnail_file_id
     await state.update_data(post_data=post_data)
+    logger.info(f"Thumbnail saqlandi: user_id={message.from_user.id}, file_id={thumbnail_file_id}")
 
     # Muvaffaqiyat xabarini ko'rsatish
     await message.answer(get_text('thumbnail_saved', lang))
@@ -1030,6 +1032,7 @@ async def media_toggle_compression_handler(callback: types.CallbackQuery, state:
     current = post_data.get('send_as_document', False)
     post_data['send_as_document'] = not current
     await state.update_data(post_data=post_data)
+    logger.info(f"Video siqish o'zgartirildi: user_id={callback.from_user.id}, send_as_document={not current}")
 
     # Xabar
     await callback.answer(get_text('compression_toggled', lang), show_alert=False)

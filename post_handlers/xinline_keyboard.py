@@ -371,8 +371,6 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
             comp_text = get_text('compression_low_btn', lang)
         builder.button(text=comp_text, callback_data="media_toggle_compression")
 
-    builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_menu")
-
     # Layout hisoblash
     rows = []
     if has_caption and content_type in ['photo', 'video', 'animation', 'paid_media']:
@@ -387,7 +385,6 @@ def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: 
         extra_count += 1  # compression
     if extra_count > 0:
         rows.append(extra_count)
-    rows.append(1)  # back
     builder.adjust(*rows)
 
     return builder.as_markup()
@@ -513,46 +510,29 @@ def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, la
 
 
 def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):
-    """Avto imzo sozlamalari uchun klaviatura"""
+    """Avto imzo sozlamalari uchun klaviatura - soddalashtirilgan"""
     builder = InlineKeyboardBuilder()
-    
+
     enabled = signature_settings.get('enabled', False)
     text = signature_settings.get('text', '')
-    position = signature_settings.get('position', 'bottom')
-    newline = signature_settings.get('newline', True)
-    
+
     # Imzo matnini ko'rsatish
     if text:
         text_display = text[:30] + "..." if len(text) > 30 else text
         builder.button(text=f"✍️ {text_display}", callback_data="auto_sig_edit_text")
     else:
         builder.button(text=get_text('auto_signature_text_btn', lang), callback_data="auto_sig_edit_text")
-    
+
     builder.adjust(1)
-    
+
     # Yoqish/o'chirish tugmasi
     if enabled:
         builder.button(text=get_text('auto_signature_disable_btn', lang), callback_data="auto_sig_toggle")
     else:
         builder.button(text=get_text('auto_signature_enable_btn', lang), callback_data="auto_sig_toggle")
-    
-    # Joylashuv tugmasi
-    if position == 'top':
-        builder.button(text=get_text('auto_signature_position_top_btn', lang), callback_data="auto_sig_position")
-    else:
-        builder.button(text=get_text('auto_signature_position_bottom_btn', lang), callback_data="auto_sig_position")
-    
-    # Yangi qator tugmasi
-    if newline:
-        builder.button(text=get_text('auto_signature_newline_enabled_btn', lang), callback_data="auto_sig_newline")
-    else:
-        builder.button(text=get_text('auto_signature_newline_btn', lang), callback_data="auto_sig_newline")
-    
+
     builder.adjust(1)
-    
-    # Orqaga tugmasi
-    builder.button(text=get_text('back_btn', lang), callback_data="settings_back")
-    
+
     return builder.as_markup()
 
 

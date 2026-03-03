@@ -319,7 +319,7 @@ async def quiz_reply_handler(message: types.Message, state: FSMContext):
 )
 async def auto_signature_reply_handler(message: types.Message, state: FSMContext):
     """Avto imzo tugmasi - sozlamalarni ko'rsatish"""
-    from post_handlers.auto_signature_handler import show_auto_signature_settings_reply
+    from post_handlers.signature_handler import show_auto_signature_settings_reply
     await show_auto_signature_settings_reply(message, state)
 
 @reply_router.message(
