@@ -1,4 +1,3 @@
-
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
@@ -12,7 +11,6 @@ from aiogram.filters import Command
 
 lang_router = Router()
 
-@lang_router.message(Command("language"))
 @lang_router.message(LocalizedText('btn_language_settings'))
 async def language_settings_handler(message: types.Message):
     lang = await get_user_language(message.from_user.id)

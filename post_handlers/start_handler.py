@@ -1,4 +1,5 @@
 import html
+
 from aiogram import F, Router, types, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -160,7 +161,6 @@ async def check_subscription_again(callback: types.CallbackQuery, state: FSMCont
     else:
         await callback.answer(get_text('join_alert_msg', lang), show_alert=True)
 
-@start_router.callback_query(F.data == "create_post", StateFilter(None))
 @start_router.message(LocalizedText('new_post_btn'), StateFilter(None))
 async def start_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
@@ -197,7 +197,6 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     await state.set_state(PostCreation.waiting_for_content)
 
-@start_router.callback_query(F.data == "edit_post", StateFilter(None))
 @start_router.message(LocalizedText('edit_post_btn'), StateFilter(None))
 async def start_post_editing_process(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user

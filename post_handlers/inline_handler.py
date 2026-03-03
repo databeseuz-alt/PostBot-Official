@@ -1,4 +1,3 @@
-
 from aiogram import Router, types, Bot
 
 from post_handlers.xinline_keyboard import generate_final_keyboard

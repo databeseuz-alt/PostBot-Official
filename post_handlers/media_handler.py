@@ -16,7 +16,6 @@ from xdata_handlers.translator import get_text
 
 media_router = Router()
 
-@media_router.callback_query(PostCreation.configuring_post, F.data == "post_media_settings")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "post_media_settings")
 async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda media sozlamalari menyusini ochish"""
@@ -46,7 +45,6 @@ async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMCont
     )
     await callback.answer()
 
-@media_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_position")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_position")
 async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda joylashuvni almashtirish"""
@@ -60,27 +58,50 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
     show_caption_above = post_data.get('show_caption_above_media', False)
     has_caption = bool(post_data.get('caption'))
 
-    post_data['show_caption_above_media'] = not show_caption_above
+    # Yangi qiymatni saqlash
+    new_show_caption_above = not show_caption_above
+    post_data['show_caption_above_media'] = new_show_caption_above
     await state.update_data(post_data=post_data)
 
     await state.set_state(PostCreation.waiting_for_media_settings)
 
-    await callback.message.edit_reply_markup(
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang,
-            has_spoiler=has_spoiler,
-            is_paid=is_paid,
-            show_caption_above=not show_caption_above,
-            has_caption=has_caption,
-            content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
-        )
-    )
-
+    # Avval postni yangilash (yangi sozlamalar bilan)
     await redraw_post_with_callback(callback, state)
+
+    # Keyin klaviaturani yangilash
+    try:
+        await callback.message.edit_reply_markup(
+            reply_markup=get_media_settings_inline_kb(
+                lang=lang,
+                has_spoiler=has_spoiler,
+                is_paid=is_paid,
+                show_caption_above=new_show_caption_above,
+                has_caption=has_caption,
+                content_type=content_type,
+                paid_price=post_data.get('paid_price', 1)
+            )
+        )
+    except Exception as e:
+        # Agar tahrirlash ishlamasa, yangi xabar yuborish
+        try:
+            await callback.message.delete()
+            await callback.message.answer(
+                get_text('media_settings_msg', lang),
+                reply_markup=get_media_settings_inline_kb(
+                    lang=lang,
+                    has_spoiler=has_spoiler,
+                    is_paid=is_paid,
+                    show_caption_above=new_show_caption_above,
+                    has_caption=has_caption,
+                    content_type=content_type,
+                    paid_price=post_data.get('paid_price', 1)
+                )
+            )
+        except Exception:
+            pass
+
     await callback.answer()
 
-@media_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_spoiler")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_spoiler")
 async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda spoilerni yoqish/o'chirish"""
@@ -114,7 +135,6 @@ async def post_media_toggle_spoiler(callback: types.CallbackQuery, state: FSMCon
     await redraw_post_with_callback(callback, state)
     await callback.answer()
 
-@media_router.callback_query(PostCreation.configuring_post, F.data == "media_toggle_paid")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_paid")
 async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContext):
     """Post tahrirlashda pulli mediani yoqish/o'chirish"""
@@ -145,30 +165,42 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     status_text = "✅ Pulli media yoqildi" if new_paid else "❌ Pulli media o'chirildi"
     await callback.answer(status_text, show_alert=False)
 
-    # 1. AVVAL post preview ni yangilash (tugmalar bilan birga) - post move qilinadi
+    # Postni yangilash - o'chirmasdan tahrirlashga harakat qilish
     await redraw_post_with_callback(callback, state)
 
-    # 2. Eski media sozlamalari xabarini o'chirish (move qilish uchun)
+    # Media sozlamalari xabarini yangilash (o'chirmasdan)
     try:
-        await callback.message.delete()
-    except Exception:
-        pass
-
-    # 3. KEYIN pastga yangi media sozlamalarini yuborish (postdan keyin)
-    await callback.message.answer(
-        get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang,
-            has_spoiler=has_spoiler,
-            is_paid=new_paid,
-            show_caption_above=show_caption_above,
-            has_caption=has_caption,
-            content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
+        await callback.message.edit_text(
+            get_text('media_settings_msg', lang),
+            reply_markup=get_media_settings_inline_kb(
+                lang=lang,
+                has_spoiler=has_spoiler,
+                is_paid=new_paid,
+                show_caption_above=show_caption_above,
+                has_caption=has_caption,
+                content_type=content_type,
+                paid_price=post_data.get('paid_price', 1)
+            )
         )
-    )
+    except Exception:
+        # Agar tahrirlash ishlamasa, o'chirib yangidan yuborish
+        try:
+            await callback.message.delete()
+            await callback.message.answer(
+                get_text('media_settings_msg', lang),
+                reply_markup=get_media_settings_inline_kb(
+                    lang=lang,
+                    has_spoiler=has_spoiler,
+                    is_paid=new_paid,
+                    show_caption_above=show_caption_above,
+                    has_caption=has_caption,
+                    content_type=content_type,
+                    paid_price=post_data.get('paid_price', 1)
+                )
+            )
+        except Exception:
+            pass
 
-@media_router.callback_query(PostCreation.configuring_post, F.data == "back_to_post_settings")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_post_settings")
 async def back_from_media_to_post_settings(callback: types.CallbackQuery, state: FSMContext):
     """Media sozlamalaridan post sozlamalariga qaytish"""
@@ -214,7 +246,6 @@ async def back_from_media_to_post_settings(callback: types.CallbackQuery, state:
 
     await callback.answer()
 
-@media_router.callback_query(PostCreation.configuring_post, F.data == "back_to_settings_menu")
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_settings_menu")
 async def back_to_settings_menu_handler(callback: types.CallbackQuery, state: FSMContext):
     """Media sozlamalaridan sozlamalar menyusiga qaytish"""
@@ -233,10 +264,6 @@ async def back_to_settings_menu_handler(callback: types.CallbackQuery, state: FS
 
     await callback.answer()
 
-@media_router.message(
-    PostCreation.configuring_post,
-    LocalizedText('media_settings_btn')
-)
 @media_router.message(
     PostCreation.waiting_for_media_settings,
     LocalizedText('media_settings_btn')
@@ -269,7 +296,6 @@ async def open_media_settings(message: Message, state: FSMContext):
     )
 
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "open_media_settings_menu")
-@media_router.callback_query(PostCreation.configuring_post, F.data == "open_media_settings_menu")
 async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMContext):
     """Inline Media tugmasi bosilganda - inline klaviaturani ko'rsatish"""
     data = await state.get_data()
@@ -329,30 +355,38 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
     if not chat_id or not message_id:
         return
 
+    # Asl holatni tekshirish (paid media o'zgarganmi?)
+    was_paid = post_data.get('was_paid', False)
+    paid_state_changed = was_paid != is_paid
+
     try:
-        if (is_paid and content_type in ['photo', 'video']) or content_type == 'paid_media':
-            # Pulli media uchun caption va reply_markup ni tahrirlash
-            try:
-                await callback.bot.edit_message_caption(
-                    chat_id=chat_id,
-                    message_id=message_id,
-                    caption=caption,
-                    parse_mode=parse_mode,
-                    reply_markup=new_keyboard
-                )
-                # Caption joylashuvini alohida sozlash
-                # Telegram API da paid_media uchun show_caption_above_media ni to'g'ridan-to'g'ri o'zgartirib bo'lmaydi,
-                # lekin caption ni o'zgartirish mumkin
-                return
-            except Exception:
-                # Agar tahrirlash ishlamasa, eski usul bilan o'chirib yangidan yuborish
+        if is_paid and content_type in ['photo', 'video']:
+            # Pulli media uchun - agar holat o'zgarmagan bo'lsa, faqat caption ni tahrirlash
+            if not paid_state_changed:
                 try:
-                    await callback.bot.delete_message(chat_id, message_id)
+                    await callback.bot.edit_message_caption(
+                        chat_id=chat_id,
+                        message_id=message_id,
+                        caption=caption,
+                        parse_mode=parse_mode,
+                        reply_markup=new_keyboard
+                    )
+                    return
                 except Exception:
                     pass
-                await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
-                await state.set_state(PostCreation.configuring_post)
-                return
+
+            # Pulli media holati o'zgargan - o'chirib yangidan yuborish kerak
+            # (Telegram API cheklovi)
+            try:
+                await callback.bot.delete_message(chat_id, message_id)
+            except Exception:
+                pass
+            await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
+            # Joriy holatni saqlash
+            post_data['was_paid'] = is_paid
+            await state.update_data(post_data=post_data)
+            await state.set_state(PostCreation.configuring_post)
+            return
 
         if content_type == 'photo':
             from aiogram.types import InputMediaPhoto
@@ -452,12 +486,21 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
                 reply_markup=new_keyboard
             )
 
+        # Muvaffaqiyatli tahrirlashdan so'ng holatni saqlash
+        if not is_paid:
+            post_data['was_paid'] = False
+            await state.update_data(post_data=post_data)
+
     except Exception:
+        # Xatolik yuz berganda - o'chirib yangidan yuborish
         try:
             await callback.bot.delete_message(chat_id, message_id)
         except Exception:
             pass
         await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
+        # Yangi xabar yuborilgandan so'ng holatni saqlash
+        post_data['was_paid'] = is_paid
+        await state.update_data(post_data=post_data)
 
 async def send_new_post_with_settings(message: types.Message, state: FSMContext, post_data: dict, keyboard):
     """Postni yangi xabar sifatida yuborish va sozlamalarni ko'rsatish"""
@@ -623,7 +666,6 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
 
 
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_set_price")
-@media_router.callback_query(PostCreation.configuring_post, F.data == "media_set_price")
 async def media_set_price_handler(callback: types.CallbackQuery, state: FSMContext):
     """Media narxini o'rnatish - faqat orqaga tugmasi bilan"""
     lang = await get_user_language(callback.from_user.id)
