@@ -12,7 +12,8 @@ from post_handlers.xreply_keyboard import (
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
     generate_preview_keyboard,
-    generate_post_keyboard
+    generate_post_keyboard,
+    get_settings_menu_inline_kb
 )
 from post_handlers.media_handler import redraw_post_with_callback, send_new_post_with_settings
 from xdata_handlers.database import get_user_language
@@ -203,6 +204,29 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
     except Exception as e:
         await message.answer(get_text('preview_error_msg', lang))
 
+
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('settings_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('settings_btn')
+)
+async def settings_menu_handler(message: types.Message, state: FSMContext):
+    """Sozlamalar tugmasi - sozlamalar menyusini ko'rsatish"""
+    data = await state.get_data()
+    post_data = data.get('post_data', {})
+    lang = await get_user_language(message.from_user.id)
+
+    content_type = post_data.get('content_type', 'text')
+
+    settings_kb = get_settings_menu_inline_kb(lang, content_type)
+
+    await message.answer(
+        get_text('settings_menu_msg', lang),
+        reply_markup=settings_kb
+    )
 
 @reply_router.message(
     PostCreation.configuring_post,
