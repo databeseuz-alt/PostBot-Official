@@ -144,7 +144,6 @@ async def maybe_apply_auto_signature(user_id: int, post_data: dict) -> dict:
     
     return post_data
 
-    return cleaned_text
 
 def get_html_text(text: str, entities: list) -> str:
     """

@@ -92,7 +92,11 @@ def release_connection(conn):
         pool.putconn(conn)
     except Exception:
         # Agar pool ishlamasa, to'g'ridan-to'g'ri yopamiz
-        if conn: release_connection(conn)
+        if conn:
+            try:
+                conn.close()
+            except Exception:
+                pass
 
 def _normalize_language(language: str | None) -> str:
     """Til kodini normalize qiladi."""
@@ -241,10 +245,6 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
-
-async def add_or_update_user_positional(user_id: int, nickname: str, username: str, language: str = None):
-    """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi."""
-    return await _add_or_update_user_impl(user_id=user_id, nickname=nickname, username=username, language=language)
 
 async def get_user_language(user_id: int) -> str:
     """Foydalanuvchi tilini oladi."""

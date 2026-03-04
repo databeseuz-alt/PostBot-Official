@@ -250,7 +250,6 @@ async def set_language_from_start(callback: types.CallbackQuery, state: FSMConte
         PostSending.waiting_for_channel_info,
         PostSending.choosing_channel_to_send,
         PostCreation.waiting_for_media_settings,
-        PostCreation.waiting_for_thumbnail,
         PostCreation.waiting_for_paid_price
     ),
     LocalizedText('cancel_btn')
