@@ -336,7 +336,7 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder.adjust(1)
     return builder.as_markup()
 
-def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1):
+def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1, has_thumbnail: bool = False):
     """Media sozlamalari uchun inline klaviatura"""
     builder = InlineKeyboardBuilder()
 
