@@ -153,6 +153,9 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     # Postni yangilash - o'chirmasdan tahrirlashga harakat qilish
     await redraw_post_with_callback(callback, state)
 
+    # Media sozlamalari uchun state ni qayta tiklash (redraw_post_with_callback o'zgartirgan bo'lishi mumkin)
+    await state.set_state(PostCreation.waiting_for_media_settings)
+
     # Media sozlamalari xabarini o'chirib yangidan yuborish (post bilan birga)
     chat_id = callback.message.chat.id
     try:
@@ -813,6 +816,9 @@ async def process_paid_price(message: Message, state: FSMContext):
     is_paid = post_data.get('is_paid', False)
     has_caption = bool(post_data.get('caption'))
 
+    # State ni avval o'rnatish (handler routing uchun)
+    await state.set_state(PostCreation.waiting_for_media_settings)
+
     await message.answer(
         get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_inline_kb(
@@ -826,8 +832,6 @@ async def process_paid_price(message: Message, state: FSMContext):
             has_thumbnail=bool(post_data.get('thumbnail_file_id'))
         )
     )
-
-    await state.set_state(PostCreation.waiting_for_media_settings)
 
 
 # ====== THUMBNAIL HANDLER ======
