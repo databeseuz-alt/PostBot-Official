@@ -84,7 +84,8 @@ def clean_text_for_default_mode(text: str | None) -> str | None:
 
 
 async def apply_auto_signature(user_id: int, text: str | None) -> str | None:
-    """Foydalanuvchining avto imzosini matnga qo'shadi."""
+    """Foydalanuvchining avto imzosini matnga qo'shadi.
+    Agar imzo allaqachon mavjud bo'lsa, qayta qo'shmaydi."""
     if not text:
         return text
     
@@ -103,35 +104,48 @@ async def apply_auto_signature(user_id: int, text: str | None) -> str | None:
         
         separator = '\n\n' if newline else '\n'
         
+        # Tekshirish: imzo allaqachon mavjudmi?
+        text_stripped = text.rstrip()
+        signature_stripped = signature.strip()
+        
         if position == 'top':
+            # Yuqorida imzo borligini tekshirish
+            if text_stripped.startswith(signature_stripped):
+                return text
             return f"{signature}{separator}{text}"
         else:  # bottom
+            # Pastda imzo borligini tekshirish
+            if text_stripped.endswith(signature_stripped):
+                return text
             return f"{text}{separator}{signature}"
     except Exception:
         return text
 
 
 async def maybe_apply_auto_signature(user_id: int, post_data: dict) -> dict:
-    """Post ma'lumotlariga avto imzoni qo'llaydi (agar yoqilgan bo'lsa)."""
+    """Post ma'lumotlariga avto imzoni qo'llaydi (agar yoqilgan bo'lsa).
+    Agar allaqachon imzolangan bo'lsa, qayta imzolamaydi."""
     if not post_data:
         return post_data
     
     content_type = post_data.get('content_type', 'text')
     
     if content_type == 'text':
-        original_text = post_data.get('text')
-        if original_text:
-            # Asl matnni saqlash
-            post_data['original_text'] = original_text
-            signed_text = await apply_auto_signature(user_id, original_text)
+        current_text = post_data.get('text')
+        if current_text:
+            # Asl matnni saqlash (faqat birinchi marta)
+            if 'original_text' not in post_data:
+                post_data['original_text'] = current_text
+            signed_text = await apply_auto_signature(user_id, current_text)
             post_data['text'] = signed_text
     else:
         # Media uchun caption ga qo'shish
-        original_caption = post_data.get('caption')
-        if original_caption:
-            # Asl caption ni saqlash
-            post_data['original_caption'] = original_caption
-            signed_caption = await apply_auto_signature(user_id, original_caption)
+        current_caption = post_data.get('caption')
+        if current_caption:
+            # Asl caption ni saqlash (faqat birinchi marta)
+            if 'original_caption' not in post_data:
+                post_data['original_caption'] = current_caption
+            signed_caption = await apply_auto_signature(user_id, current_caption)
             post_data['caption'] = signed_caption
     
     return post_data

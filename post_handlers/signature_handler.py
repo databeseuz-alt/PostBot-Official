@@ -17,7 +17,8 @@ from xdata_handlers.database import (
 )
 from post_handlers.xinline_keyboard import (
     get_auto_signature_settings_kb,
-    get_auto_signature_back_kb
+    get_auto_signature_back_kb,
+    get_auto_signature_cancel_kb
 )
 
 router = Router()
@@ -41,13 +42,8 @@ def _normalize_lang(lang_code: str) -> str:
 
 def _build_settings_text(settings: dict, lang: str) -> str:
     """Sozlamalar matnini yaratadi - soddalashtirilgan"""
-    enabled_text = "✅ Yoniq" if settings['enabled'] else "❌ Ochiq"
-
-    text = get_text('auto_signature_title', lang)
-    text += f"\n\n{get_text('auto_signature_info', lang)}"
-    text += f"\n\n<b>Imzo:</b> {settings['text'] or '—'}"
-    text += f"\n<b>Holat:</b> {enabled_text}"
-    text += f"\n\n<i>Imzo doimo post oxirida, alohida qatorda qo'shiladi.</i>"
+    signature_text = settings['text'] or '—'
+    text = f"<b>✍️ avtoimzo sozlamalari :</b>\n\n<b>imzo: </b>{signature_text}"
     return text
 
 
@@ -93,14 +89,15 @@ async def show_auto_signature_settings_reply(message: Message, state: FSMContext
     # Agar imzo matni kiritilmagan bo'lsa, birinchi matn kiritishni so'rash
     if not settings.get('text'):
         await state.set_state(AutoSignatureState.enter_text)
-        await state.update_data(auto_sig_source='reply_button')
+        await state.update_data(auto_sig_source='reply_button', is_new_signature=True)
         
         logger.info(f"Yangi imzo matni kiritish rejimi: user_id={user_id}")
 
-        text = get_text('auto_signature_enter_text', lang)
-        keyboard = get_auto_signature_back_kb(lang)
+        text = "<b>imzo matnini kiriting :</b>\n\n<b>misol: </b><code>@channel_name | kanalga obuna bo'ling!</code>"
+        keyboard = get_auto_signature_cancel_kb(lang)
 
-        await message.answer(text, reply_markup=keyboard)
+        settings_msg = await message.answer(text, reply_markup=keyboard)
+        await state.update_data(settings_message_id=settings_msg.message_id)
         return
 
     # Xabar matnini yaratish
@@ -147,10 +144,23 @@ async def start_edit_signature_text(callback: CallbackQuery, state: FSMContext):
     await state.set_state(AutoSignatureState.enter_text)
     await state.update_data(auto_sig_source='edit_button')
     
-    text = get_text('auto_signature_enter_text', lang)
+    text = "<b>imzo matniki kiriting :</b>\n\n<b>misol: </b><code>@channel_name | kanalga obuna bo'ling!</code>"
     keyboard = get_auto_signature_back_kb(lang)
     
     await callback.message.edit_text(text, reply_markup=keyboard)
+    # Tahrirlash rejimida message_id o'zgarmaydi, saqlash shart emas
+    await state.update_data(settings_message_id=callback.message.message_id)
+    await callback.answer()
+
+
+@router.callback_query(F.data == "auto_sig_cancel_new")
+async def cancel_new_signature(callback: CallbackQuery, state: FSMContext):
+    """Yangi imzo qo'shishni bekor qilish"""
+    await state.clear()
+    
+    text = "<b>✍️ avtoimzo qo'shish bekor qilindi</b>\n\nsiz xoxlagan vaqt yangi imzo qo'sha olasiz, imzo qo'shish uchun autoimzo tugmasini bosing"
+    
+    await callback.message.edit_text(text)
     await callback.answer()
 
 
@@ -176,6 +186,7 @@ async def save_signature_text(message: Message, state: FSMContext):
     source = data.get('auto_sig_source')
     post_data = data.get('post_data', {})
     buttons_matrix = data.get('buttons_matrix', [])
+    settings_message_id = data.get('settings_message_id')
     
     logger.info(f"State ma'lumotlari: source={source}, post_data_exists={bool(post_data)}, buttons_count={len(buttons_matrix)}")
 
@@ -189,18 +200,18 @@ async def save_signature_text(message: Message, state: FSMContext):
 
         # Avto imzoni qo'llash
         if content_type == 'text':
-            # Asl matnni olish (imzosiz) - agar saqlangan bo'lsa
-            original_text = post_data.get('original_text') or post_data.get('text', '')
-            # Asl matnni saqlash
-            post_data['original_text'] = original_text
+            # Asl matnni olish - faqat birinchi marta saqlangan bo'lsa
+            if 'original_text' not in post_data:
+                post_data['original_text'] = post_data.get('text', '')
+            original_text = post_data['original_text']
             if original_text:
                 signed_text = await apply_auto_signature(user_id, original_text)
                 post_data['text'] = signed_text
         else:
-            # Asl caption ni olish (imzosiz) - agar saqlangan bo'lsa
-            original_caption = post_data.get('original_caption') or post_data.get('caption', '')
-            # Asl caption ni saqlash
-            post_data['original_caption'] = original_caption
+            # Asl caption ni olish - faqat birinchi marta saqlangan bo'lsa
+            if 'original_caption' not in post_data:
+                post_data['original_caption'] = post_data.get('caption', '')
+            original_caption = post_data['original_caption']
             if original_caption:
                 signed_caption = await apply_auto_signature(user_id, original_caption)
                 post_data['caption'] = signed_caption
@@ -260,6 +271,13 @@ async def save_signature_text(message: Message, state: FSMContext):
             except Exception as e:
                 logger.error(f"Postni yangilashda xatolik: {e}")  # Xatolikni log qilish
 
+    # Avvalgi sozlamalar xabarini o'chirish (agar mavjud bo'lsa)
+    if settings_message_id:
+        try:
+            await message.bot.delete_message(chat_id=message.chat.id, message_id=settings_message_id)
+        except Exception:
+            pass  # Xabar allaqachon o'chirilgan bo'lishi mumkin
+
     # Yangilangan sozlamalarni olish
     settings = await get_user_auto_signature(user_id)
 
@@ -267,10 +285,8 @@ async def save_signature_text(message: Message, state: FSMContext):
     response_text = _build_settings_text(settings, lang)
     keyboard = get_auto_signature_settings_kb(settings, lang)
 
+    # Postdan keyin yangi sozlamalar xabarini yuborish
     await message.answer(response_text, reply_markup=keyboard)
-
-    # Saqlanganligi haqida xabar
-    await message.answer(get_text('auto_signature_text_saved', lang))
 
 
 @router.callback_query(F.data == "settings_back")

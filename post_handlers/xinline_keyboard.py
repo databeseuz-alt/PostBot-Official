@@ -491,24 +491,17 @@ def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):
     builder = InlineKeyboardBuilder()
 
     enabled = signature_settings.get('enabled', False)
-    text = signature_settings.get('text', '')
 
-    # Imzo matnini ko'rsatish
-    if text:
-        text_display = text[:30] + "..." if len(text) > 30 else text
-        builder.button(text=f"✍️ {text_display}", callback_data="auto_sig_edit_text")
-    else:
-        builder.button(text=get_text('auto_signature_text_btn', lang), callback_data="auto_sig_edit_text")
+    # Tahrirlash tugmasi
+    builder.button(text="✍️ tahrirlash", callback_data="auto_sig_edit_text")
 
-    builder.adjust(1)
-
-    # Yoqish/o'chirish tugmasi
+    # Yoqish/o'chirish tugmasi - faqat holatni ko'rsatadi
     if enabled:
-        builder.button(text=get_text('auto_signature_disable_btn', lang), callback_data="auto_sig_toggle")
+        builder.button(text="✅ yoqilgan", callback_data="auto_sig_toggle")
     else:
-        builder.button(text=get_text('auto_signature_enable_btn', lang), callback_data="auto_sig_toggle")
+        builder.button(text="❌ o'chirilgan", callback_data="auto_sig_toggle")
 
-    builder.adjust(1)
+    builder.adjust(2)
 
     return builder.as_markup()
 
@@ -516,5 +509,12 @@ def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):
 def get_auto_signature_back_kb(lang: str = 'uzl'):
     """Avto imzo matnini kiritishdan keyin qaytish tugmasi"""
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('cancel_btn', lang), callback_data="auto_sig_settings")
+    builder.button(text="🔙 orqaga", callback_data="auto_sig_settings")
+    return builder.as_markup()
+
+
+def get_auto_signature_cancel_kb(lang: str = 'uzl'):
+    """Yangi imzo qo'shishni bekor qilish tugmasi"""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="❌ Bekor qilish", callback_data="auto_sig_cancel_new")
     return builder.as_markup()

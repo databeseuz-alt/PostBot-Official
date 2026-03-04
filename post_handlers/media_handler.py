@@ -82,25 +82,8 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
                 has_thumbnail=bool(post_data.get('thumbnail_file_id'))
             )
         )
-    except Exception as e:
-        # Agar tahrirlash ishlamasa, yangi xabar yuborish
-        try:
-            await callback.message.delete()
-            await callback.message.answer(
-                get_text('media_settings_msg', lang),
-                reply_markup=get_media_settings_inline_kb(
-                    lang=lang,
-                    has_spoiler=has_spoiler,
-                    is_paid=is_paid,
-                    show_caption_above=new_show_caption_above,
-                    has_caption=has_caption,
-                    content_type=content_type,
-                    paid_price=post_data.get('paid_price', 1),
-                    has_thumbnail=bool(post_data.get('thumbnail_file_id'))
-                )
-            )
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     await callback.answer()
 
@@ -170,40 +153,25 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     # Postni yangilash - o'chirmasdan tahrirlashga harakat qilish
     await redraw_post_with_callback(callback, state)
 
-    # Media sozlamalari xabarini yangilash (o'chirmasdan)
+    # Media sozlamalari xabarini o'chirib yangidan yuborish (post bilan birga)
     try:
-        await callback.message.edit_text(
-            get_text('media_settings_msg', lang),
-            reply_markup=get_media_settings_inline_kb(
-                lang=lang,
-                has_spoiler=has_spoiler,
-                is_paid=new_paid,
-                show_caption_above=show_caption_above,
-                has_caption=has_caption,
-                content_type=content_type,
-                paid_price=post_data.get('paid_price', 1),
-                has_thumbnail=bool(post_data.get('thumbnail_file_id'))
-            )
-        )
+        await callback.message.delete()
     except Exception:
-        # Agar tahrirlash ishlamasa, o'chirib yangidan yuborish
-        try:
-            await callback.message.delete()
-            await callback.message.answer(
-                get_text('media_settings_msg', lang),
-                reply_markup=get_media_settings_inline_kb(
-                    lang=lang,
-                    has_spoiler=has_spoiler,
-                    is_paid=new_paid,
-                    show_caption_above=show_caption_above,
-                    has_caption=has_caption,
-                    content_type=content_type,
-                    paid_price=post_data.get('paid_price', 1),
-                    has_thumbnail=bool(post_data.get('thumbnail_file_id'))
-                )
-            )
-        except Exception:
-            pass
+        pass
+    
+    await callback.message.answer(
+        get_text('media_settings_msg', lang),
+        reply_markup=get_media_settings_inline_kb(
+            lang=lang,
+            has_spoiler=has_spoiler,
+            is_paid=new_paid,
+            show_caption_above=show_caption_above,
+            has_caption=has_caption,
+            content_type=content_type,
+            paid_price=post_data.get('paid_price', 1),
+            has_thumbnail=bool(post_data.get('thumbnail_file_id'))
+        )
+    )
 
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_post_settings")
 async def back_from_media_to_post_settings(callback: types.CallbackQuery, state: FSMContext):
