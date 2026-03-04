@@ -28,9 +28,11 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     if content_type in ['poll', 'location']:
         builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
-    # Avto imzo, Media, Viktorina va Suv belgisi tugmalari
+    # Avto imzo, Media (faqat photo/video), Viktorina va Suv belgisi tugmalari
     builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-    builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
+    # Media sozlamalari faqat photo va video uchun
+    if content_type in ['photo', 'video']:
+        builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
     builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
     # Suv belgisi faqat photo uchun
     if content_type == 'photo':
@@ -43,9 +45,11 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     else:
         builder.add(KeyboardButton(text=get_text('done_btn', lang))) # Tayyor
 
-    # Photo uchun 4 tugma, boshqa uchun 3 tugma
+    # Photo uchun 4 tugma, video uchun 3 tugma, boshqa uchun 3 tugma
     if content_type == 'photo':
         builder.adjust(4, 4, 2)
+    elif content_type == 'video':
+        builder.adjust(4, 3, 2)
     else:
         builder.adjust(4, 3, 2)
 

@@ -508,6 +508,65 @@ async def set_watermark_text(message: Message, state: FSMContext):
     await state.update_data(post_data=post_data)
     await state.set_state(PostCreation.configuring_post)
 
+    # Tekshirish - reply button'dan kelganmi yoki yo'qmi
+    source = data.get('watermark_source')
+    
+    if source == 'reply_button':
+        # Reply button'dan kelsa:
+        # 1. Foydalanuvchi xabarini o'chirish
+        # 2. Postni o'chirish va yangi yuborish
+        # 3. Sozlamalarni ko'rsatish
+        
+        chat_id = post_data.get('chat_id')
+        message_id = post_data.get('message_id')
+        
+        # Foydalanuvchi xabarini o'chirish
+        try:
+            await message.delete()
+        except Exception:
+            pass
+        
+        # "Suv belgisi matnini kiriting" xabarini o'chirish
+        watermark_prompt_message_id = data.get('watermark_prompt_message_id')
+        if watermark_prompt_message_id and chat_id:
+            try:
+                await message.bot.delete_message(chat_id, watermark_prompt_message_id)
+            except Exception:
+                pass
+        
+        # Postni o'chirib yangi yuborish
+        if chat_id and message_id:
+            try:
+                await message.bot.delete_message(chat_id, message_id)
+                
+                from post_handlers.reply_handler import send_new_post_with_settings
+                from post_handlers.xinline_keyboard import generate_post_keyboard
+                
+                buttons_matrix = data.get("buttons_matrix", [])
+                new_keyboard = generate_post_keyboard(buttons_matrix, lang)
+                
+                await send_new_post_with_settings(message, state, post_data, new_keyboard)
+                
+                # Yangilangan post ma'lumotlarini olish
+                data = await state.get_data()
+                post_data = data.get("post_data", {})
+            except Exception:
+                pass
+        
+        # Watermark sozlamalarini yuborish
+        position = post_data.get('watermark_position', 'bottom_right')
+        watermark_text = post_data.get('watermark_text', '')
+        transparency = post_data.get('watermark_transparency', 200)
+        rotation = post_data.get('watermark_rotation', 0)
+        scale = post_data.get('watermark_scale', 1.0)
+        watermark_type = post_data.get('watermark_type', 'text')
+        
+        await message.answer(
+            get_text('watermark_info', lang),
+            reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
+        )
+        return
+    
     await apply_and_redraw_watermark(message, state, lang)
 
     data = await state.get_data()
@@ -978,6 +1037,25 @@ async def show_watermark_settings_reply(message: Message, state: FSMContext):
     data = await state.get_data()
     post_data = data.get("post_data", {})
     
+    # Agar watermark qo'shilmagan bo'lsa, birinchi matn so'rash
+    if not post_data.get('watermark_text') and not post_data.get('watermark_image_id'):
+        await state.set_state(PostCreation.waiting_for_watermark_text)
+        await state.update_data(watermark_source='reply_button')
+        
+        from aiogram.utils.keyboard import InlineKeyboardBuilder
+        builder = InlineKeyboardBuilder()
+        builder.button(text="🔙 orqaga", callback_data="back_to_post_settings")
+        
+        prompt_msg = await message.answer(
+            "<b>suv belgisi matnini kiriting :</b>\n\n<b>misol: </b><code>@channel_name</code>",
+            reply_markup=builder.as_markup()
+        )
+        
+        # Xabar ID sini saqlash (keyin o'chirish uchun)
+        await state.update_data(watermark_prompt_message_id=prompt_msg.message_id)
+        return
+    
+    # Agar watermark mavjud bo'lsa, sozlamalarni ko'rsatish
     watermark_text = post_data.get('watermark_text', '')
     transparency = post_data.get('watermark_transparency', 200)
     rotation = post_data.get('watermark_rotation', 0)

@@ -154,13 +154,15 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
     await redraw_post_with_callback(callback, state)
 
     # Media sozlamalari xabarini o'chirib yangidan yuborish (post bilan birga)
+    chat_id = callback.message.chat.id
     try:
         await callback.message.delete()
     except Exception:
         pass
     
-    await callback.message.answer(
-        get_text('media_settings_msg', lang),
+    await callback.bot.send_message(
+        chat_id=chat_id,
+        text=get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_inline_kb(
             lang=lang,
             has_spoiler=has_spoiler,
@@ -659,10 +661,13 @@ async def media_set_price_handler(callback: types.CallbackQuery, state: FSMConte
         pass
 
     # Yangi xabar yuborish - faqat orqaga tugmasi bilan
-    await callback.message.answer(
+    prompt_msg = await callback.message.answer(
         get_text('enter_media_price_msg', lang),
         reply_markup=keyboard
     )
+
+    # Xabar ID sini saqlash (keyin o'chirish uchun)
+    await state.update_data(price_prompt_message_id=prompt_msg.message_id)
 
     await state.set_state(PostCreation.waiting_for_paid_price)
     await callback.answer()
@@ -725,11 +730,19 @@ async def process_paid_price(message: Message, state: FSMContext):
     post_data['paid_price'] = price
     await state.update_data(post_data=post_data)
 
-    # Joriy xabarni o'chirish (narx soragan xabar)
+    # Foydalanuvchi xabarini o'chirish
     try:
         await message.delete()
     except Exception:
         pass
+
+    # Narx soragan xabarni o'chirish (agar saqlangan bo'lsa)
+    price_prompt_message_id = data.get('price_prompt_message_id')
+    if price_prompt_message_id:
+        try:
+            await message.bot.delete_message(message.chat.id, price_prompt_message_id)
+        except Exception:
+            pass
 
     # Tepadagi postni o'chirish
     chat_id = post_data.get('chat_id')
