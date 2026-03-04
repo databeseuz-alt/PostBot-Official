@@ -185,9 +185,6 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
 
     return builder.as_markup()
 
-def create_post_options_keyboard(content_type: str, lang: str = 'uzl'):
-    """Postning qo'shimcha sozlamalari uchun asosiy menyu."""
-    return None
 
 async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
     """
@@ -336,7 +333,7 @@ def create_settings_main_keyboard(lang: str = 'uzl'):
     builder.adjust(1)
     return builder.as_markup()
 
-def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1, has_thumbnail: bool = False):
+def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1):
     """Media sozlamalari uchun inline klaviatura"""
     builder = InlineKeyboardBuilder()
 
@@ -474,16 +471,6 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None, print_
     return builder.as_markup()
 
 
-def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
-    """Asosiy sozlamalar menyusi - endi bo'sh, barcha tugmalar reply markup'da"""
-    builder = InlineKeyboardBuilder()
-    # Barcha asosiy tugmalar endi reply markup'da
-    # Bu funksiya endi bo'sh inline klaviatura qaytaradi
-    return builder.as_markup()
-
-def get_post_settings_inline_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
-    """Post sozlamalari uchun inline klaviatura - tugmalar olib tashlangan"""
-    return None
 
 
 def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):

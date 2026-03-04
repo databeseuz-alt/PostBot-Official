@@ -15,7 +15,6 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder = ReplyKeyboardBuilder()
 
     builder.add(KeyboardButton(text=get_text('preview_btn', lang))) # Ko'rish
-    builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
 
     if content_type == 'poll':
@@ -45,13 +44,13 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     else:
         builder.add(KeyboardButton(text=get_text('done_btn', lang))) # Tayyor
 
-    # Photo uchun 4 tugma, video uchun 3 tugma, boshqa uchun 3 tugma
+    # Adjust layout
     if content_type == 'photo':
-        builder.adjust(4, 4, 2)
+        builder.adjust(3, 4, 2)
     elif content_type == 'video':
-        builder.adjust(4, 3, 2)
+        builder.adjust(3, 3, 2)
     else:
-        builder.adjust(4, 3, 2)
+        builder.adjust(3, 2, 2)
 
     return builder.as_markup(resize_keyboard=True)
 

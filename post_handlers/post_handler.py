@@ -47,22 +47,16 @@ class PostCreation(StatesGroup):
     waiting_for_reaction_color = State()
 
     waiting_for_media_settings = State()
-    waiting_for_position = State()
     waiting_for_paid_price = State()
     waiting_for_location = State()
     waiting_for_quiz_answer = State()
 
     waiting_for_delete_timer = State()
-    waiting_for_pin_setting = State()
-    waiting_for_protect_setting = State()
-    waiting_for_voice_setting = State()
     waiting_for_reply_setting = State()
-    waiting_for_auto_repeat_setting = State()
 
     waiting_for_watermark_text = State()
     waiting_for_watermark_image = State()
 
-    waiting_for_thumbnail = State()
     waiting_for_reply_message_id = State()
     waiting_for_auto_delete_time = State()
 

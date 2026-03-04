@@ -6,44 +6,13 @@ from aiogram.types import Message
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from post_handlers.post_handler import PostCreation
-from post_handlers.xinline_keyboard import (
-    get_media_settings_inline_kb, get_settings_menu_inline_kb
-)
+from post_handlers.xinline_keyboard import get_media_settings_inline_kb
 from post_handlers.xreply_keyboard import get_post_settings_kb
 from post_handlers.localize_filter import LocalizedText
 from xdata_handlers.database import get_user_language
 from xdata_handlers.translator import get_text
 
 media_router = Router()
-
-@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "post_media_settings")
-async def post_media_settings_menu(callback: types.CallbackQuery, state: FSMContext):
-    """Post tahrirlashda media sozlamalari menyusini ochish"""
-    data = await state.get_data()
-    post_data = data.get("post_data", {})
-    lang = await get_user_language(callback.from_user.id)
-
-    content_type = post_data.get('content_type', 'photo')
-    has_spoiler = post_data.get('has_spoiler', False)
-    is_paid = post_data.get('is_paid', False)
-    show_caption_above = post_data.get('show_caption_above_media', False)
-    has_caption = bool(post_data.get('caption'))
-
-    await state.set_state(PostCreation.waiting_for_media_settings)
-
-    await callback.message.edit_text(
-        get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang,
-            has_spoiler=has_spoiler,
-            is_paid=is_paid,
-            show_caption_above=show_caption_above,
-            has_caption=has_caption,
-            content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
-        )
-    )
-    await callback.answer()
 
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_toggle_position")
 async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMContext):
@@ -78,8 +47,7 @@ async def post_media_toggle_position(callback: types.CallbackQuery, state: FSMCo
                 show_caption_above=new_show_caption_above,
                 has_caption=has_caption,
                 content_type=content_type,
-                paid_price=post_data.get('paid_price', 1),
-                has_thumbnail=bool(post_data.get('thumbnail_file_id'))
+                paid_price=post_data.get('paid_price', 1)
             )
         )
     except Exception:
@@ -174,75 +142,11 @@ async def post_media_toggle_paid(callback: types.CallbackQuery, state: FSMContex
                 show_caption_above=show_caption_above,
                 has_caption=has_caption,
                 content_type=content_type,
-                paid_price=post_data.get('paid_price', 1),
-                has_thumbnail=bool(post_data.get('thumbnail_file_id'))
+                paid_price=post_data.get('paid_price', 1)
             )
         )
     except Exception:
         pass
-
-@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_post_settings")
-async def back_from_media_to_post_settings(callback: types.CallbackQuery, state: FSMContext):
-    """Media sozlamalaridan post sozlamalariga qaytish"""
-    data = await state.get_data()
-    post_data = data.get("post_data", {})
-    lang = await get_user_language(callback.from_user.id)
-
-    content_type = post_data.get('content_type') or 'photo'
-    has_caption = bool(post_data.get('caption'))
-    is_paid = post_data.get('is_paid', False)
-
-    previous_state = await state.get_state()
-
-    await state.set_state(PostCreation.configuring_post)
-
-    if previous_state == PostCreation.configuring_post:
-        from post_handlers.xinline_keyboard import create_post_options_keyboard
-        keyboard = create_post_options_keyboard(
-            content_type=content_type,
-            lang=lang
-        )
-
-        if keyboard:
-            await callback.message.edit_text(
-                get_text('post_settings_msg', lang),
-                reply_markup=keyboard
-            )
-        else:
-            try:
-                await callback.message.delete()
-            except Exception:
-                pass
-    else:
-        try:
-            await callback.message.delete()
-        except Exception:
-            pass
-
-        await callback.message.answer(
-            get_text('post_settings_msg', lang),
-            reply_markup=get_post_settings_kb(content_type, has_caption, lang, is_paid=is_paid)
-        )
-
-    await callback.answer()
-
-@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "back_to_settings_menu")
-async def back_to_settings_menu_handler(callback: types.CallbackQuery, state: FSMContext):
-    """Media sozlamalaridan sozlamalar menyusiga qaytish"""
-    data = await state.get_data()
-    post_data = data.get("post_data", {})
-    lang = await get_user_language(callback.from_user.id)
-
-    content_type = post_data.get('content_type') or 'photo'
-
-    await state.set_state(PostCreation.waiting_for_media_settings)
-
-    await callback.message.edit_text(
-        get_text('select_settings_msg', lang),
-        reply_markup=get_settings_menu_inline_kb(lang=lang, content_type=content_type)
-    )
-
-    await callback.answer()
 
 @media_router.message(
     PostCreation.waiting_for_media_settings,
@@ -279,34 +183,6 @@ async def open_media_settings_from_reply(message: Message, state: FSMContext):
         )
     )
 
-@media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "open_media_settings_menu")
-async def open_media_settings_inline(callback: types.CallbackQuery, state: FSMContext):
-    """Inline Media tugmasi bosilganda - inline klaviaturani ko'rsatish"""
-    data = await state.get_data()
-    post_data = data.get("post_data", {})
-    lang = await get_user_language(callback.from_user.id)
-
-    content_type = post_data.get('content_type', 'photo')
-    has_spoiler = post_data.get('has_spoiler', False)
-    is_paid = post_data.get('is_paid', False)
-    show_caption_above = post_data.get('show_caption_above_media', False)
-    has_caption = bool(post_data.get('caption'))
-
-    await state.set_state(PostCreation.waiting_for_media_settings)
-
-    await callback.message.edit_text(
-        get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang,
-            has_spoiler=has_spoiler,
-            is_paid=is_paid,
-            show_caption_above=show_caption_above,
-            has_caption=has_caption,
-            content_type=content_type,
-            paid_price=post_data.get('paid_price', 1)
-        )
-    )
-    await callback.answer()
 
 async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMContext):
     """Postni yangilangan sozlamalar bilan qayta chizish (callback uchun) - o'chirmasdan tahrirlash"""
@@ -831,13 +707,11 @@ async def process_paid_price(message: Message, state: FSMContext):
             show_caption_above=show_caption_above,
             has_caption=has_caption,
             content_type=content_type,
-            paid_price=price,
-            has_thumbnail=bool(post_data.get('thumbnail_file_id'))
+            paid_price=price
         )
     )
 
 
-# ====== THUMBNAIL HANDLER ======
 
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_set_thumbnail")
 async def media_set_thumbnail_handler(callback: types.CallbackQuery, state: FSMContext):
@@ -940,51 +814,5 @@ async def back_from_thumbnail_handler(callback: types.CallbackQuery, state: FSMC
     )
     await state.set_state(PostCreation.waiting_for_media_settings)
     await callback.answer()
-
-
-@media_router.message(PostCreation.waiting_for_thumbnail, F.photo)
-async def process_thumbnail_photo(message: Message, state: FSMContext):
-    """Foydalanuvchi thumbnail rasmini yubordi"""
-    data = await state.get_data()
-    post_data = data.get('post_data', {})
-    lang = await get_user_language(message.from_user.id)
-
-    # Rasmning file_id ni saqlash
-    thumbnail_file_id = message.photo[-1].file_id
-    post_data['thumbnail_file_id'] = thumbnail_file_id
-    await state.update_data(post_data=post_data)
-    logger.info(f"Thumbnail saqlandi: user_id={message.from_user.id}, file_id={thumbnail_file_id}")
-
-    # Muvaffaqiyat xabarini ko'rsatish
-    await message.answer(get_text('thumbnail_saved', lang))
-
-    # Media sozlamalariga qaytish
-    content_type = post_data.get('content_type', 'photo')
-    has_spoiler = post_data.get('has_spoiler', False)
-    is_paid = post_data.get('is_paid', False)
-    show_caption_above = post_data.get('show_caption_above_media', False)
-    has_caption = bool(post_data.get('caption'))
-
-    await message.answer(
-        get_text('media_settings_msg', lang),
-        reply_markup=get_media_settings_inline_kb(
-            lang=lang,
-            has_spoiler=has_spoiler,
-            is_paid=is_paid,
-            show_caption_above=show_caption_above,
-            has_caption=has_caption,
-            content_type=content_type,
-            paid_price=post_data.get('paid_price', 1),
-            has_thumbnail=True
-        )
-    )
-    await state.set_state(PostCreation.waiting_for_media_settings)
-
-
-@media_router.message(PostCreation.waiting_for_thumbnail)
-async def process_thumbnail_invalid(message: Message, state: FSMContext):
-    """Noto'g'ri thumbnail format"""
-    lang = await get_user_language(message.from_user.id)
-    await message.answer(get_text('thumbnail_invalid', lang))
 
 
