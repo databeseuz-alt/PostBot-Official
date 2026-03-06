@@ -191,6 +191,9 @@ async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
     Post saqlangandan keyin 'Saqlash' yoki 'Tahrirlash' tugmalarini yaratadi.
     Agar postda nom bo'lsa -> 'Tahrirlash', aks holda -> 'Saqlash'
     """
+    if not post_code:
+        return None
+    
     builder = InlineKeyboardBuilder()
 
     post_name = await get_post_name(post_code)

@@ -18,25 +18,44 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
 
+    
+    builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
+
+    # For poll & text: add auto_signature and quiz buttons
+    # For location: no auto_signature or quiz
+    # For photo/video/paid_media: add auto_signature only if has_caption, always add media_settings and watermark
+    # For audio/voice: no media_settings, no quiz
+    # For document/animation: add media_settings
     if content_type == 'poll':
+        builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
+        builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
+    elif content_type == 'text':
+        builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
+        builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
+    elif content_type in ['photo', 'video', 'paid_media']:
+        if has_caption:
+            builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
         builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
-    elif content_type == 'location':
-        builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
-    else:
-        builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
+    elif content_type in ['audio', 'voice']:
+        # Audio and voice: no media_settings, no quiz
+        # With caption: add auto_signature
+        if has_caption:
+            builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
+    elif content_type in ['document', 'animation']:
+        # Document and animation: only one button in middle row
+        # With caption: auto_signature, without caption: media_settings
+        if has_caption:
+            builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
+        else:
+            builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
 
-    if content_type in ['poll', 'location']:
-        builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
-
-    # Avto imzo, Media (faqat photo/video), Viktorina va Suv belgisi tugmalari
-    builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-    # Media sozlamalari faqat photo va video uchun
-    if content_type in ['photo', 'video']:
-        builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
-    builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
-    # Suv belgisi faqat photo uchun
-    if content_type == 'photo':
+    # Watermark for photo, video, and paid_media only
+    if content_type in ['photo', 'video', 'paid_media']:
         builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
+
+    # Convert button for photo, video, paid_media, sticker and video_note
+    if content_type in ['photo', 'video', 'paid_media', 'sticker', 'video_note']:
+        builder.add(KeyboardButton(text=get_text('convert_btn', lang)))
 
     builder.add(KeyboardButton(text=get_text('cancel_btn', lang))) # Bekor qilish
 
@@ -45,11 +64,23 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     else:
         builder.add(KeyboardButton(text=get_text('done_btn', lang))) # Tayyor
 
-    # Adjust layout
-    if content_type == 'photo':
+    # Adjust layout based on content type
+    if content_type == 'poll':
+        builder.adjust(4, 2, 2)
+    elif content_type == 'location':
+        builder.adjust(4, 2)
+    elif content_type in ['photo', 'video', 'paid_media']:
         builder.adjust(4, 4, 2)
-    elif content_type == 'video':
-        builder.adjust(4, 3, 2)
+    elif content_type == 'text':
+        builder.adjust(4, 2, 2)
+    elif content_type in ['audio', 'voice']:
+        builder.adjust(4, 2)
+    elif content_type in ['document', 'animation']:
+        builder.adjust(4, 1, 2)
+    elif content_type == 'dice':
+        builder.adjust(4, 2)
+    elif content_type in ['sticker', 'video_note']:
+        builder.adjust(4, 1, 2)
     else:
         builder.adjust(4, 2, 2)
 

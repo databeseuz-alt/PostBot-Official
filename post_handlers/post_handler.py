@@ -696,6 +696,9 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
     is_delete_text = message.text == get_text('delete_text_btn', lang)
     is_action = is_delete_media or is_delete_text
 
+    # Media types that don't support captions
+    media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice', 'poll')
+    
     if is_action and post_data:
         if is_delete_media:
             if post_data.get('content_type') != 'text' and post_data.get('caption'):
@@ -710,13 +713,42 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
         is_incoming_media = False
     else:
         if post_data:
-            if is_incoming_media:
-                if post_data.get('content_type') == 'text' and post_data.get('text') and new_caption is None:
-                    post_data['caption'] = post_data['text']
+            old_content_type = post_data.get('content_type', 'text')
+            
+            # Handle: user sends text but old content was media without caption (video_note, sticker, location, etc.)
+            # In this case, delete old media and show only text
+            if not is_incoming_media and old_content_type in media_without_caption:
+                # User is sending text, but old content was media that doesn't support text
+                # Delete old media and use only text
+                post_data['content_type'] = 'text'
+                post_data['text'] = new_text
+                post_data['caption'] = None
+                post_data['file_id'] = None
+            elif not is_incoming_media and old_content_type not in ('text',):
+                # User is sending text to media that supports caption
+                # Convert to caption
+                post_data['content_type'] = old_content_type  # Keep same content type
+                post_data['caption'] = new_text
+                post_data['text'] = None
+            elif is_incoming_media:
+                # Handle: user sends new media
+                # If switching from old media to new media, clear old file_id
+                if old_content_type != 'text' and old_content_type != message.content_type:
+                    # User is replacing one media with another - clear old file_id
+                    post_data['file_id'] = None
+                
+                # If old content had text and new media doesn't support caption, delete text
+                if message.content_type in media_without_caption and post_data.get('text'):
+                    # New media doesn't support caption, delete old text
                     post_data['text'] = None
+                
+                if post_data.get('content_type') == 'text' and post_data.get('text') and new_caption is None:
+                    if message.content_type not in media_without_caption:
+                        post_data['caption'] = post_data['text']
+                        post_data['text'] = None
 
                 post_data['content_type'] = message.content_type
-                if new_caption is not None:
+                if new_caption is not None and message.content_type not in media_without_caption:
                     post_data['caption'] = new_caption
                     post_data['text'] = None
             else:

@@ -282,23 +282,18 @@ async def done_post_creation(event: types.Message | types.CallbackQuery, state: 
 
     await state.clear()
 
-    try:
-        if isinstance(event, types.Message):
-            await event.delete()
-        else:
-            await event.message.delete()
-    except Exception:
-        pass
-
+    # Show success message with reply keyboard
+    from post_handlers.xreply_keyboard import get_post_done_menu, get_back_button_kb
     if isinstance(event, types.Message):
-        remover_message = await event.answer(get_text('post_saved_to_db', lang), reply_markup=ReplyKeyboardRemove())
+        success_message = await event.answer(
+            get_text('post_saved_to_db', lang),
+            reply_markup=get_post_done_menu(lang)
+        )
     else:
-        remover_message = await event.message.answer(get_text('post_saved_to_db', lang), reply_markup=ReplyKeyboardRemove())
-
-    try:
-        await remover_message.delete()
-    except Exception:
-        pass
+        success_message = await event.message.answer(
+            get_text('post_saved_to_db', lang),
+            reply_markup=get_post_done_menu(lang)
+        )
 
     if isinstance(event, types.CallbackQuery):
         await event.answer()
