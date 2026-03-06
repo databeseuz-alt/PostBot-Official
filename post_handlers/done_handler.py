@@ -303,6 +303,18 @@ async def done_post_creation(event: types.Message | types.CallbackQuery, state: 
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "start_save"))
 async def save_post_prompt(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory, state: FSMContext):
     post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code_to_save") or data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     lang = await get_user_language(callback.from_user.id)
 
     await state.set_state(PostCreation.waiting_for_post_name)
@@ -320,8 +332,21 @@ async def save_post_prompt(callback: types.CallbackQuery, callback_data: SavePos
     await callback.answer()
 
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "edit_save_menu"))
-async def show_edit_save_menu(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory):
+async def show_edit_save_menu(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory, state: FSMContext):
     """'Tahrirlash' bosilganda [Qayta nomlash][O'chirish] menyusini chiqaradi."""
+    post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     post_code = callback_data.post_code
 
     lang = await get_user_language(callback.from_user.id)
@@ -334,6 +359,19 @@ async def show_edit_save_menu(callback: types.CallbackQuery, callback_data: Save
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "delete_name"))
 async def delete_post_name_handler(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory, state: FSMContext):
     """'O'chirish' bosilganda nomni o'chiradi va yana 'Saqlash' holatiga qaytaradi."""
+    post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     post_code = callback_data.post_code
     user_id = callback.from_user.id
 
@@ -358,6 +396,19 @@ async def delete_post_name_handler(callback: types.CallbackQuery, callback_data:
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "rename"))
 async def rename_post_prompt(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory, state: FSMContext):
     """'Qayta nomlash' bosilganda yangi nom so'raydi."""
+    post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     post_code = callback_data.post_code
     lang = await get_user_language(callback.from_user.id)
 

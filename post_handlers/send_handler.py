@@ -150,6 +150,18 @@ async def process_channel_id_or_username(message: types.Message, state: FSMConte
 @send_router.callback_query(PostSendCallbackFactory.filter(F.action == "start_sending"))
 async def start_sending_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, state: FSMContext, bot: Bot):
     post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
 
@@ -269,6 +281,18 @@ async def back_to_timing_from_confirm(callback: types.CallbackQuery, callback_da
 @send_router.callback_query(PostSending.confirming_post_send, PostSendCallbackFactory.filter(F.action == "confirm_send"))
 async def confirm_send_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, bot: Bot, state: FSMContext):
     post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     channel_id = callback_data.channel_id
     user_id = callback.from_user.id # User ID ni olamiz
     lang = await get_user_language(user_id)

@@ -51,6 +51,18 @@ async def start_scheduling_for_channel(callback: types.CallbackQuery, callback_d
     """Kanal tanlagandan keyin rejalashtirishni boshlaydi."""
     post_code = callback_data.post_code
     channel_id = callback_data.channel_id
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code") or data.get("schedule_post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
 
     await state.update_data(schedule_post_code=post_code, schedule_channel_id=channel_id)
     await state.set_state(PostSending.choosing_schedule_time)

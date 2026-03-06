@@ -469,6 +469,19 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
 
 @edit_post_router.callback_query(EditSendCallbackFactory.filter(F.action == "edit"))
 async def handle_edit_action(callback: types.CallbackQuery, callback_data: EditSendCallbackFactory, state: FSMContext, bot: Bot):
+    post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     await load_post_for_editing(
         post_code=callback_data.post_code,
         user_id=callback.from_user.id,
@@ -481,4 +494,17 @@ async def handle_edit_action(callback: types.CallbackQuery, callback_data: EditS
 
 @edit_post_router.callback_query(EditSendCallbackFactory.filter(F.action == "send"))
 async def handle_send_action(callback: types.CallbackQuery, callback_data: EditSendCallbackFactory, state: FSMContext):
+    post_code = callback_data.post_code
+    
+    # post_code None bo'lsa, state dan olishga urinib ko'rish
+    if not post_code:
+        data = await state.get_data()
+        post_code = data.get("post_code")
+    
+    # Yana ham None bo'lsa, xabar berish
+    if not post_code:
+        lang = await get_user_language(callback.from_user.id)
+        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
+        await callback.answer()
+        return
     await start_sending_handler(callback, callback_data, state)

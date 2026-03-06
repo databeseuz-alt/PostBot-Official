@@ -62,11 +62,11 @@ class PostSendCallbackFactory(CallbackData, prefix="post_send"):
 
 class EditSendCallbackFactory(CallbackData, prefix="edit_send"):
     action: str
-    post_code: str
+    post_code: Optional[str] = None
 
 class SavePostCallbackFactory(CallbackData, prefix="save_post"):
     action: str
-    post_code: str
+    post_code: Optional[str] = None
 
 def generate_post_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] = None, lang: str = 'uzl'):
     """Tahrirlash uchun klaviatura (➕ va boshqaruvchi tugmalar bilan)"""
