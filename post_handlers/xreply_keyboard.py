@@ -51,7 +51,7 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     elif content_type == 'video':
         builder.adjust(4, 3, 2)
     else:
-        builder.adjust(4, 3, 2)
+        builder.adjust(4, 2, 2)
 
     return builder.as_markup(resize_keyboard=True)
 
