@@ -219,14 +219,24 @@ async def toggle_auto_signature_handler(callback: CallbackQuery, state: FSMConte
                 
                 post_data['text'] = new_text
                 
-                # Postni tahrirlash
-                if chat_id and message_id and new_text != current_text:
-                    await bot.edit_message_text(
-                        chat_id=chat_id,
-                        message_id=message_id,
-                        text=new_text,
-                        parse_mode='HTML'
-                    )
+                # Postni tahrirlash (keyboardni har doim yangilash)
+                if chat_id and message_id:
+                    new_keyboard = generate_post_keyboard(buttons_matrix, lang)
+                    if new_text != current_text:
+                        await bot.edit_message_text(
+                            chat_id=chat_id,
+                            message_id=message_id,
+                            text=new_text,
+                            reply_markup=new_keyboard,
+                            parse_mode='HTML'
+                        )
+                    else:
+                        # Faqat keyboardni yangilash
+                        await bot.edit_message_reply_markup(
+                            chat_id=chat_id,
+                            message_id=message_id,
+                            reply_markup=new_keyboard
+                        )
             else:
                 # Media postlar uchun caption
                 current_caption = post_data.get('caption', '')
@@ -250,14 +260,24 @@ async def toggle_auto_signature_handler(callback: CallbackQuery, state: FSMConte
                 
                 post_data['caption'] = new_caption
                 
-                # Caption ni tahrirlash
-                if chat_id and message_id and new_caption != current_caption:
-                    await bot.edit_message_caption(
-                        chat_id=chat_id,
-                        message_id=message_id,
-                        caption=new_caption,
-                        parse_mode='HTML'
-                    )
+                # Caption ni tahrirlash (keyboardni har doim yangilash)
+                if chat_id and message_id:
+                    new_keyboard = generate_post_keyboard(buttons_matrix, lang)
+                    if new_caption != current_caption:
+                        await bot.edit_message_caption(
+                            chat_id=chat_id,
+                            message_id=message_id,
+                            caption=new_caption,
+                            reply_markup=new_keyboard,
+                            parse_mode='HTML'
+                        )
+                    else:
+                        # Faqat keyboardni yangilash
+                        await bot.edit_message_reply_markup(
+                            chat_id=chat_id,
+                            message_id=message_id,
+                            reply_markup=new_keyboard
+                        )
             
             # State yangilash
             await state.update_data(post_data=post_data)
