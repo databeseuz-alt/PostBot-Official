@@ -553,6 +553,40 @@ async def mark_scheduled_post_as_sent(post_id: int) -> bool:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
+async def get_user_sent_posts(user_id: int) -> List[Dict]:
+    """Foydalanuvchining yuborilgan barcha postlarini oladi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT sp.post_code, sp.channel_id, sp.channel_name, sp.message_id, sp.sent_at,
+                       pi.full_post_data
+                FROM send_posts sp
+                LEFT JOIN post_info pi ON sp.post_code = pi.post_code
+                WHERE sp.user_id = %s AND sp.status = 'sent' AND sp.message_id IS NOT NULL
+                ORDER BY sp.sent_at DESC
+            """, (user_id,))
+            rows = cursor.fetchall()
+            return [
+                {
+                    'post_code': row[0],
+                    'channel_id': row[1],
+                    'channel_name': row[2],
+                    'message_id': row[3],
+                    'sent_at': row[4],
+                    'full_post_data': row[5]
+                }
+                for row in rows
+            ]
+        except Exception as e:
+            logger.error(f"get_user_sent_posts xatolik: {e}")
+            return []
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
 async def get_pending_scheduled_posts() -> List[Dict]:
     """Kutilayotgan rejalashtirilgan postlarni oladi."""
     def _sync():
@@ -2162,7 +2196,7 @@ async def update_auto_signature_text(user_id: int, text: str) -> bool:
             else:
                 enabled = False
             
-            new_value = _build_signature_value(enabled, text)
+            new_value = _build_signature_value(True, text)  # Always enable when saving new text
             
             cursor.execute("""
                 INSERT INTO post_settings (user_id, signature)
@@ -2179,6 +2213,3 @@ async def update_auto_signature_text(user_id: int, text: str) -> bool:
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
-
-
-

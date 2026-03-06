@@ -2,7 +2,8 @@ import asyncio
 
 from aiogram import F, Router, types
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.types import Message, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from post_handlers.post_handler import PostCreation
@@ -535,20 +536,23 @@ async def media_set_price_handler(callback: types.CallbackQuery, state: FSMConte
     builder.button(text=get_text('back_btn', lang), callback_data="back_to_media_settings")
     keyboard = builder.as_markup()
 
-    # Media sozlamalari xabarini o'chirish
+    # Xabarni tahrirlash - o'chirib yangi yuborish o'rniga
     try:
-        await callback.message.delete()
+        await callback.message.edit_text(
+            get_text('enter_media_price_msg', lang),
+            reply_markup=keyboard
+        )
     except Exception:
-        pass
-
-    # Yangi xabar yuborish - faqat orqaga tugmasi bilan
-    prompt_msg = await callback.message.answer(
-        get_text('enter_media_price_msg', lang),
-        reply_markup=keyboard
-    )
-
-    # Xabar ID sini saqlash (keyin o'chirish uchun)
-    await state.update_data(price_prompt_message_id=prompt_msg.message_id)
+        # Agar tahrirlash mumkin bo'lmasa (masalan, media xabar), yangi xabar yuborish
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+        prompt_msg = await callback.message.answer(
+            get_text('enter_media_price_msg', lang),
+            reply_markup=keyboard
+        )
+        await state.update_data(price_prompt_message_id=prompt_msg.message_id)
 
     await state.set_state(PostCreation.waiting_for_paid_price)
     await callback.answer()
@@ -567,14 +571,8 @@ async def back_from_price_setting(callback: types.CallbackQuery, state: FSMConte
     show_caption_above = post_data.get('show_caption_above_media', False)
     has_caption = bool(post_data.get('caption'))
 
-    # Joriy xabarni o'chirish
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
-
-    # Media sozlamalarini qayta yuborish
-    await callback.message.answer(
+    # Xabarni tahrirlash (o'chirib qayta yubormasdan)
+    await callback.message.edit_text(
         get_text('media_settings_msg', lang),
         reply_markup=get_media_settings_inline_kb(
             lang=lang,

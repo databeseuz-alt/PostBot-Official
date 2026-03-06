@@ -239,6 +239,28 @@ async def set_language_from_start(callback: types.CallbackQuery, state: FSMConte
     except Exception:
         await callback.answer("Xatolik yuz berdi. Qayta urinib ko'ring.")
 
+@start_router.message(StateFilter(None), F.text & ~F.text.startswith('/'))
+async def handle_unknown_message(event: types.Message, state: FSMContext, bot: Bot):
+    """Foydalanuvchi hech qanday holatda bo'lmaganda xabar yuborsa, asosiy menyuni ko'rsatadi"""
+    user = event.from_user
+    
+    has_language = await check_user_has_language(user.id)
+    
+    if not has_language:
+        await show_language_selection(event)
+        return
+    
+    is_member, text, keyboard = await check_user_membership(user, bot)
+    
+    if not is_member:
+        remover_message = await event.answer(".", reply_markup=ReplyKeyboardRemove())
+        await remover_message.delete()
+        await event.answer(text, reply_markup=keyboard)
+        return
+    
+    await show_main_menu(event, state, bot)
+
+
 @start_router.message(
     StateFilter(
         PostCreation.waiting_for_content,
