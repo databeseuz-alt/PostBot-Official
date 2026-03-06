@@ -1064,20 +1064,24 @@ async def update_post_print_settings(post_code: str, print_settings: dict) -> bo
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def record_user_activity(user_id: int, username: str = None) -> bool:
+async def record_user_activity(user_id: int, username: str = None, nickname: str = None) -> bool:
     """Foydalanuvchi faoliyatini yozib boradi."""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
+            # Agar nickname NULL bo'lsa va username mavjud bo'lsa, username ni nickname qilib ishlatamiz
+            if nickname is None and username:
+                nickname = username
             cursor.execute("""
-                INSERT INTO users (user_id, username, last_activity)
-                VALUES (%s, %s, %s)
+                INSERT INTO users (user_id, username, nickname, last_activity)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (user_id) DO UPDATE SET
                     username = COALESCE(EXCLUDED.username, users.username),
+                    nickname = COALESCE(EXCLUDED.nickname, users.nickname),
                     last_activity = EXCLUDED.last_activity;
-            """, (user_id, username, get_now()))
+            """, (user_id, username, nickname, get_now()))
             conn.commit()
             return True
         except Exception:
@@ -1767,7 +1771,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
             total_users = int((cursor.fetchone() or [0])[0] or 0)
 
             cursor.execute(
-                f"SELECT COUNT(*) FROM users {where_sql} AND COALESCE(is_blocked, 0) = 0" if where_sql else "SELECT COUNT(*) FROM users WHERE COALESCE(is_blocked, 0) = 0",
+                f"SELECT COUNT(*) FROM users {where_sql} AND COALESCE(is_blocked, 0) = 0 AND last_activity >= (NOW() - INTERVAL '30 days')" if where_sql else "SELECT COUNT(*) FROM users WHERE COALESCE(is_blocked, 0) = 0 AND last_activity >= (NOW() - INTERVAL '30 days')",
                 params
             )
             active_users = int((cursor.fetchone() or [0])[0] or 0)
@@ -1776,22 +1780,39 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
             total_posts = int((cursor.fetchone() or [0])[0] or 0)
 
             today = get_now().strftime('%Y-%m-%d')
-            cursor.execute("SELECT new_users, new_posts FROM bot_stats WHERE stat_date = %s", (today,))
-            row = cursor.fetchone()
-            today_users = int(row[0]) if row else 0
-            today_posts = int(row[1]) if row else 0
+            
+            # Bugungi yangi foydalanuvchilar - users jadvalidan
+            cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(join_date) = %s", (today,))
+            today_users = int(cursor.fetchone()[0] or 0)
+            
+            # Bugungi postlar - post_info jadvalidan
+            cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (today,))
+            today_posts = int(cursor.fetchone()[0] or 0)
 
-            cursor.execute("""
-                SELECT stat_date, new_users, new_posts
-                FROM bot_stats
-                WHERE stat_date >= (CURRENT_DATE - INTERVAL '7 days')
-                ORDER BY stat_date DESC
-                LIMIT 7
-            """)
-            last_7_days = [
-                {'date': str(r[0]), 'users': int(r[1] or 0), 'posts': int(r[2] or 0)}
-                for r in cursor.fetchall()
-            ]
+            # Oxirgi 7 kun - users va post_info jadvalidan hisoblash
+            last_7_days = []
+            for i in range(7):
+                day = (get_now() - timedelta(days=i)).strftime('%Y-%m-%d')
+                cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(join_date) = %s", (day,))
+                day_users = int(cursor.fetchone()[0] or 0)
+                cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (day,))
+                day_posts = int(cursor.fetchone()[0] or 0)
+                last_7_days.append({'date': day, 'users': day_users, 'posts': day_posts})
+
+            # Get top language (excluding NULL and admins)
+            top_lang = None
+            try:
+                lang_params = list(params)
+                if excluded_ids:
+                    lang_where = "WHERE user_id NOT IN (%s) AND language IS NOT NULL" % ','.join(['%s'] * len(excluded_ids))
+                else:
+                    lang_where = "WHERE language IS NOT NULL"
+                cursor.execute(f"SELECT language, COUNT(*) FROM users {lang_where} GROUP BY language ORDER BY COUNT(*) DESC LIMIT 1", lang_params)
+                lang_row = cursor.fetchone()
+                if lang_row:
+                    top_lang = lang_row[0]
+            except Exception:
+                top_lang = None
 
             return {
                 'total_users': total_users,
@@ -1799,7 +1820,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                 'active_users': active_users,
                 'total_posts': total_posts,
                 'today_posts': today_posts,
-                'top_lang': None,
+                'top_lang': top_lang,
                 'last_7_days': last_7_days
             }
         except Exception:
@@ -1828,17 +1849,31 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
             now = get_now()
             today = now.strftime('%Y-%m-%d')
 
+            # Hafta boshlanishi (dushanba)
             week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
 
+            # Oy boshlanishi
             month_start = now.replace(day=1).strftime('%Y-%m-%d')
 
-            cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date = %s", (today,))
+            # Kunlik - bugungi yangi foydalanuvchilar
+            cursor.execute(
+                "SELECT COUNT(*) FROM users WHERE DATE(join_date) = %s",
+                (today,)
+            )
             daily = int(cursor.fetchone()[0] or 0)
 
-            cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (week_start,))
+            # Haftalik - ushbu haftadagi yangi foydalanuvchilar
+            cursor.execute(
+                "SELECT COUNT(*) FROM users WHERE DATE(join_date) >= %s",
+                (week_start,)
+            )
             weekly = int(cursor.fetchone()[0] or 0)
 
-            cursor.execute("SELECT COALESCE(SUM(new_users), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
+            # Oylik - ushbu oydagi yangi foydalanuvchilar
+            cursor.execute(
+                "SELECT COUNT(*) FROM users WHERE DATE(join_date) >= %s",
+                (month_start,)
+            )
             monthly = int(cursor.fetchone()[0] or 0)
 
             logger.info(f"Statistika: today={today}, daily={daily}, weekly={weekly}, monthly={monthly}")
@@ -1861,20 +1896,35 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
             now = get_now()
             today = now.strftime('%Y-%m-%d')
 
+            # Hafta boshlanishi (dushanba)
             week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
 
+            # Oy boshlanishi
             month_start = now.replace(day=1).strftime('%Y-%m-%d')
 
+            # Jami postlar
             cursor.execute("SELECT COUNT(*) FROM post_info")
             total = int((cursor.fetchone() or [0])[0] or 0)
 
-            cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date = %s", (today,))
+            # Kunlik - bugungi postlar
+            cursor.execute(
+                "SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s",
+                (today,)
+            )
             daily = int(cursor.fetchone()[0] or 0)
 
-            cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date >= %s", (week_start,))
+            # Haftalik - ushbu haftadagi postlar
+            cursor.execute(
+                "SELECT COUNT(*) FROM post_info WHERE DATE(created_at) >= %s",
+                (week_start,)
+            )
             weekly = int(cursor.fetchone()[0] or 0)
 
-            cursor.execute("SELECT COALESCE(SUM(new_posts), 0) FROM bot_stats WHERE stat_date >= %s", (month_start,))
+            # Oylik - ushbu oydagi postlar
+            cursor.execute(
+                "SELECT COUNT(*) FROM post_info WHERE DATE(created_at) >= %s",
+                (month_start,)
+            )
             monthly = int(cursor.fetchone()[0] or 0)
 
             return {'total': total, 'daily': daily, 'weekly': weekly, 'monthly': monthly}
@@ -1892,7 +1942,7 @@ async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
             cursor = conn.cursor()
             excluded_ids = admin_ids or []
             params: List[Any] = []
-            where_parts = []
+            where_parts = ["language IS NOT NULL"]
             if excluded_ids:
                 where_parts.append("user_id NOT IN (%s)" % ','.join(['%s'] * len(excluded_ids)))
                 params.extend(excluded_ids)
@@ -2130,6 +2180,49 @@ async def get_user_auto_signature(user_id: int) -> dict:
                 'position': 'bottom',
                 'newline': True
             }
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_database_table_stats() -> Dict[str, int]:
+    """Barcha jadval va ularning qatorlar sonini qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Jadval ro'yxati va ularning taxalluslari
+            tables = [
+                ('users', 'Foydalanuvchilar'),
+                ('post_info', 'Postlar'),
+                ('channels', 'Kanallar'),
+                ('send_posts', 'Rejalashtirilgan postlar'),
+                ('text_buttons', 'Tugmalar'),
+                ('bot_stats', 'Bot statistikasi'),
+                ('post_stats', 'Post statistikasi'),
+                ('reactions', 'Reaksiyalar'),
+                ('ai_prompts', 'AI promptlar'),
+                ('req_channels', 'Majburiy kanallar'),
+                ('bot_settings', 'Bot sozlamalari'),
+                ('post_settings', 'Post sozlamalari')
+            ]
+            
+            stats = {}
+            for table_name, display_name in tables:
+                try:
+                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                    count = int(cursor.fetchone()[0])
+                    stats[display_name] = count
+                except Exception as e:
+                    logger.error(f"Error counting {table_name}: {e}")
+                    stats[display_name] = 0
+            
+            return stats
+        except Exception as e:
+            logger.error(f"get_database_table_stats xatolik: {e}")
+            return {}
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)

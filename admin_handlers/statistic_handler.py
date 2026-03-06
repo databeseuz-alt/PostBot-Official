@@ -13,7 +13,7 @@ from xdata_handlers.database import (
     get_posts_stats, get_language_distribution, get_daily_stats_for_graph,
     get_active_users_by_period, get_total_errors_count, get_activity_heatmap_for_last_24h,
     get_weekly_activity, get_daily_hours_activity, get_post_formats, get_button_stats,
-    get_now
+    get_now, get_database_table_stats
 )
 from admin_handlers.xinline_keyboard import (
     get_stats_menu_keyboard, get_graphics_menu_keyboard, 
@@ -656,3 +656,28 @@ async def show_posts_buttons(callback: types.CallbackQuery):
         caption="🔘 <b>Postlarda tugmalar soni</b>",
         reply_markup=get_back_navigation_keyboard("admin:stats:posts_menu")
     )
+
+
+@statistic_router.callback_query(F.data == "admin:stats:db_tables", IsAdmin())
+async def show_db_tables_stats(callback: types.CallbackQuery):
+    """Barcha jadval va ularning qatorlar sonini ko'rsatadi."""
+    await callback.answer("📊 Ma'lumotlar bazasi statistikasi...")
+    
+    table_stats = await get_database_table_stats()
+    
+    text = "<b>📊 Ma'lumotlar bazasi jadvallari</b>\n\n"
+    
+    total_rows = 0
+    for table_name, count in table_stats.items():
+        text += f"  • {table_name}: <code>{count}</code>\n"
+        total_rows += count
+    
+    text += f"\n<b>Jami qatorlar:</b> {total_rows}"
+    
+    keyboard = get_back_navigation_keyboard("admin:stats_menu")
+    
+    try:
+        await callback.message.edit_text(text, reply_markup=keyboard)
+    except TelegramBadRequest:
+        await callback.message.answer(text, reply_markup=keyboard)
+    await callback.answer()

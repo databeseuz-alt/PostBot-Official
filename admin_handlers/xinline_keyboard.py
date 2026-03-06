@@ -16,10 +16,11 @@ def get_stats_menu_keyboard():
     builder = InlineKeyboardBuilder()
     builder.button(text="📊 Umumiy statistika", callback_data="admin:stats:general_text")
     builder.button(text="📈 Grafika bo'limi", callback_data="admin:stats:graphics_menu")
+    builder.button(text="💾 Ma'lumotlar bazasi", callback_data="admin:stats:db_tables")
 
     builder.button(text="🔙 Admin paneliga qaytish", callback_data="admin:back_to_main_menu")
 
-    builder.adjust(2, 1)
+    builder.adjust(2, 1, 1)
     return builder.as_markup()
 
 def get_graphics_menu_keyboard():
