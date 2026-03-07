@@ -215,3 +215,20 @@ def get_watermark_settings_kb(lang: str, is_enabled: bool = False):
 
     builder.adjust(3, 1)
     return builder.as_markup(resize_keyboard=True)
+
+def get_quiz_settings_kb(lang: str):
+    """Viktorina sozlamalari uchun inline klaviatura"""
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    from aiogram.types import InlineKeyboardButton
+    
+    builder = InlineKeyboardBuilder()
+    
+    # First row: 2 buttons
+    builder.add(InlineKeyboardButton(text=get_text('quiz_add_option_btn', lang), callback_data='quiz_add_option'))
+    builder.add(InlineKeyboardButton(text=get_text('quiz_correct_answer_btn', lang), callback_data='quiz_correct_answer'))
+    
+    # Second row: 1 button
+    builder.add(InlineKeyboardButton(text=get_text('quiz_anonymous_btn', lang), callback_data='quiz_anonymous'))
+    
+    builder.adjust(2, 1)
+    return builder.as_markup()

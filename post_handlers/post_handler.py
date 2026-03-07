@@ -50,6 +50,8 @@ class PostCreation(StatesGroup):
     waiting_for_paid_price = State()
     waiting_for_location = State()
     waiting_for_quiz_answer = State()
+    waiting_for_quiz_option = State()
+    waiting_for_quiz_correct_answer = State()
 
     waiting_for_delete_timer = State()
     waiting_for_reply_setting = State()

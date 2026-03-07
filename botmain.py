@@ -23,7 +23,7 @@ from post_handlers.start_handler import start_router
 from post_handlers.lang_handler import lang_router
 from post_handlers.post_handler import post_router
 from post_handlers.button_handler import button_router
-from post_handlers.reply_handler import reply_router
+from post_handlers.reply_handler import reply_router, callback_router
 from post_handlers.media_handler import media_router
 from post_handlers.done_handler import done_router
 from post_handlers.editp_handler import edit_post_router
@@ -91,6 +91,7 @@ async def main():
     dp.include_router(post_router)
     dp.include_router(button_router)
     dp.include_router(reply_router)
+    dp.include_router(callback_router)
     dp.include_router(media_router)
     dp.include_router(done_router)
     dp.include_router(edit_post_router)
