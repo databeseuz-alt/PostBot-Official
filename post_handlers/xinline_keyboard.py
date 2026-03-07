@@ -476,6 +476,8 @@ def get_print_settings_keyboard(lang: str = 'uzl', post_code: str = None, print_
 def get_settings_menu_inline_kb(lang: str, content_type: str = 'text'):
     """Asosiy sozlamalar menyusi - kelajakda qo'shimcha sozlamalar uchun"""
     builder = InlineKeyboardBuilder()
+    
+    # Empty menu - no quiz functionality
     return builder.as_markup()
 
 def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):

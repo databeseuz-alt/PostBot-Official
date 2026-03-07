@@ -21,18 +21,14 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     
     builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
-    # For poll & text: add auto_signature and quiz buttons
-    # For location: no auto_signature or quiz
+    # For location: no auto_signature
     # For photo/video/paid_media: add auto_signature only if has_caption, always add media_settings and watermark
-    # For audio/voice: no media_settings, no quiz
+    # For audio/voice: no media_settings
     # For document/animation: add media_settings
-    if content_type == 'poll':
+    # For document/animation: add media_settings
+    if content_type == 'text':
         builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-        builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
-    elif content_type == 'text':
-        builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-        builder.add(KeyboardButton(text=get_text('quiz_btn', lang)))
-    elif content_type in ['photo', 'video', 'paid_media']:
+    elif content_type == 'photo':
         if has_caption:
             builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
         builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
@@ -216,19 +212,4 @@ def get_watermark_settings_kb(lang: str, is_enabled: bool = False):
     builder.adjust(3, 1)
     return builder.as_markup(resize_keyboard=True)
 
-def get_quiz_settings_kb(lang: str):
-    """Viktorina sozlamalari uchun inline klaviatura"""
-    from aiogram.utils.keyboard import InlineKeyboardBuilder
-    from aiogram.types import InlineKeyboardButton
-    
-    builder = InlineKeyboardBuilder()
-    
-    # First row: 2 buttons
-    builder.add(InlineKeyboardButton(text=get_text('quiz_add_option_btn', lang), callback_data='quiz_add_option'))
-    builder.add(InlineKeyboardButton(text=get_text('quiz_correct_answer_btn', lang), callback_data='quiz_correct_answer'))
-    
-    # Second row: 1 button
-    builder.add(InlineKeyboardButton(text=get_text('quiz_anonymous_btn', lang), callback_data='quiz_anonymous'))
-    
-    builder.adjust(2, 1)
-    return builder.as_markup()
+

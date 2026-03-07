@@ -726,13 +726,6 @@ async def handle_watermark_button_in_signature(message: Message, state: FSMConte
     await cancel_signature_and_redirect(message, state, watermark_reply_handler)
 
 
-@router.message(AutoSignatureState.enter_text, LocalizedText('quiz_btn'))
-async def handle_quiz_button_in_signature(message: Message, state: FSMContext):
-    """Autoimzo matn kiritishda Viktorina tugmasi bosilganda"""
-    from post_handlers.reply_handler import quiz_reply_handler
-    await cancel_signature_and_redirect(message, state, quiz_reply_handler)
-
-
 @router.message(AutoSignatureState.enter_text, LocalizedText('edit_confirm_btn'))
 async def handle_edit_confirm_button_in_signature(message: Message, state: FSMContext):
     """Autoimzo matn kiritishda Tahrirlashni tasdiqlash tugmasi bosilganda"""

@@ -96,6 +96,19 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
 
         if content_type == 'text':
             sent_message = await message.bot.send_message(chat_id, text=text, **message_kwargs)
+        elif content_type == 'poll':
+            # Handle poll/quiz content type
+            sent_message = await message.bot.send_poll(
+                chat_id,
+                question=post_data.get('poll_question', text or 'Viktorina'),
+                options=post_data.get('poll_options', []),
+                is_anonymous=post_data.get('poll_is_anonymous', True),
+                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
+                correct_option_id=post_data.get('poll_correct_option_id'),
+                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
+                explanation=post_data.get('poll_explanation'),
+                reply_markup=new_keyboard
+            )
         elif content_type == 'photo':
             if is_paid:
                 from aiogram.types import InputPaidMediaPhoto
@@ -138,14 +151,23 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             sent_message = await message.bot.send_sticker(chat_id, file_id, reply_markup=new_keyboard)
         elif content_type in ['poll', 'dice', 'location']:
             if content_type == 'poll':
+                # Handle correct_option_id - must be integer for quizzes, can be list for regular polls
+                correct_option_id = post_data.get('poll_correct_option_id')
+                poll_is_quiz = post_data.get('poll_is_quiz', False)
+                poll_type = 'quiz' if poll_is_quiz else 'regular'
+                
+                # For quizzes, correct_option_id must be an integer
+                if poll_is_quiz and correct_option_id is not None and isinstance(correct_option_id, list):
+                    correct_option_id = correct_option_id[0] if correct_option_id else None
+                
                 sent_message = await message.bot.send_poll(
                     chat_id,
                     question=post_data.get('poll_question', ''),
                     options=post_data.get('poll_options', []),
                     is_anonymous=post_data.get('poll_is_anonymous', True),
                     allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                    correct_option_id=post_data.get('poll_correct_option_id'),
-                    type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
+                    correct_option_id=correct_option_id,
+                    type=poll_type,
                     explanation=post_data.get('poll_explanation'),
                     reply_markup=new_keyboard
                 )

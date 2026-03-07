@@ -7,8 +7,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import (
     get_main_menu, get_cancel_kb, get_post_settings_kb,
-    get_button_creation_cancel_kb, get_edit_content_kb, get_back_button_kb,
-    get_quiz_settings_kb
+    get_button_creation_cancel_kb, get_edit_content_kb, get_back_button_kb
 )
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
@@ -295,37 +294,6 @@ async def watermark_reply_handler(message: types.Message, state: FSMContext):
     from post_handlers.watermark_handler import show_watermark_settings_reply
     await show_watermark_settings_reply(message, state)
 
-@reply_router.message(
-    PostCreation.configuring_post,
-    LocalizedText('quiz_btn')
-)
-@reply_router.message(
-    PostCreation.waiting_for_media_settings,
-    LocalizedText('quiz_btn')
-)
-async def quiz_reply_handler(message: types.Message, state: FSMContext):
-    """Viktorina tugmasi - sozlamalarni ko'rsatish"""
-    lang = await get_user_language(message.from_user.id)
-    from post_handlers.xreply_keyboard import get_quiz_settings_kb
-    
-    # Initialize quiz data in state if not exists
-    data = await state.get_data()
-    if 'quiz_options' not in data:
-        await state.update_data(
-            quiz_options=[], 
-            quiz_correct_index=None, 
-            quiz_is_anonymous=False,
-            quiz_question="Viktorina"
-        )
-    
-    # Edit the same message with quiz settings
-    await message.answer(
-        get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
-        parse_mode='HTML'
-    )
-    await state.set_state(PostCreation.configuring_post)
-
 @callback_router.callback_query(F.data == 'quiz_add_option')
 async def quiz_add_option_callback(callback: types.CallbackQuery, state: FSMContext):
     """Variant qo'shish inline tugmasi"""
@@ -347,6 +315,36 @@ async def quiz_add_option_callback(callback: types.CallbackQuery, state: FSMCont
     # Edit the SAME message (not new message)
     await message.edit_text(
         get_text('quiz_ask_option_msg', lang),
+        reply_markup=builder.as_markup(),
+        parse_mode='HTML'
+    )
+
+@callback_router.callback_query(F.data == 'quiz_add_quiz')
+async def quiz_add_quiz_callback(callback: types.CallbackQuery, state: FSMContext):
+    """Viktorina qo'shish tugmasi - yangi xabar ko'rsatish"""
+    await callback.answer()
+    lang = await get_user_language(callback.from_user.id)
+    message = callback.message
+    
+    # Build inline keyboard with options
+    from aiogram.utils.keyboard import InlineKeyboardBuilder
+    from aiogram.types import InlineKeyboardButton
+    builder = InlineKeyboardBuilder()
+    
+    # Savol tuzish - opens @quizbot for native quiz creation
+    builder.add(InlineKeyboardButton(text="📝 Savol tuzish", url="https://t.me/quizbot"))
+    
+    # Variant qo'shish - adds option to existing quiz in bot
+    builder.add(InlineKeyboardButton(text=get_text('quiz_add_option_btn', lang), callback_data='quiz_add_option'))
+    
+    # Orqaga button
+    builder.add(InlineKeyboardButton(text=get_text('back_btn', lang), callback_data='quiz_back'))
+    
+    builder.adjust(2, 1)
+    
+    # Edit the message to show the new content
+    await message.edit_text(
+        get_text('quiz_add_quiz_msg', lang),
         reply_markup=builder.as_markup(),
         parse_mode='HTML'
     )
@@ -411,6 +409,11 @@ async def quiz_toggle_correct_callback(callback: types.CallbackQuery, state: FSM
     selected_correct = data.get('quiz_selected_correct', [])
     correct_mode = data.get('quiz_correct_mode', 'single')
     
+    # Get buttons for the poll
+    buttons_matrix = data.get('buttons_matrix', [])
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    preview_keyboard = generate_post_keyboard(buttons_matrix, lang)
+    
     if correct_mode == 'single':
         # In single mode, immediately save and go back
         await state.update_data(quiz_correct_index=option_index, quiz_selected_correct=[option_index])
@@ -422,22 +425,35 @@ async def quiz_toggle_correct_callback(callback: types.CallbackQuery, state: FSM
             except:
                 pass
         
-        # Send quiz poll with correct answer
+        # Send quiz poll with correct answer and buttons
         poll_message = await message.answer_poll(
             question=data.get('quiz_question', 'Viktorina'),
             options=quiz_options,
             is_anonymous=data.get('quiz_is_anonymous', False),
             type='quiz',
-            correct_option_id=option_index
+            correct_option_id=option_index,
+            reply_markup=preview_keyboard
         )
         
         await state.update_data(quiz_poll_message_id=poll_message.message_id)
+        
+        # Update post_data for button handlers
+        post_data = data.get('post_data', {})
+        post_data['message_id'] = poll_message.message_id
+        post_data['chat_id'] = poll_message.chat.id
+        post_data['content_type'] = 'poll'
+        post_data['poll_question'] = data.get('quiz_question', 'Viktorina')
+        post_data['poll_options'] = quiz_options
+        post_data['poll_is_quiz'] = True
+        post_data['poll_is_anonymous'] = data.get('quiz_is_anonymous', False)
+        post_data['poll_correct_option_id'] = option_index
+        await state.update_data(post_data=post_data)
         
         # Send settings keyboard again
         from post_handlers.xreply_keyboard import get_quiz_settings_kb
         settings_msg = await message.answer(
             get_text('quiz_settings_title', lang),
-            reply_markup=get_quiz_settings_kb(lang),
+            reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
             parse_mode='HTML'
         )
         
@@ -491,6 +507,11 @@ async def quiz_done_correct_callback(callback: types.CallbackQuery, state: FSMCo
     correct_index = selected_correct[0] if len(selected_correct) == 1 else selected_correct
     await state.update_data(quiz_correct_index=correct_index)
     
+    # Get buttons for the poll
+    buttons_matrix = data.get('buttons_matrix', [])
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    preview_keyboard = generate_post_keyboard(buttons_matrix, lang)
+    
     # Delete previous poll if exists
     if data.get('quiz_poll_message_id'):
         try:
@@ -498,27 +519,50 @@ async def quiz_done_correct_callback(callback: types.CallbackQuery, state: FSMCo
         except:
             pass
     
-    # Send quiz poll with correct answer
+    # Send quiz poll with correct answer and buttons
     poll_message = await message.answer_poll(
         question=data.get('quiz_question', 'Viktorina'),
         options=quiz_options,
         is_anonymous=data.get('quiz_is_anonymous', False),
         type='quiz',
-        correct_option_id=correct_index
+        correct_option_id=correct_index,
+        reply_markup=preview_keyboard
     )
     
     await state.update_data(quiz_poll_message_id=poll_message.message_id)
+    
+    # Update post_data for button handlers
+    post_data = data.get('post_data', {})
+    post_data['message_id'] = poll_message.message_id
+    post_data['chat_id'] = poll_message.chat.id
+    post_data['content_type'] = 'poll'
+    post_data['poll_question'] = data.get('quiz_question', 'Viktorina')
+    post_data['poll_options'] = quiz_options
+    post_data['poll_is_quiz'] = True
+    post_data['poll_is_anonymous'] = data.get('quiz_is_anonymous', False)
+    post_data['poll_correct_option_id'] = correct_index
+    await state.update_data(post_data=post_data)
     
     # Send settings keyboard again
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     settings_msg = await message.answer(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
     
     await state.update_data(quiz_settings_message_id=settings_msg.message_id)
     await state.set_state(PostCreation.configuring_post)
+
+    # Send settings keyboard again
+    from post_handlers.xreply_keyboard import get_quiz_settings_kb
+    settings_msg = await message.answer(
+        get_text('quiz_settings_title', lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
+        parse_mode='HTML'
+    )
+    
+    await state.update_data(quiz_settings_message_id=settings_msg.message_id)
 
 @callback_router.callback_query(F.data == 'quiz_multiple_answer')
 async def quiz_multiple_answer_callback(callback: types.CallbackQuery, state: FSMContext):
@@ -535,21 +579,47 @@ async def quiz_multiple_answer_callback(callback: types.CallbackQuery, state: FS
         await message.answer("⚠️ Avval variantlar qo'shing!")
         return
     
-    # Send regular poll with multiple answers allowed
+    # Get buttons for the poll
+    buttons_matrix = data.get('buttons_matrix', [])
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    preview_keyboard = generate_post_keyboard(buttons_matrix, lang)
+    
+    # Delete previous poll if exists
+    if data.get('quiz_poll_message_id'):
+        try:
+            await message.bot.delete_message(message.chat.id, data['quiz_poll_message_id'])
+        except:
+            pass
+    
+    # Send regular poll with multiple answers allowed and buttons
     poll_message = await message.answer_poll(
         question=data.get('quiz_question', 'Viktorina'),
         options=quiz_options,
         is_anonymous=data.get('quiz_is_anonymous', False),
-        allows_multiple_answers=True
+        allows_multiple_answers=True,
+        reply_markup=preview_keyboard
     )
     
     await state.update_data(quiz_poll_message_id=poll_message.message_id, quiz_correct_index=None)
+    
+    # Update post_data for button handlers
+    post_data = data.get('post_data', {})
+    post_data['message_id'] = poll_message.message_id
+    post_data['chat_id'] = poll_message.chat.id
+    post_data['content_type'] = 'poll'
+    post_data['poll_question'] = data.get('quiz_question', 'Viktorina')
+    post_data['poll_options'] = quiz_options
+    post_data['poll_is_quiz'] = False
+    post_data['poll_is_anonymous'] = data.get('quiz_is_anonymous', False)
+    post_data['poll_allows_multiple_answers'] = True
+    post_data['poll_correct_option_id'] = None
+    await state.update_data(post_data=post_data)
     
     # Send settings keyboard again
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     settings_msg = await message.answer(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
     
@@ -564,21 +634,23 @@ async def quiz_correct_back_callback(callback: types.CallbackQuery, state: FSMCo
     message = callback.message
     
     await state.set_state(PostCreation.configuring_post)
+    data = await state.get_data()
     
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     await message.edit_text(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
 
 @callback_router.callback_query(F.data == 'quiz_anonymous')
 async def quiz_anonymous_callback(callback: types.CallbackQuery, state: FSMContext):
-    """Anonim javob berish inline tugmasi - toggle"""
+    """Anonim javob berish inline tugmasi - toggle (optimized)"""
     await callback.answer()
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
     message = callback.message
+    bot = message.bot
     
     data = await state.get_data()
     current_anonymous = data.get('quiz_is_anonymous', False)
@@ -586,33 +658,149 @@ async def quiz_anonymous_callback(callback: types.CallbackQuery, state: FSMConte
     
     await state.update_data(quiz_is_anonymous=new_anonymous)
     
+    # Get buttons for the poll
+    buttons_matrix = data.get('buttons_matrix', [])
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    preview_keyboard = generate_post_keyboard(buttons_matrix, lang)
+    
+    # Delete the preview post from the top and resend from below
+    post_data = data.get('post_data', {})
+    post_message_id = post_data.get('message_id')
+    post_chat_id = post_data.get('chat_id')
+    
+    # Delete post preview first (don't wait)
+    if post_message_id and post_chat_id:
+        try:
+            await bot.delete_message(post_chat_id, post_message_id)
+        except:
+            pass
+    
+    # Resend the preview post from below (simplified, faster approach)
+    new_preview_message = None
+    try:
+        content_type = post_data.get('content_type', 'text')
+        file_id = post_data.get('file_id')
+        caption = post_data.get('caption')
+        text = post_data.get('text')
+        parse_mode = post_data.get('parse_mode', 'HTML')
+        has_spoiler = post_data.get('has_spoiler', False)
+        show_caption_above = post_data.get('show_caption_above_media', False)
+        
+        from post_handlers.xinline_keyboard import generate_preview_keyboard
+        preview_keyboard_inline = generate_preview_keyboard(buttons_matrix)
+        
+        if content_type == 'text':
+            new_preview_message = await bot.send_message(
+                chat_id=message.chat.id, text=text or '',
+                reply_markup=preview_keyboard_inline, parse_mode=parse_mode
+            )
+        elif content_type == 'photo':
+            new_preview_message = await bot.send_photo(
+                chat_id=message.chat.id, photo=file_id, caption=caption,
+                parse_mode=parse_mode, reply_markup=preview_keyboard_inline,
+                has_spoiler=has_spoiler, show_caption_above=show_caption_above
+            )
+        elif content_type == 'video':
+            new_preview_message = await bot.send_video(
+                chat_id=message.chat.id, video=file_id, caption=caption,
+                parse_mode=parse_mode, reply_markup=preview_keyboard_inline,
+                has_spoiler=has_spoiler, show_caption_above=show_caption_above
+            )
+        elif content_type == 'document':
+            new_preview_message = await bot.send_document(
+                chat_id=message.chat.id, document=file_id, caption=caption,
+                parse_mode=parse_mode, reply_markup=preview_keyboard_inline
+            )
+        elif content_type == 'audio':
+            new_preview_message = await bot.send_audio(
+                chat_id=message.chat.id, audio=file_id, caption=caption,
+                parse_mode=parse_mode, reply_markup=preview_keyboard_inline
+            )
+        elif content_type == 'voice':
+            new_preview_message = await bot.send_voice(
+                chat_id=message.chat.id, voice=file_id, caption=caption,
+                parse_mode=parse_mode, reply_markup=preview_keyboard_inline
+            )
+        elif content_type == 'video_note':
+            new_preview_message = await bot.send_video_note(
+                chat_id=message.chat.id, video_note=file_id,
+                reply_markup=preview_keyboard_inline
+            )
+        elif content_type == 'sticker':
+            new_preview_message = await bot.send_sticker(
+                chat_id=message.chat.id, sticker=file_id,
+                reply_markup=preview_keyboard_inline
+            )
+        elif content_type == 'location':
+            new_preview_message = await bot.send_location(
+                chat_id=message.chat.id,
+                latitude=post_data.get('latitude'),
+                longitude=post_data.get('longitude'),
+                reply_markup=preview_keyboard_inline
+            )
+        elif content_type == 'paid_media':
+            new_preview_message = await bot.send_video(
+                chat_id=message.chat.id, video=file_id, caption=caption,
+                parse_mode=parse_mode, reply_markup=preview_keyboard_inline
+            )
+    except Exception:
+        pass
+    
+    # Update post_data with new message_id
+    if new_preview_message:
+        post_data['message_id'] = new_preview_message.message_id
+        post_data['chat_id'] = new_preview_message.chat.id
+    
     # If there's an existing poll, delete and resend
     quiz_options = data.get('quiz_options', [])
     if quiz_options:
-        # Delete previous poll if exists
-        if data.get('quiz_poll_message_id'):
+        quiz_poll_message_id = data.get('quiz_poll_message_id')
+        if quiz_poll_message_id:
             try:
-                await message.bot.delete_message(message.chat.id, data['quiz_poll_message_id'])
+                await bot.delete_message(message.chat.id, quiz_poll_message_id)
             except:
                 pass
         
-        # Send updated poll
+        # Send updated poll with buttons (from below)
         poll_message = await message.answer_poll(
             question=data.get('quiz_question', 'Viktorina'),
             options=quiz_options,
             is_anonymous=new_anonymous,
             type='quiz' if data.get('quiz_correct_index') is not None else 'regular',
-            correct_option_id=data.get('quiz_correct_index')
+            correct_option_id=data.get('quiz_correct_index'),
+            reply_markup=preview_keyboard
         )
         
         await state.update_data(quiz_poll_message_id=poll_message.message_id)
+        
+        # Update post_data for button handlers
+        post_data['message_id'] = poll_message.message_id
+        post_data['chat_id'] = poll_message.chat.id
+        post_data['content_type'] = 'poll'
+        post_data['poll_question'] = data.get('quiz_question', 'Viktorina')
+        post_data['poll_options'] = quiz_options
+        post_data['poll_is_quiz'] = data.get('quiz_correct_index') is not None
+        post_data['poll_is_anonymous'] = new_anonymous
+        post_data['poll_correct_option_id'] = data.get('quiz_correct_index')
     
-    # Update inline keyboard with new state
-    from post_handlers.xreply_keyboard import get_quiz_settings_kb
+    await state.update_data(post_data=post_data)
+    
+    # Delete the quiz settings message
     try:
-        await message.edit_reply_markup(reply_markup=get_quiz_settings_kb(lang))
+        await message.delete()
     except:
         pass
+    
+    # Send new quiz settings from below (with updated anonymous state)
+    from post_handlers.xreply_keyboard import get_quiz_settings_kb
+    settings_msg = await bot.send_message(
+        chat_id=message.chat.id,
+        text=get_text('quiz_settings_title', lang),
+        reply_markup=get_quiz_settings_kb(lang, new_anonymous, data.get('quiz_correct_index') is not None),
+        parse_mode='HTML'
+    )
+    
+    await state.update_data(quiz_settings_message_id=settings_msg.message_id)
 
 @callback_router.callback_query(F.data == 'quiz_back')
 async def quiz_back_callback(callback: types.CallbackQuery, state: FSMContext):
@@ -634,6 +822,31 @@ async def quiz_back_callback(callback: types.CallbackQuery, state: FSMContext):
     
     await state.update_data(quiz_options=[], quiz_correct_index=None, quiz_is_anonymous=False, quiz_poll_message_id=None)
 
+@callback_router.callback_query(F.data == 'create_quiz')
+async def create_quiz_callback(callback: types.CallbackQuery, state: FSMContext):
+    """Yangi viktorina yaratish tugmasi"""
+    await callback.answer()
+    lang = await get_user_language(callback.from_user.id)
+    
+    # Clear any existing quiz data
+    await state.update_data(
+        quiz_options=[], 
+        quiz_correct_index=None, 
+        quiz_is_anonymous=False,
+        quiz_question="Viktorina"
+    )
+    
+    # Send quiz settings
+    from post_handlers.xreply_keyboard import get_quiz_settings_kb
+    settings_msg = await callback.message.answer(
+        get_text('quiz_settings_title', lang),
+        reply_markup=get_quiz_settings_kb(lang, False),
+        parse_mode='HTML'
+    )
+    
+    await state.update_data(quiz_settings_message_id=settings_msg.message_id)
+    await state.set_state(PostCreation.configuring_post)
+
 @callback_router.callback_query(F.data == 'quiz_option_back')
 async def quiz_option_back_callback(callback: types.CallbackQuery, state: FSMContext):
     """Orqaga tugmasi - variant kiritishdan chiqish"""
@@ -645,12 +858,13 @@ async def quiz_option_back_callback(callback: types.CallbackQuery, state: FSMCon
     
     # Clear the option message ID
     await state.update_data(quiz_option_message_id=None)
+    data = await state.get_data()
     
     # Show quiz settings again
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     await message.edit_text(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
 
@@ -664,11 +878,12 @@ async def quiz_option_cancel_handler(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     
     await state.set_state(PostCreation.configuring_post)
+    data = await state.get_data()
     
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     await message.answer(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
 
@@ -723,6 +938,29 @@ async def handle_quiz_option_input(message: types.Message, state: FSMContext):
         return
     
     # If 2 or more options, send poll and show settings
+    # Get post_data to delete the preview post and use its text as quiz question
+    post_data = data.get('post_data', {})
+    
+    # Delete the preview post (the post being created)
+    post_message_id = post_data.get('message_id')
+    post_chat_id = post_data.get('chat_id')
+    if post_message_id and post_chat_id:
+        try:
+            await message.bot.delete_message(post_chat_id, post_message_id)
+        except:
+            pass
+    
+    # Use post text as quiz question, default to "Viktorina" if no text
+    quiz_question = post_data.get('text', 'Viktorina')
+    if not quiz_question:
+        quiz_question = 'Viktorina'
+    
+    # Note: We keep both options as polls require at least 2 options
+    # The user can add more options later if needed
+    
+    # Update quiz options and question in state
+    await state.update_data(quiz_options=quiz_options, quiz_question=quiz_question)
+    
     # Delete the previous poll message if exists
     old_poll_id = data.get('quiz_poll_message_id')
     if old_poll_id:
@@ -738,22 +976,47 @@ async def handle_quiz_option_input(message: types.Message, state: FSMContext):
         except:
             pass
     
+    # Get buttons matrix for the poll
+    # Use generate_post_keyboard which includes the + button for adding new buttons
+    buttons_matrix = data.get('buttons_matrix', [])
+    from post_handlers.xinline_keyboard import generate_post_keyboard
+    preview_keyboard = generate_post_keyboard(buttons_matrix, lang)
+    
     # Send new poll with current options (from below)
+    # Use the post text as the quiz question
     poll_message = await message.answer_poll(
-        question=data.get('quiz_question', 'Viktorina'),
+        question=quiz_question,
         options=quiz_options,
         is_anonymous=data.get('quiz_is_anonymous', False),
-        type='regular'
+        type='regular',
+        reply_markup=preview_keyboard
     )
+    
+    # Update post_data to point to the new poll message
+    # This is needed for button handlers to work correctly
+    post_data = data.get('post_data', {})
+    post_data['message_id'] = poll_message.message_id
+    post_data['chat_id'] = poll_message.chat.id
+    post_data['content_type'] = 'poll'
+    post_data['text'] = quiz_question
+    # Also store poll-specific data for redraw_post to work correctly
+    post_data['poll_question'] = quiz_question
+    post_data['poll_options'] = quiz_options
+    post_data['poll_is_quiz'] = False
+    post_data['poll_is_anonymous'] = data.get('quiz_is_anonymous', False)
+    post_data['poll_allows_multiple_answers'] = False
+    await state.update_data(post_data=post_data)
     
     # Update state with new poll message ID
     await state.update_data(quiz_poll_message_id=poll_message.message_id, quiz_option_message_id=None)
+    
+    # Note: buttons_matrix is kept as is from the original post
     
     # Send new quiz settings (from below, not edit)
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     settings_msg = await message.answer(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
     
@@ -773,7 +1036,7 @@ async def quiz_correct_cancel_handler(message: types.Message, state: FSMContext)
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     settings_msg = await message.answer(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
     
@@ -794,7 +1057,7 @@ async def quiz_option_back_handler(message: types.Message, state: FSMContext):
     from post_handlers.xreply_keyboard import get_quiz_settings_kb
     settings_msg = await message.answer(
         get_text('quiz_settings_title', lang),
-        reply_markup=get_quiz_settings_kb(lang),
+        reply_markup=get_quiz_settings_kb(lang, data.get('quiz_is_anonymous', False), data.get('quiz_correct_index') is not None),
         parse_mode='HTML'
     )
     
