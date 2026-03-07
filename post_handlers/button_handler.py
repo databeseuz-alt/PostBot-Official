@@ -559,7 +559,7 @@ async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
     is_member, warning_text, keyboard = await check_user_membership(callback.from_user, bot)
 
     if is_member and callback.from_user.id not in config.ADMIN_IDS:
-        if callback.message.chat.type in ['channel', 'supergroup']:
+        if callback.message and callback.message.chat.type in ['channel', 'supergroup']:
             try:
                 chat_member = await bot.get_chat_member(callback.message.chat.id, callback.from_user.id)
                 if chat_member.status in ['left', 'kicked']:

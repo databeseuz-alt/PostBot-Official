@@ -433,7 +433,7 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
             text_to_search = channel_message.text or channel_message.caption or ""
 
             import re
-            post_code_pattern = r'\b([A-Za-z0-9]{8})\b'
+            post_code_pattern = r'\b([A-Za-z0-9]{5})\b'
             matches = re.findall(post_code_pattern, text_to_search)
 
             if matches:

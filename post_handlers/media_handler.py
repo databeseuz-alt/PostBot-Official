@@ -598,6 +598,8 @@ async def process_paid_price(message: Message, state: FSMContext):
 
     # Tekshirish - raqammi
     try:
+        if not message.text:
+            raise ValueError("None text")
         price = int(message.text.strip())
         if price < 1 or price > 25000:
             raise ValueError("Noto'g'ri diapazon")

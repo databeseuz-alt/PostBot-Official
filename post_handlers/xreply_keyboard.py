@@ -162,13 +162,17 @@ def get_edit_content_kb(post_data: dict, lang: str):
     has_caption = bool(post_data.get('caption'))
     has_text = bool(post_data.get('text'))
 
-    if content_type != 'text' and has_caption:
+    # Media types that don't support captions
+    media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice', 'poll')
+    
+    # Only show delete buttons if content_type supports caption AND has caption
+    if content_type != 'text' and has_caption and content_type not in media_without_caption:
         builder.add(KeyboardButton(text=get_text('delete_media_btn', lang)))
         builder.add(KeyboardButton(text=get_text('delete_text_btn', lang)))
 
     builder.add(KeyboardButton(text=get_text('back_btn', lang)))
 
-    builder.adjust(2, 1) if (content_type != 'text' and has_caption) else builder.adjust(1)
+    builder.adjust(2, 1) if (content_type != 'text' and has_caption and content_type not in media_without_caption) else builder.adjust(1)
     return builder.as_markup(resize_keyboard=True)
 
 def get_reactions_selection_kb(lang: str):

@@ -41,7 +41,9 @@ class StatDrawer:
 
         self.PIE_COLORS = [
             "#3B82F6", "#22C55E", "#F59E0B", "#EF4444", 
-            "#8B5CF6", "#EC4899", "#06B6D4", "#84CC16"
+            "#8B5CF6", "#EC4899", "#06B6D4", "#84CC16",
+            "#F97316", "#6366F1", "#14B8A6", "#A855F7",
+            "#EAB308", "#10B981", "#F43F5E", "#0D9488"
         ]
 
         self._load_fonts()
@@ -353,7 +355,7 @@ class StatDrawer:
 
     def draw_pie_chart(self, title: str, data: dict) -> io.BytesIO:
         """Zamonaviy doiraviy diagramma"""
-        width, height = 900, 550
+        width, height = 900, 600  # Height increased for longer labels
         img = Image.new('RGB', (width, height), self.BG_COLOR)
         draw = ImageDraw.Draw(img)
 
@@ -369,17 +371,35 @@ class StatDrawer:
             buf.seek(0)
             return buf
 
-        total = sum(data.values())
+        # Til kodlarini nomlarga aylantirish
+        lang_map = {
+            'uzl': 'UZ 🇺🇿', 'uzk': 'ЎЗ 🇺🇿', 'ru': 'RU 🇷🇺', 'en': 'EN 🇬🇧',
+            'kz': 'KZ 🇰🇿', 'az': 'AZ 🇦🇿', 'tr': 'TR 🇹🇷', 'kg': 'KG 🇰🇬',
+            'tj': 'TJ 🇹🇯', 'tk': 'TK 🇹🇲',
+            'de': 'DE 🇩🇪', 'fr': 'FR 🇫🇷', 'es': 'ES 🇪🇸', 'it': 'IT 🇮🇹',
+            'ar': 'AR 🇸🇦', 'zh': 'ZH 🇨🇳', 'ja': 'JA 🇯🇵', 'ko': 'KO 🇰🇷',
+            'hi': 'HI 🇮🇳', 'pt': 'PT 🇵🇹', 'nl': 'NL 🇳🇱', 'pl': 'PL 🇵🇱',
+            'uk': 'UK 🇺🇦', 'he': 'HE 🇮🇱', None: "Noma'lum"
+        }
+
+        # Til kodlarini to'liq nomlarga aylantirish
+        display_data = {}
+        for label, value in data.items():
+            display_label = lang_map.get(label, label.upper())
+            display_data[display_label] = value
+
+        total = sum(display_data.values())
         start_angle = -90
 
-        cx, cy = 280, 310
+        cx, cy = 280, 320
         radius = 140
         inner_radius = 70  # Donut effekti uchun
 
-        legend_x = 500
-        legend_y = 130
+        legend_x = 520
+        legend_y = 140
+        legend_spacing = 45  # Increased spacing for longer labels
 
-        for i, (label, value) in enumerate(data.items()):
+        for i, (label, value) in enumerate(display_data.items()):
             if value == 0:
                 continue
 
@@ -394,8 +414,8 @@ class StatDrawer:
             percentage = (value / total) * 100
             legend_text = f"{label}: {value} ({percentage:.1f}%)"
 
-            self._draw_rounded_rect(draw, (legend_x, legend_y + i * 40, legend_x + 20, legend_y + i * 40 + 20), 4, color)
-            draw.text((legend_x + 30, legend_y + i * 40), legend_text, font=self.font_regular_md, fill=self.TEXT_PRIMARY)
+            self._draw_rounded_rect(draw, (legend_x, legend_y + i * legend_spacing, legend_x + 20, legend_y + i * legend_spacing + 20), 4, color)
+            draw.text((legend_x + 30, legend_y + i * legend_spacing), legend_text, font=self.font_regular_md, fill=self.TEXT_PRIMARY)
 
             start_angle = end_angle
 
@@ -449,6 +469,10 @@ async def _format_stats_text(
         'uzl': 'UZ 🇺🇿', 'uzk': 'ЎЗ 🇺🇿', 'ru': 'RU 🇷🇺', 'en': 'EN 🇬🇧',
         'kz': 'KZ 🇰🇿', 'az': 'AZ 🇦🇿', 'tr': 'TR 🇹🇷', 'kg': 'KG 🇰🇬',
         'tj': 'TJ 🇹🇯', 'tk': 'TK 🇹🇲',
+        'de': 'DE 🇩🇪', 'fr': 'FR 🇫🇷', 'es': 'ES 🇪🇸', 'it': 'IT 🇮🇹',
+        'ar': 'AR 🇸🇦', 'zh': 'ZH 🇨🇳', 'ja': 'JA 🇯🇵', 'ko': 'KO 🇰🇷',
+        'hi': 'HI 🇮🇳', 'pt': 'PT 🇵🇹', 'nl': 'NL 🇳🇱', 'pl': 'PL 🇵🇱',
+        'uk': 'UK 🇺🇦', 'he': 'HE 🇮🇱',
         None: "Noma'lum"
     }
 

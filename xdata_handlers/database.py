@@ -833,7 +833,7 @@ async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reac
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-def generate_post_code(length: int = 8) -> str:
+def generate_post_code(length: int = 5) -> str:
     """Unikal post kodini generatsiya qiladi."""
     alphabet = string.ascii_letters + string.digits
     return ''.join(secrets.choice(alphabet) for _ in range(length))

@@ -742,6 +742,10 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                     # New media doesn't support caption, delete old text
                     post_data['text'] = None
                 
+                # Also clear caption if new media doesn't support captions (e.g., sticker replaces photo+caption)
+                if message.content_type in media_without_caption and post_data.get('caption'):
+                    post_data['caption'] = None
+                
                 if post_data.get('content_type') == 'text' and post_data.get('text') and new_caption is None:
                     if message.content_type not in media_without_caption:
                         post_data['caption'] = post_data['text']
