@@ -51,7 +51,7 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
         content_type = content.get('content_type')
         is_paid = content.get('is_paid', False)
 
-        unsupported_inline = ['poll', 'dice', 'paid_media']
+        unsupported_inline = ['dice', 'paid_media']
         if has_reaction_buttons(buttons_matrix) or content_type in unsupported_inline or is_paid:
             reject_title = get_text('inline_reaction_not_supported_title', user_lang)
             reject_desc = get_text('inline_reaction_not_supported_desc', user_lang)
@@ -59,7 +59,7 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
 
             if content_type in unsupported_inline or is_paid:
                 reject_title = "Dasturlanmagan format 🚫"
-                reject_desc = "Bu format (Poll, Dice, Pulli Media) inline rejimda ishlamaydi."
+                reject_desc = "Bu format (Dice, Pulli Media) inline rejimda ishlamaydi."
                 reject_msg = "Afsuski, Telegram ushbu formatni inline rejim orqali yuborishni qo'llab-quvvatlamaydi."
 
             results.append({

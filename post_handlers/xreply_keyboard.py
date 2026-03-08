@@ -18,7 +18,6 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
 
-    
     builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
 
     # For location: no auto_signature
@@ -33,7 +32,7 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
             builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
         builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
     elif content_type in ['audio', 'voice']:
-        # Audio and voice: no media_settings, no quiz
+        # Audio and voice: no media_settings
         # With caption: add auto_signature
         if has_caption:
             builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
@@ -49,26 +48,16 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     if content_type in ['photo', 'video', 'paid_media']:
         builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
 
-    # Convert button for photo, video, paid_media, sticker and video_note
-    if content_type in ['photo', 'video', 'paid_media', 'sticker', 'video_note']:
-        builder.add(KeyboardButton(text=get_text('convert_btn', lang)))
-
-    builder.add(KeyboardButton(text=get_text('cancel_btn', lang))) # Bekor qilish
-
-    if is_editing:
-        builder.add(KeyboardButton(text=get_text('edit_confirm_btn', lang)))
-    else:
-        builder.add(KeyboardButton(text=get_text('done_btn', lang))) # Tayyor
+    builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
+    builder.add(KeyboardButton(text=get_text('done_btn', lang)))
 
     # Adjust layout based on content type
-    if content_type == 'poll':
-        builder.adjust(4, 2, 2)
-    elif content_type == 'location':
+    if content_type == 'location':
         builder.adjust(4, 2)
     elif content_type in ['photo', 'video', 'paid_media']:
         builder.adjust(4, 4, 2)
     elif content_type == 'text':
-        builder.adjust(4, 2, 2)
+        builder.adjust(4, 1, 2)
     elif content_type in ['audio', 'voice']:
         builder.adjust(4, 2)
     elif content_type in ['document', 'animation']:
@@ -77,8 +66,10 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
         builder.adjust(4, 2)
     elif content_type in ['sticker', 'video_note']:
         builder.adjust(4, 1, 2)
+    elif content_type == 'poll':
+        builder.adjust(4, 2)
     else:
-        builder.adjust(4, 2, 2)
+        builder.adjust(4, 2)
 
     return builder.as_markup(resize_keyboard=True)
 
@@ -159,7 +150,7 @@ def get_edit_content_kb(post_data: dict, lang: str):
     has_text = bool(post_data.get('text'))
 
     # Media types that don't support captions
-    media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice', 'poll')
+    media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice')
     
     # Only show delete buttons if content_type supports caption AND has caption
     if content_type != 'text' and has_caption and content_type not in media_without_caption:

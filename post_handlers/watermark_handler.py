@@ -1068,39 +1068,4 @@ async def show_watermark_settings_reply(message: Message, state: FSMContext):
         reply_markup=get_watermark_settings_inline_kb(lang, position, watermark_text, transparency, rotation, scale, watermark_type)
     )
 
-async def apply_watermark_to_post(bot: Bot, post_data: dict) -> dict:
-    """
-    Post ma'lumotlariga watermark qo'llash
-    Bu funksiya post yuborilishidan oldin chaqiriladi
-    """
-    if not post_data.get('watermark_enabled', False):
-        return post_data
 
-    watermark_text = post_data.get('watermark_text', '')
-    watermark_position = post_data.get('watermark_position', 'bottom_right')
-    watermark_transparency = post_data.get('watermark_transparency', 200)
-    watermark_rotation = post_data.get('watermark_rotation', 0)
-    watermark_scale = post_data.get('watermark_scale', 1.0)
-    content_type = post_data.get('content_type', 'text')
-
-    if 'original_file_id' not in post_data and post_data.get('file_id'):
-        post_data['original_file_id'] = post_data.get('file_id')
-
-    file_id = post_data.get('original_file_id') or post_data.get('file_id')
-
-    if not watermark_text or not file_id:
-        return post_data
-
-    if content_type not in ['photo', 'video']:
-        return post_data
-
-    new_file_id = await process_media_with_watermark(
-        bot, file_id, watermark_text, watermark_position, content_type,
-        watermark_transparency, watermark_rotation, watermark_scale
-    )
-
-    if new_file_id:
-        post_data['file_id'] = new_file_id
-        post_data['watermark_applied'] = True
-
-    return post_data

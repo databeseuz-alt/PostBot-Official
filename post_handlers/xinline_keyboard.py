@@ -512,3 +512,4 @@ def get_auto_signature_cancel_kb(lang: str = 'uzl'):
     builder = InlineKeyboardBuilder()
     builder.button(text="❌ Bekor qilish", callback_data="auto_sig_cancel_new")
     return builder.as_markup()
+    

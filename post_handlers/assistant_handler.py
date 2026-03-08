@@ -295,29 +295,6 @@ async def ai_assistant_non_text(message: types.Message, state: FSMContext):
         reply_markup=get_ai_assistant_reply_keyboard(lang)
     )
 
-async def ai_assistant_prompts_message_handler(message: types.Message, state: FSMContext):
-    """AI-assistentda Promptlar tugmasi bosilganda (Reply keyboard orqali)."""
-    lang = await get_user_language(message.from_user.id)
-
-    current_state = await state.get_state()
-    await state.update_data(previous_state=current_state)
-
-    prompts = await get_user_prompts(message.from_user.id)
-
-    prompts_text = "❤️ <b>Saqlangan promptlar</b>\n\n"
-    prompts_text += "Bu yerda promptlarni saqlab, keyin bir marta bosish orqali ulardan foydalanishingiz mumkin.\n\n"
-    prompts_text += "▫️ Promptni saqlash uchun uning matnini yuboring\n"
-    prompts_text += "▫️ O'chirish uchun - «O'chirish» tugmasini bosing va ro'yxatdan promptni tanlang"
-
-    if not prompts:
-        prompts_text += "\n\nHozirda hech qanday prompt saqlanmagan."
-
-    await message.answer(
-        prompts_text,
-        parse_mode="HTML",
-        reply_markup=get_saved_prompts_reply_keyboard(prompts, lang)
-    )
-    await state.set_state(AIAssistant.waiting_for_prompt_to_save)
 
 @ai_assistant_router.callback_query(F.data == "ai_assistant_back")
 async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext):

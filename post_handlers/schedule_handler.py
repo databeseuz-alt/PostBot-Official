@@ -236,18 +236,6 @@ async def send_scheduled_post(bot: Bot, post_id: int, user_id: int, post_code: s
             sent_message = await bot.send_video_note(channel_id, file_id, reply_markup=keyboard)
         elif content_type == 'sticker':
             sent_message = await bot.send_sticker(channel_id, file_id, reply_markup=keyboard)
-        elif content_type == 'poll':
-            sent_message = await bot.send_poll(
-                channel_id,
-                question=post_content.get('poll_question', ''),
-                options=post_content.get('poll_options', []),
-                is_anonymous=post_content.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_content.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_content.get('poll_correct_option_id'),
-                type='quiz' if post_content.get('poll_is_quiz', False) else 'regular',
-                explanation=post_content.get('poll_explanation'),
-                reply_markup=keyboard
-            )
         elif content_type == 'dice':
             sent_message = await bot.send_dice(
                 channel_id,

@@ -141,14 +141,6 @@ async def cmd_mycodes(message: types.Message, state: FSMContext, bot: Bot):
         result_text += f"\n\n📊 Jami: <b>{len(user_posts)}</b> ta post"
         await message.answer(result_text, parse_mode="HTML")
 
-@start_router.message(Command("features"))
-async def cmd_features(message: types.Message, state: FSMContext):
-    """Features bo'limi - vaqtinchalik o'chirilgan."""
-    await message.answer(
-        "🛠 <b>Features</b> bo'limi vaqtinchalik o'chirilgan.\n\n"
-        "⏳ Tez orada ishga tushadi!",
-        parse_mode="HTML"
-    )
 
 @start_router.callback_query(F.data == "check_subscription_again")
 async def check_subscription_again(callback: types.CallbackQuery, state: FSMContext, bot: Bot):

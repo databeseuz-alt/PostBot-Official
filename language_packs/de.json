@@ -243,6 +243,5 @@
     "print_silent_btn": "🔇 Stumm-Modus",
     "quiz_btn": "📊 Quiz",
     "print_protect_toggled_off": "✅ Inhaltsschutz deaktiviert.",
-    "print_protect_toggled_on": "✅ Inhaltsschutz aktiviert. Der Post kann nicht kopiert oder weitergeleitet werden.",
-    "convert_btn": "🔁 Konverter"
+    "print_protect_toggled_on": "✅ Inhaltsschutz aktiviert. Der Post kann nicht kopiert oder weitergeleitet werden."
 }

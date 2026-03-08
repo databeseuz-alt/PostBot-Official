@@ -726,10 +726,3 @@ async def handle_watermark_button_in_signature(message: Message, state: FSMConte
     await cancel_signature_and_redirect(message, state, watermark_reply_handler)
 
 
-@router.message(AutoSignatureState.enter_text, LocalizedText('edit_confirm_btn'))
-async def handle_edit_confirm_button_in_signature(message: Message, state: FSMContext):
-    """Autoimzo matn kiritishda Tahrirlashni tasdiqlash tugmasi bosilganda"""
-    from post_handlers.done_handler import done_post_creation
-    from aiogram import Bot
-    bot = message.bot
-    await cancel_signature_and_redirect(message, state, lambda m, s: done_post_creation(m, s, bot))

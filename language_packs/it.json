@@ -243,6 +243,5 @@
     "print_silent_btn": "🔇 Modalità silenziosa",
     "quiz_btn": "📊 Quiz",
     "print_protect_toggled_off": "✅ Protezione contenuto disattivata.",
-    "print_protect_toggled_on": "✅ Protezione contenuto attivata. Il post non può essere copiato o inoltrato.",
-    "convert_btn": "🔁 Convertitore"
+    "print_protect_toggled_on": "✅ Protezione contenuto attivata. Il post non può essere copiato o inoltrato"
 }

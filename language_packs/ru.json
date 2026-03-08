@@ -242,6 +242,5 @@
     "print_auto_delete_set": "✅ Авто удаление установлено: <b>{time}</b>",
     "print_auto_delete_removed": "✅ Авто удаление убрано.",
     "print_auto_delete_invalid": "❌ Неверный формат времени.\n\n<i>Пример:</i> <code>5 мин</code> или <code>06.03 20:00</code>",
-    "print_auto_delete_remove_btn": "🗑️ Удалить таймер",
-    "convert_btn": "🔁 Конвертер"
+    "print_auto_delete_remove_btn": "🗑️ Удалить таймер"
 }

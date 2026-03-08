@@ -242,6 +242,5 @@
     "print_auto_delete_set": "✅ Auto delete set: <b>{time}</b>",
     "print_auto_delete_removed": "✅ Auto delete removed.",
     "print_auto_delete_invalid": "❌ Invalid time format.\n\n<i>Example:</i> <code>5 min</code> or <code>06.03 20:00</code>",
-    "print_auto_delete_remove_btn": "🗑️ Remove timer",
-    "convert_btn": "🔁 Convert"
+    "print_auto_delete_remove_btn": "🗑️ Remove timer"
 }

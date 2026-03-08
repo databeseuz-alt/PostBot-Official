@@ -243,6 +243,5 @@
     "print_silent_btn": "🔇 Sessiz mod",
     "quiz_btn": "📊 Bilgi yarışması",
     "print_protect_toggled_off": "✅ İçerik koruması kapatıldı.",
-    "print_protect_toggled_on": "✅ İçerik koruması açıldı. Gönderi kopyalanamaz veya iletilemez.",
-    "convert_btn": "🔁 Dönüştürücü"
+    "print_protect_toggled_on": "✅ İçerik koruması açıldı. Gönderi kopyalanamaz veya iletilemez."
 }

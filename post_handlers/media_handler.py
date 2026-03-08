@@ -333,7 +333,7 @@ async def redraw_post_with_callback(callback: types.CallbackQuery, state: FSMCon
             except Exception:
                 pass
             await send_new_post_with_settings(callback.message, state, post_data, new_keyboard)
-        elif content_type in ['poll', 'dice']:
+        elif content_type == 'dice':
             try:
                 await callback.bot.delete_message(chat_id, message_id)
             except Exception:
@@ -476,17 +476,6 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
             sent_message = await message.answer_location(
                 latitude=post_data.get('latitude', 0),
                 longitude=post_data.get('longitude', 0),
-                reply_markup=keyboard
-            )
-        elif content_type == 'poll':
-            sent_message = await message.answer_poll(
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
                 reply_markup=keyboard
             )
         elif content_type == 'dice':

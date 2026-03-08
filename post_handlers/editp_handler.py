@@ -191,19 +191,6 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
         elif content_type == 'sticker':
             await bot.send_message(chat_id, instruction, reply_markup=settings_kb, parse_mode="HTML")
             sent_message = await bot.send_sticker(chat_id, post_data.get('file_id'), reply_markup=keyboard)
-        elif content_type == 'poll':
-            await bot.send_message(chat_id, instruction, reply_markup=settings_kb, parse_mode="HTML")
-            sent_message = await bot.send_poll(
-                chat_id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
-                reply_markup=keyboard
-            )
         elif content_type == 'location':
             await bot.send_message(chat_id, instruction, reply_markup=settings_kb, parse_mode="HTML")
             sent_message = await bot.send_location(
@@ -319,18 +306,6 @@ async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
             await bot.send_voice(chat_id, file_id, caption=caption, reply_markup=keyboard, parse_mode=parse_mode)
         elif content_type == 'sticker':
             await bot.send_sticker(chat_id, file_id, reply_markup=keyboard)
-        elif content_type == 'poll':
-            await bot.send_poll(
-                chat_id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
-                reply_markup=keyboard
-            )
         elif content_type == 'dice':
             await bot.send_dice(
                 chat_id,

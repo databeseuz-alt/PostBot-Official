@@ -243,6 +243,5 @@
     "print_silent_btn": "🔇 الوضع الصامت",
     "quiz_btn": "📊 اختبار",
     "print_protect_toggled_off": "✅ تم تعطيل حماية المحتوى.",
-    "print_protect_toggled_on": "✅ تم تفعيل حماية المحتوى. لا يمكن نسخ المنشور أو إعادة توجيهه.",
-    "convert_btn": "🔁 محوّل"
+    "print_protect_toggled_on": "✅ تم تفعيل حماية المحتوى. لا يمكن نسخ المنشور أو إعادة توجيهه."
 }

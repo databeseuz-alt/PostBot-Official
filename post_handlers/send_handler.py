@@ -498,21 +498,6 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 protect_content=protect_content,
                 reply_to_message_id=reply_to_message_id
             )
-        elif content_type == 'poll':
-            sent_message = await bot.send_poll(
-                channel_id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
-                reply_markup=keyboard,
-                disable_notification=disable_notification,
-                protect_content=protect_content,
-                reply_to_message_id=reply_to_message_id
-            )
         elif content_type == 'dice':
             sent_message = await bot.send_dice(
                 channel_id,
@@ -552,6 +537,26 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 caption=post_data.get('caption', ''),
                 parse_mode=parse_mode,
                 show_caption_above_media=show_caption_above,
+                reply_markup=keyboard,
+                disable_notification=disable_notification,
+                protect_content=protect_content,
+                reply_to_message_id=reply_to_message_id
+            )
+        elif content_type == 'poll':
+            # Poll yuborish
+            sent_message = await bot.send_poll(
+                chat_id=channel_id,
+                question=post_data.get('question', ''),
+                options=post_data.get('options', []),
+                is_anonymous=post_data.get('is_anonymous', True),
+                type=post_data.get('type', 'regular'),
+                allows_multiple_answers=post_data.get('allows_multiple_answers', False),
+                correct_option_id=post_data.get('correct_option_id'),
+                explanation=post_data.get('explanation'),
+                explanation_entities=post_data.get('explanation_entities'),
+                open_period=post_data.get('open_period'),
+                close_date=post_data.get('close_date'),
+                is_closed=post_data.get('is_closed', False),
                 reply_markup=keyboard,
                 disable_notification=disable_notification,
                 protect_content=protect_content,

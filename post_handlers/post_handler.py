@@ -284,6 +284,19 @@ def format_user_info(user: types.User, lang: str = 'uzl') -> str:
         f"📎 username: <code>{username}</code>"
     )
 
+async def validate_storage_channel(bot: Bot) -> bool:
+    """STORAGE_CHANNEL_ID ni tekshiradi va bot unga kirish huquqiga ega ekanligini tekshiradi."""
+    if not config.STORAGE_CHANNEL_ID:
+        return False
+    
+    try:
+        # Kanalga xabar yuborish orqali tekshirish
+        test_message = await bot.send_message(config.STORAGE_CHANNEL_ID, "Test", disable_notification=True)
+        await bot.delete_message(config.STORAGE_CHANNEL_ID, test_message.message_id)
+        return True
+    except Exception:
+        return False
+
 async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') -> str | None:
     """Faqat permanent file_id olish, log kanaliga yuborish BAJARILMAYDI"""
     # Faqat message'dan file_id ni qaytarish
@@ -305,99 +318,6 @@ async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') 
         return message.animation.file_id
     return None
 
-async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
-    """Poll/Quiz kontentini qayta ishlash"""
-    poll = message.poll
-    if not poll:
-        return await message.answer(get_text('wrong_format', lang))
-
-    await state.set_state(PostCreation.configuring_post)
-
-    is_editing_session = 'editing_post_code' in old_data
-
-    poll_data = {
-        'content_type': 'poll',
-        'poll_question': poll.question,
-        'poll_options': [opt.text for opt in poll.options],
-        'poll_is_quiz': poll.type == 'quiz',
-        'poll_is_anonymous': poll.is_anonymous,
-        'poll_allows_multiple_answers': poll.allows_multiple_answers,
-        'poll_correct_option_id': poll.correct_option_id if poll.type == 'quiz' else None,
-        'poll_explanation': getattr(poll, 'explanation', None),
-        'parse_mode': 'HTML'
-    }
-
-    post_data = old_data.get('post_data', {})
-    post_data.update(poll_data)
-    post_data['chat_id'] = message.chat.id
-
-    buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
-    keyboard = generate_post_keyboard(buttons_matrix, lang)
-
-    poll_type_text = "📝 Viktorina" if poll.type == 'quiz' else "📊 So'rovnoma"
-
-    options_text = "\n".join([f"{i+1}. {html.escape(str(opt))}" for i, opt in enumerate(poll_data['poll_options'])])
-
-    preview_text = f"{poll_type_text}\n\n<b>{html.escape(poll.question)}</b>\n\n{options_text}"
-
-    if poll.type == 'quiz' and poll.correct_option_id is not None:
-        correct_answer = html.escape(str(poll_data['poll_options'][poll.correct_option_id]))
-        preview_text += f"\n\n✅ To'g'ri javob: {correct_answer}"
-
-    settings_kb_kwargs = {
-        "content_type": 'poll',
-        "has_caption": False,
-        "lang": lang,
-        "is_paid": post_data.get('is_paid', False)
-    }
-    reply_markup = get_post_settings_kb(**settings_kb_kwargs)
-
-    if is_editing_session:
-        await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
-    else:
-        await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
-
-    preview_message = await bot.send_poll(
-        message.chat.id,
-        question=poll.question,
-        options=[opt.text for opt in poll.options],
-        is_anonymous=poll.is_anonymous,
-        allows_multiple_answers=poll.allows_multiple_answers,
-        correct_option_id=poll.correct_option_id if poll.type == 'quiz' else None,
-        type='quiz' if poll.type == 'quiz' else 'regular',
-        explanation=getattr(poll, 'explanation', None),
-        reply_markup=keyboard
-    )
-
-    if preview_message:
-        post_data['message_id'] = preview_message.message_id
-        post_data['chat_id'] = preview_message.chat.id
-        await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
-
-        if config.STORAGE_CHANNEL_ID and not is_editing_session:
-            try:
-                user_info_text = format_user_info(message.from_user, lang)
-                # Post va foydalanuvchi ma'lumotlarini bitta xabarda yuborish
-                sent_poll = await bot.send_poll(
-                    config.STORAGE_CHANNEL_ID,
-                    question=poll.question,
-                    options=[opt.text for opt in poll.options],
-                    is_anonymous=poll.is_anonymous,
-                    allows_multiple_answers=poll.allows_multiple_answers,
-                    correct_option_id=poll.correct_option_id if poll.type == 'quiz' else None,
-                    type='quiz' if poll.type == 'quiz' else 'regular',
-                    explanation=getattr(poll, 'explanation', None)
-                )
-                # Foydalanuvchi ma'lumotlarini reply sifatida yuborish
-                if sent_poll:
-                    await bot.send_message(
-                        config.STORAGE_CHANNEL_ID,
-                        user_info_text,
-                        parse_mode="HTML",
-                        reply_to_message_id=sent_poll.message_id
-                    )
-            except Exception:
-                pass
 
 async def handle_location_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Location kontentini qayta ishlash"""
@@ -645,6 +565,178 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
             except Exception:
                 pass
 
+async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
+    """Poll kontentini qayta ishlash"""
+    poll = message.poll
+    if not poll:
+        return await message.answer(get_text('wrong_format', lang))
+
+    await state.set_state(PostCreation.configuring_post)
+
+    is_editing_session = 'editing_post_code' in old_data
+
+    poll_data = {
+        'content_type': 'poll',
+        'poll_id': poll.id,
+        'question': poll.question,
+        'options': [option.text for option in poll.options],
+        'is_anonymous': poll.is_anonymous,
+        'type': poll.type,
+        'allows_multiple_answers': poll.allows_multiple_answers,
+        'correct_option_id': poll.correct_option_id,
+        'explanation': poll.explanation,
+        'explanation_entities': poll.explanation_entities,
+        'open_period': poll.open_period,
+        'close_date': poll.close_date,
+        'is_closed': poll.is_closed,
+        'parse_mode': 'HTML',
+        'chat_id': message.chat.id
+    }
+
+    post_data = old_data.get('post_data', {})
+    post_data.update(poll_data)
+
+    buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
+    keyboard = generate_post_keyboard(buttons_matrix, lang)
+
+    poll_text = f"📊 So'rovnoma: {poll.question}\n\n"
+    for i, option in enumerate(poll.options, 1):
+        poll_text += f"{i}. {option.text}\n"
+
+    settings_kb_kwargs = {
+        "content_type": 'poll',
+        "has_caption": False,
+        "lang": lang,
+        "is_paid": post_data.get('is_paid', False)
+    }
+    reply_markup = get_post_settings_kb(**settings_kb_kwargs)
+
+    if is_editing_session:
+        await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
+    else:
+        await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
+
+    try:
+        print(f"[DEBUG] Poll yuborish: chat_id={message.chat.id}, question={poll.question}")
+        preview_message = await bot.send_poll(
+            chat_id=message.chat.id,
+            question=poll.question,
+            options=[option.text for option in poll.options],
+            is_anonymous=poll.is_anonymous,
+            type=poll.type,
+            allows_multiple_answers=poll.allows_multiple_answers,
+            correct_option_id=poll.correct_option_id,
+            explanation=poll.explanation,
+            explanation_entities=poll.explanation_entities,
+            open_period=poll.open_period,
+            close_date=poll.close_date,
+            is_closed=poll.is_closed,
+            reply_markup=keyboard
+        )
+        print(f"[DEBUG] Poll yuborildi: message_id={preview_message.message_id}, chat_id={preview_message.chat.id}")
+
+        if preview_message:
+            post_data['message_id'] = preview_message.message_id
+            post_data['chat_id'] = preview_message.chat.id
+            await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+
+            if config.STORAGE_CHANNEL_ID and not is_editing_session:
+                # STORAGE_CHANNEL_ID ni tekshirish
+                is_valid_channel = await validate_storage_channel(bot)
+                if is_valid_channel:
+                    try:
+                        user_info_text = format_user_info(message.from_user, lang)
+                        # Poll va foydalanuvchi ma'lumotlarini bitta xabarda yuborish
+                        sent_poll = await bot.send_poll(
+                            config.STORAGE_CHANNEL_ID,
+                            question=poll.question,
+                            options=[option.text for option in poll.options],
+                            is_anonymous=poll.is_anonymous,
+                            type=poll.type,
+                            allows_multiple_answers=poll.allows_multiple_answers,
+                            correct_option_id=poll.correct_option_id,
+                            explanation=poll.explanation,
+                            explanation_entities=poll.explanation_entities,
+                            open_period=poll.open_period,
+                            close_date=poll.close_date,
+                            is_closed=poll.is_closed,
+                            reply_markup=keyboard
+                        )
+                        # Foydalanuvchi ma'lumotlarini reply sifatida yuborish
+                        if sent_poll:
+                            await bot.send_message(
+                                config.STORAGE_CHANNEL_ID,
+                                user_info_text,
+                                parse_mode="HTML",
+                                reply_to_message_id=sent_poll.message_id
+                            )
+                    except Exception as e:
+                        # Xatolikni bazaga yozish
+                        from xdata_handlers.database import log_user_error
+                        error_msg = f"Poll yuborishda xatolik: {str(e)}"
+                        await log_user_error(message.from_user.id, error_msg)
+                else:
+                    # STORAGE_CHANNEL_ID noto'g'ri yoki botda huquqi yo'q
+                    from xdata_handlers.database import log_user_error
+                    error_msg = f"Poll yuborishda xatolik: STORAGE_CHANNEL_ID noto'g'ri yoki botda huquqi yo'q"
+                    await log_user_error(message.from_user.id, error_msg)
+        else:
+            # preview_message None bo'lsa ham xatolikni yozish
+            from xdata_handlers.database import log_user_error
+            await log_user_error(message.from_user.id, "Poll yuborishda xabar yaratilmadi")
+    except Exception as e:
+        preview_message = await message.answer(poll_text, reply_markup=keyboard, parse_mode='HTML')
+        if preview_message:
+            post_data['message_id'] = preview_message.message_id
+            post_data['chat_id'] = preview_message.chat.id
+            await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+        else:
+            # preview_message None bo'lsa ham xatolikni yozish
+            from xdata_handlers.database import log_user_error
+            await log_user_error(message.from_user.id, f"Pollni oddiy xabar sifatida yuborishda xatolik: {str(e)}")
+
+    # Poll uchun tugmalarni qo'shish
+    if preview_message:
+        try:
+            await bot.edit_message_reply_markup(
+                chat_id=preview_message.chat.id,
+                message_id=preview_message.message_id,
+                reply_markup=keyboard
+            )
+        except Exception as e:
+            error_str = str(e).lower()
+            if "message is not modified" in error_str:
+                # Bu xatolikni bazaga yozmaymiz, chunki bu normal holat
+                pass
+            else:
+                # Boshqa xatoliklar uchun bazaga yozish
+                from xdata_handlers.database import log_user_error
+                error_msg = f"Pollga tugma qo'shishda xatolik: {str(e)}"
+                await log_user_error(message.from_user.id, error_msg)
+    else:
+        # preview_message None bo'lsa ham xatolikni yozish
+        from xdata_handlers.database import log_user_error
+        await log_user_error(message.from_user.id, "Pollga tugma qo'shishda xabar topilmadi")
+
+    # Poll uchun tugmalarni qo'shish (qo'shimcha tekshiruv)
+    if preview_message and not is_editing_session:
+        try:
+            await bot.edit_message_reply_markup(
+                chat_id=preview_message.chat.id,
+                message_id=preview_message.message_id,
+                reply_markup=keyboard
+            )
+        except Exception as e:
+            error_str = str(e).lower()
+            if "message is not modified" in error_str:
+                # Bu xatolikni bazaga yozmaymiz, chunki bu normal holat
+                pass
+            else:
+                # Boshqa xatoliklar uchun bazaga yozish
+                from xdata_handlers.database import log_user_error
+                error_msg = f"Pollga tugma qo'shishda qo'shimcha xatolik: {str(e)}"
+                await log_user_error(message.from_user.id, error_msg)
+
 @post_router.message(
     PostCreation.waiting_for_content,
     ~LocalizedText('back_btn')
@@ -656,12 +748,10 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
     if message.media_group_id:
         return await message.answer(get_text('albums_not_supported', lang))
 
-    supported_types = ('text', 'photo', 'video', 'audio', 'document', 'video_note', 'voice', 'sticker', 'animation', 'poll', 'paid_media', 'dice', 'location')
+    supported_types = ('text', 'photo', 'video', 'audio', 'document', 'video_note', 'voice', 'sticker', 'animation', 'paid_media', 'dice', 'location', 'poll')
     if message.content_type not in supported_types:
         return await message.answer(get_text('wrong_format', lang))
 
-    if message.content_type == 'poll' and message.poll:
-        return await handle_poll_content(message, state, bot, old_data, lang)
 
     if message.content_type == 'paid_media':
         return await handle_paid_media_content(message, state, bot, old_data, lang)
@@ -671,6 +761,9 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
 
     if message.content_type == 'location':
         return await handle_location_content(message, state, bot, old_data, lang)
+
+    if message.content_type == 'poll':
+        return await handle_poll_content(message, state, bot, old_data, lang)
 
     await state.set_state(PostCreation.configuring_post)
 
@@ -689,14 +782,14 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
 
     new_text = message.html_text if message.text else None
     new_caption = message.html_text if message.caption else None
-    is_incoming_media = message.content_type != 'text' and message.content_type != 'poll' and message.content_type != 'dice'
+    is_incoming_media = message.content_type != 'text' and message.content_type != 'dice'
 
     is_delete_media = message.text == get_text('delete_media_btn', lang)
     is_delete_text = message.text == get_text('delete_text_btn', lang)
     is_action = is_delete_media or is_delete_text
 
     # Media types that don't support captions
-    media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice', 'poll')
+    media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice')
     
     if is_action and post_data:
         if is_delete_media:
@@ -862,18 +955,7 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 longitude=post_data['longitude'],
                 reply_markup=keyboard
             )
-        elif current_type == 'poll':
-            preview_message = await bot.send_poll(
-                message.chat.id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
-                reply_markup=keyboard
-            )
+            
         elif current_type == 'dice':
             preview_message = await bot.send_dice(
                 message.chat.id,
