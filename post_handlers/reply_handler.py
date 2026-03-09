@@ -272,19 +272,6 @@ async def get_buttons_handler(message: types.Message, state: FSMContext):
 
 @reply_router.message(
     PostCreation.configuring_post,
-    LocalizedText('watermark_btn')
-)
-@reply_router.message(
-    PostCreation.waiting_for_media_settings,
-    LocalizedText('watermark_btn')
-)
-async def watermark_reply_handler(message: types.Message, state: FSMContext):
-    """Suv belgisi tugmasi - watermark sozlamalarini ochish"""
-    from post_handlers.watermark_handler import show_watermark_settings_reply
-    await show_watermark_settings_reply(message, state)
-
-@reply_router.message(
-    PostCreation.configuring_post,
     LocalizedText('auto_signature_btn')
 )
 @reply_router.message(

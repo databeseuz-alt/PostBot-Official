@@ -281,7 +281,7 @@ async def start_add_button(callback: types.CallbackQuery, state: FSMContext):
     except Exception:
         pass
 
-    await callback.message.answer(get_text('ask_btn_type_msg', lang), reply_markup=get_button_type_reply_kb(lang))
+    await callback.message.answer(get_text('ask_btn_type_msg', lang), reply_markup=get_button_type_reply_kb(lang), parse_mode='HTML')
     await callback.answer()
 
 @button_router.message(PostCreation.waiting_for_button_type, LocalizedText('url_type_btn'))
@@ -403,6 +403,8 @@ async def process_text_btn_content_nonsub(message: types.Message, state: FSMCont
     buttons_matrix = data.get("buttons_matrix", [])
     is_editing = data.get("is_editing_button", False)
 
+    status_text = ""
+
     if is_editing:
         target_row, target_col = data.get("editing_button_coords")
         status_text = get_text('btn_edited_msg', lang)
@@ -473,6 +475,8 @@ async def add_or_edit_button(message: types.Message, state: FSMContext):
     new_btn = {'text': button_text, 'url': final_url}
     if button_emoji_id:
         new_btn['emoji_id'] = button_emoji_id
+
+    status_text = ""
 
     if is_editing:
         target_row, target_col = data.get("editing_button_coords")
@@ -770,7 +774,7 @@ async def process_reactions(message: types.Message, state: FSMContext, bot: Bot)
 
     await state.update_data(buttons_matrix=buttons_matrix, is_editing_button=False)
     await state.set_state(PostCreation.configuring_post)
-    await redraw_post(message, state, get_text("reactions_saved_msg", lang))
+    await redraw_post(message, state, get_text("btn_added_msg", lang))
 
 @button_router.callback_query(PostCreation.waiting_for_reaction_color, F.data.startswith("btn_color:"))
 async def process_reaction_color(callback: types.CallbackQuery, state: FSMContext):
@@ -848,7 +852,7 @@ async def process_reaction_color(callback: types.CallbackQuery, state: FSMContex
     await state.set_state(PostCreation.configuring_post)
 
     await callback.answer()
-    await redraw_post(callback.message, state, get_text("reactions_saved_msg", lang))
+    await redraw_post(callback.message, state, get_text("btn_added_msg", lang))
 
 @button_router.callback_query(F.data.startswith("reaction:"))
 async def handle_reaction_click(callback: types.CallbackQuery):

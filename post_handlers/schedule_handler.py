@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 import re
+import html
 
 from aiogram import Router, types, Bot, F
 from aiogram.fsm.context import FSMContext
@@ -12,7 +13,17 @@ from xdata_handlers.database import (
 from xdata_handlers.translator import get_text
 from post_handlers.send_handler import PostSending
 from post_handlers.xinline_keyboard import PostSendCallbackFactory, get_post_management_keyboard, generate_final_keyboard
+from post_handlers.post_handler import validate_and_fix_html
 import pytz
+
+def validate_html_content(content: str) -> str:
+    """
+    HTML kontentini validatsiya qilish va xatolarni tuzatish
+    """
+    if not content:
+        return content
+    
+    return validate_and_fix_html(content)
 
 LANG_TZ_MAP = {
     'uzl': 'Asia/Tashkent',
@@ -136,7 +147,7 @@ async def _finalize_schedule(message: types.Message, state: FSMContext, post_cod
         await message.answer(confirmation_text, parse_mode="HTML")
 
         bot_info = await bot.get_me()
-        final_message = get_text('post_saved', lang).format(
+        final_message = get_text('post_saved_msg', lang).format(
             post_code=post_code,
             bot_username=bot_info.username
         )
@@ -182,6 +193,13 @@ async def send_scheduled_post(bot: Bot, post_id: int, user_id: int, post_code: s
         text = post_content.get('text', '')
         parse_mode = post_content.get('parse_mode', 'HTML')
         disable_preview = post_content.get('disable_web_page_preview', False)  # Standart yoqilgan
+
+        # HTML kontentini validatsiya qilish
+        if parse_mode == 'HTML':
+            if text:
+                text = validate_html_content(text)
+            if caption:
+                caption = validate_html_content(caption)
 
         has_spoiler = post_content.get('has_spoiler', False)
         show_caption_above = post_content.get('show_caption_above_media', False)

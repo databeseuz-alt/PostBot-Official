@@ -8,7 +8,7 @@ from post_handlers.xreply_keyboard import get_post_done_menu, get_save_cancel_kb
 from post_handlers.xinline_keyboard import get_post_management_keyboard, SavePostCallbackFactory, get_post_save_edit_keyboard, get_done_inline_keyboard, generate_preview_keyboard, generate_final_keyboard
 from post_handlers.xreply_keyboard import get_main_menu as get_main_menu_reply
 from xdata_handlers.database import (
-    add_post_to_db, update_post_in_db, get_user_language, save_post_name, unsave_post_name, get_post_from_db
+    add_post_to_db, update_post_in_db, get_user_language, save_post_name, unsave_post_name, get_post_from_db, get_user_post_settings
 )
 from admin_handlers.channel_handler import check_user_membership
 from post_handlers.start_handler import start_post_creation, cmd_start
@@ -18,7 +18,7 @@ from post_handlers.localize_filter import LocalizedText
 
 done_router = Router()
 
-async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
+async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot, success_keyboard=None):
     """Postni preview sifatida yuboradi va post kodi xabarini chiqaradi."""
     full_post = await get_post_from_db(post_code)
     if not full_post:
@@ -26,7 +26,13 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
 
     post_data = full_post.get('post_content', {})
     buttons_matrix = full_post.get('buttons_matrix', [])
-    preview_keyboard = generate_preview_keyboard(buttons_matrix)
+    
+    # If success_keyboard is provided (no buttons in post), use it instead of preview keyboard
+    if success_keyboard:
+        preview_keyboard = success_keyboard
+    else:
+        preview_keyboard = generate_preview_keyboard(buttons_matrix)
+    
     final_keyboard = generate_final_keyboard(buttons_matrix)
 
     parse_mode = post_data.get('parse_mode', 'HTML')
@@ -45,6 +51,7 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
                 parse_mode=parse_mode,
                 disable_web_page_preview=disable_preview
             )
+
         elif content_type == 'photo':
             is_paid = post_data.get('is_paid', False)
             if is_paid:
@@ -140,13 +147,13 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
         elif content_type == 'poll':
             preview_message = await bot.send_poll(
                 chat_id,
-                question=post_data.get('poll_question', ''),
-                options=post_data.get('poll_options', []),
-                is_anonymous=post_data.get('poll_is_anonymous', True),
-                allows_multiple_answers=post_data.get('poll_allows_multiple_answers', False),
-                correct_option_id=post_data.get('poll_correct_option_id'),
-                type='quiz' if post_data.get('poll_is_quiz', False) else 'regular',
-                explanation=post_data.get('poll_explanation'),
+                question=post_data.get('question', ''),
+                options=post_data.get('options', []),
+                is_anonymous=post_data.get('is_anonymous', True),
+                type=post_data.get('type', 'regular'),
+                allows_multiple_answers=post_data.get('allows_multiple_answers', False),
+                correct_option_id=post_data.get('correct_option_id'),
+                explanation=post_data.get('explanation'),
                 reply_markup=preview_keyboard
             )
         elif content_type == 'dice':
@@ -188,7 +195,7 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot):
     bot_info = await bot.get_me()
     bot_username = bot_info.username
 
-    post_code_message = get_text('post_saved', lang).format(
+    post_code_message = get_text('post_saved_msg', lang).format(
         post_code=post_code,
         bot_username=bot_username
     )
@@ -239,13 +246,13 @@ async def done_post_creation(event: types.Message | types.CallbackQuery, state: 
         await state.clear()
         if isinstance(event, types.Message):
             await event.answer(
-                get_text('join_channel_to_continue', lang),
+                get_text('join_required_msg', lang),
                 reply_markup=ReplyKeyboardRemove()
             )
             await event.answer(check_text, reply_markup=check_keyboard)
         else:
             await event.message.answer(
-                get_text('join_channel_to_continue', lang),
+                get_text('join_required_msg', lang),
                 reply_markup=ReplyKeyboardRemove()
             )
             await event.message.answer(check_text, reply_markup=check_keyboard)
@@ -284,21 +291,45 @@ async def done_post_creation(event: types.Message | types.CallbackQuery, state: 
 
     # Show success message with reply keyboard
     from post_handlers.xreply_keyboard import get_post_done_menu, get_back_button_kb
-    if isinstance(event, types.Message):
-        success_message = await event.answer(
-            get_text('post_saved_to_db', lang),
-            reply_markup=get_post_done_menu(lang)
-        )
+    
+    # Check if there are any buttons in the post
+    has_buttons = False
+    if buttons_matrix:
+        for row in buttons_matrix:
+            for btn in row:
+                if btn and not btn.get('is_placeholder'):
+                    has_buttons = True
+                    break
+            if has_buttons:
+                break
+    
+    # Get post data for preview
+    full_post_for_preview = await get_post_from_db(post_code_for_user)
+    preview_post_data = full_post_for_preview.get('post_content', {}) if full_post_for_preview else {}
+    
+    if has_buttons:
+        # If there are buttons, show success message separately and then preview with buttons
+        if isinstance(event, types.Message):
+            success_message = await event.answer(
+                get_text('post_saved_to_db', lang),
+                reply_markup=get_post_done_menu(lang)
+            )
+        else:
+            success_message = await event.message.answer(
+                get_text('post_saved_to_db', lang),
+                reply_markup=get_post_done_menu(lang)
+            )
+        
+        if isinstance(event, types.CallbackQuery):
+            await event.answer()
+        
+        await send_post_preview(chat_id, post_code_for_user, lang, bot)
     else:
-        success_message = await event.message.answer(
-            get_text('post_saved_to_db', lang),
-            reply_markup=get_post_done_menu(lang)
-        )
-
-    if isinstance(event, types.CallbackQuery):
-        await event.answer()
-
-    await send_post_preview(chat_id, post_code_for_user, lang, bot)
+        # If there are NO buttons, show success message IN the preview message via reply_markup
+        if isinstance(event, types.CallbackQuery):
+            await event.answer()
+        
+        await send_post_preview(chat_id, post_code_for_user, lang, bot, get_post_done_menu(lang))
 
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "start_save"))
 async def save_post_prompt(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory, state: FSMContext):
@@ -385,7 +416,7 @@ async def delete_post_name_handler(callback: types.CallbackQuery, callback_data:
     await callback.message.answer(get_text('saved_name_deleted', lang))
 
     inline_kb = await get_post_management_keyboard(post_code)
-    final_message = get_text('post_saved', lang).format(
+    final_message = get_text('post_saved_msg', lang).format(
         post_code=post_code,
         bot_username=(await callback.bot.get_me()).username
     )
@@ -439,7 +470,7 @@ async def process_rename_post(message: types.Message, state: FSMContext):
     await message.answer(get_text('post_renamed', lang), reply_markup=get_done_inline_keyboard(lang))
 
     inline_kb = await get_post_management_keyboard(post_code)
-    final_message = get_text('post_saved', lang).format(
+    final_message = get_text('post_saved_msg', lang).format(
         post_code=post_code,
         bot_username=(await message.bot.get_me()).username
     )
@@ -471,7 +502,7 @@ async def cancel_save_post(message: types.Message, state: FSMContext, bot: Bot):
     )
 
     if post_code:
-        final_message = get_text('post_saved', lang).format(
+        final_message = get_text('post_saved_msg', lang).format(
             post_code=post_code,
             bot_username=(await bot.get_me()).username
         )
@@ -494,7 +525,7 @@ async def cancel_rename_post(message: types.Message, state: FSMContext):
 
     if post_code:
         inline_kb = await get_post_management_keyboard(post_code)
-        final_message = get_text('post_saved', lang).format(
+        final_message = get_text('post_saved_msg', lang).format(
             post_code=post_code,
             bot_username=(await message.bot.get_me()).username
         )
@@ -529,7 +560,7 @@ async def save_post_name_received(message: types.Message, state: FSMContext, bot
     else:
         await message.answer(get_text('post_save_error', lang), reply_markup=get_done_inline_keyboard(lang))
 
-    final_message = get_text('post_saved', lang).format(
+    final_message = get_text('post_saved_msg', lang).format(
         post_code=post_code,
         bot_username=(await bot.get_me()).username
     )
@@ -545,7 +576,30 @@ async def save_post_name_received(message: types.Message, state: FSMContext, bot
 
 @done_router.message(LocalizedText('cr_another_post_btn'))
 async def create_another_post_handler(message: types.Message, state: FSMContext, bot: Bot):
-    await start_post_creation(message, state, bot)
+    """Yangi post yaratish - done_handler dan"""
+    user = message.from_user
+    is_member, text, keyboard = await check_user_membership(user, bot)
+    
+    if not is_member:
+        remover_message = await message.answer(".", reply_markup=ReplyKeyboardRemove())
+        await remover_message.delete()
+        await message.answer(text, reply_markup=keyboard)
+        return
+    
+    await state.clear()
+    lang = await get_user_language(user.id)
+    
+    user_settings = await get_user_post_settings(user.id)
+    ai_assistant_enabled = user_settings.get('ai_assistant_enabled', False)
+    
+    content_text = get_text('content_msg', lang)
+    if ai_assistant_enabled:
+        content_text += get_text('ai_assistant_hint_msg', lang)
+    
+    content_message = await message.answer(content_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+    
+    await state.update_data(content_message_id=content_message.message_id)
+    await state.set_state(PostCreation.waiting_for_content)
 
 @done_router.message(LocalizedText('back_btn'))
 async def back_to_main_menu_handler(message: types.Message, state: FSMContext, bot: Bot):
@@ -631,7 +685,7 @@ async def print_settings_callback(callback: types.CallbackQuery, state: FSMConte
         from post_handlers.xinline_keyboard import get_post_management_keyboard
         try:
             await callback.message.edit_text(
-                get_text('post_saved', lang).format(
+                get_text('post_saved_msg', lang).format(
                     post_code=post_code,
                     bot_username=(await callback.bot.get_me()).username
                 ),
@@ -639,7 +693,7 @@ async def print_settings_callback(callback: types.CallbackQuery, state: FSMConte
             )
         except:
             await callback.message.answer(
-                get_text('post_saved', lang).format(
+                get_text('post_saved_msg', lang).format(
                     post_code=post_code,
                     bot_username=(await callback.bot.get_me()).username
                 ),

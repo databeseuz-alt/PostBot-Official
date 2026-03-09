@@ -719,10 +719,4 @@ async def handle_media_settings_button_in_signature(message: Message, state: FSM
     await cancel_signature_and_redirect(message, state, media_settings_reply_handler)
 
 
-@router.message(AutoSignatureState.enter_text, LocalizedText('watermark_btn'))
-async def handle_watermark_button_in_signature(message: Message, state: FSMContext):
-    """Autoimzo matn kiritishda Suv belgisi tugmasi bosilganda"""
-    from post_handlers.reply_handler import watermark_reply_handler
-    await cancel_signature_and_redirect(message, state, watermark_reply_handler)
-
 

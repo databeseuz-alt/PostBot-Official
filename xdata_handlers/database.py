@@ -1782,7 +1782,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
             today = get_now().strftime('%Y-%m-%d')
             
             # Bugungi yangi foydalanuvchilar - users jadvalidan
-            cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(join_date) = %s", (today,))
+            cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(last_activity) = %s", (today,))
             today_users = int(cursor.fetchone()[0] or 0)
             
             # Bugungi postlar - post_info jadvalidan
@@ -1793,7 +1793,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
             last_7_days = []
             for i in range(7):
                 day = (get_now() - timedelta(days=i)).strftime('%Y-%m-%d')
-                cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(join_date) = %s", (day,))
+                cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(last_activity) = %s", (day,))
                 day_users = int(cursor.fetchone()[0] or 0)
                 cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (day,))
                 day_posts = int(cursor.fetchone()[0] or 0)
@@ -1857,21 +1857,21 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
 
             # Kunlik - bugungi yangi foydalanuvchilar
             cursor.execute(
-                "SELECT COUNT(*) FROM users WHERE DATE(join_date) = %s",
+                "SELECT COUNT(*) FROM users WHERE DATE(last_activity) = %s",
                 (today,)
             )
             daily = int(cursor.fetchone()[0] or 0)
 
             # Haftalik - ushbu haftadagi yangi foydalanuvchilar
             cursor.execute(
-                "SELECT COUNT(*) FROM users WHERE DATE(join_date) >= %s",
+                "SELECT COUNT(*) FROM users WHERE DATE(last_activity) >= %s",
                 (week_start,)
             )
             weekly = int(cursor.fetchone()[0] or 0)
 
             # Oylik - ushbu oydagi yangi foydalanuvchilar
             cursor.execute(
-                "SELECT COUNT(*) FROM users WHERE DATE(join_date) >= %s",
+                "SELECT COUNT(*) FROM users WHERE DATE(last_activity) >= %s",
                 (month_start,)
             )
             monthly = int(cursor.fetchone()[0] or 0)

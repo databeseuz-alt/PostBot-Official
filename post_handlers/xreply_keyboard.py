@@ -14,60 +14,33 @@ async def get_main_menu(lang: str, user_id: int):
 def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
     builder = ReplyKeyboardBuilder()
 
-    builder.add(KeyboardButton(text=get_text('preview_btn', lang))) # Ko'rish
-    builder.add(KeyboardButton(text=get_text('settings_btn', lang))) # Sozlamalar
-    builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang))) # Tugma
+    # 1-qator: asosiy tugmalar (4 ta)
+    builder.add(KeyboardButton(text=get_text('preview_btn', lang)))  # Ko'rish
+    builder.add(KeyboardButton(text=get_text('settings_btn', lang)))  # Sozlamalar
+    builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang)))  # Tugma
+    builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))  # Tahrirlash
 
-    builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))
-
-    # For location: no auto_signature
-    # For photo/video/paid_media: add auto_signature only if has_caption, always add media_settings and watermark
-    # For audio/voice: no media_settings
-    # For document/animation: add media_settings
-    # For document/animation: add media_settings
-    if content_type == 'text':
-        builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-    elif content_type == 'photo':
-        if has_caption:
+    # 2-qator: auto_signature (caption mavjud bo'lsa), media (media mavjud bo'lsa)
+    row2_buttons = 0
+    
+    # auto_signature - text, photo, video, document, audio, voice (agar caption mavjud)
+    if content_type in ['text', 'photo', 'video', 'document', 'audio', 'voice']:
+        if has_caption or content_type == 'text':
             builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
+            row2_buttons += 1
+    
+    # media_settings - photo, video, animation, paid_media
+    if content_type in ['photo', 'video', 'animation', 'paid_media']:
         builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
-    elif content_type in ['audio', 'voice']:
-        # Audio and voice: no media_settings
-        # With caption: add auto_signature
-        if has_caption:
-            builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-    elif content_type in ['document', 'animation']:
-        # Document and animation: only one button in middle row
-        # With caption: auto_signature, without caption: media_settings
-        if has_caption:
-            builder.add(KeyboardButton(text=get_text('auto_signature_btn', lang)))
-        else:
-            builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
-
-    # Watermark for photo, video, and paid_media only
-    if content_type in ['photo', 'video', 'paid_media']:
-        builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
-
+        row2_buttons += 1
+    
+    # 3-qator: bekor qilish va tayyor (2 ta)
     builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))
     builder.add(KeyboardButton(text=get_text('done_btn', lang)))
 
-    # Adjust layout based on content type
-    if content_type == 'location':
-        builder.adjust(4, 2)
-    elif content_type in ['photo', 'video', 'paid_media']:
-        builder.adjust(4, 4, 2)
-    elif content_type == 'text':
-        builder.adjust(4, 1, 2)
-    elif content_type in ['audio', 'voice']:
-        builder.adjust(4, 2)
-    elif content_type in ['document', 'animation']:
-        builder.adjust(4, 1, 2)
-    elif content_type == 'dice':
-        builder.adjust(4, 2)
-    elif content_type in ['sticker', 'video_note']:
-        builder.adjust(4, 1, 2)
-    elif content_type == 'poll':
-        builder.adjust(4, 2)
+    # Adjust layout: dynamic based on row 2 button count
+    if row2_buttons > 0:
+        builder.adjust(4, row2_buttons, 2)
     else:
         builder.adjust(4, 2)
 
@@ -183,24 +156,4 @@ def get_reactions_selection_kb(lang: str):
     builder.adjust(1, 5, 5, 5, 5, 5, 1)
 
     return builder.as_markup(resize_keyboard=True)
-
-def get_watermark_settings_kb(lang: str, is_enabled: bool = False):
-    """Watermark sozlamalari uchun klaviatura"""
-    builder = ReplyKeyboardBuilder()
-
-    if is_enabled:
-        toggle_text = get_text('watermark_disable_btn', lang)
-    else:
-        toggle_text = get_text('watermark_enable_btn', lang)
-    builder.add(KeyboardButton(text=toggle_text))
-
-    builder.add(KeyboardButton(text=get_text('watermark_text_btn', lang)))
-
-    builder.add(KeyboardButton(text=get_text('watermark_position_btn', lang)))
-
-    builder.add(KeyboardButton(text=get_text('back_btn', lang)))
-
-    builder.adjust(3, 1)
-    return builder.as_markup(resize_keyboard=True)
-
 

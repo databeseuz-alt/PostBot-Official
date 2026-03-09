@@ -1,4 +1,5 @@
 import html
+import os
 
 import asyncio
 from contextlib import suppress
@@ -7,7 +8,6 @@ from aiogram.types import BufferedInputFile
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.state import State, StatesGroup
 
@@ -15,6 +15,7 @@ from xdata_handlers.database import (
     get_user_channels, add_user_channel, get_post_from_db, get_user_language, 
     save_sent_post, get_user_bot_settings
 )
+from post_handlers.post_handler import validate_and_fix_html
 from post_handlers.xinline_keyboard import (
     PostSendCallbackFactory, get_channel_list_keyboard,
     get_send_confirmation_keyboard, get_add_channel_prompt_keyboard,
@@ -25,6 +26,15 @@ from post_handlers.xinline_keyboard import (
 from xdata_handlers.translator import get_text
 from post_handlers.xreply_keyboard import get_post_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
 from post_handlers.localize_filter import LocalizedText
+
+def validate_html_content(content: str) -> str:
+    """
+    HTML kontentini validatsiya qilish va xatolarni tuzatish
+    """
+    if not content:
+        return content
+    
+    return validate_and_fix_html(content)
 
 async def schedule_message_deletion(bot: Bot, chat_id: int, message_id: int, delete_after_seconds: int):
     """Xabarni ketma-ket sozlangan vaqtdan so'ng o'chiradi."""
@@ -325,6 +335,16 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
     show_caption_above = post_data.get('show_caption_above_media', False)
     has_spoiler = post_data.get('has_spoiler', False)
 
+    # HTML kontentini validatsiya qilish
+    if parse_mode == 'HTML':
+        text_content = post_data.get('text')
+        caption_content = post_data.get('caption')
+        
+        if text_content:
+            post_data['text'] = validate_html_content(text_content)
+        if caption_content:
+            post_data['caption'] = validate_html_content(caption_content)
+
     # Print settings olish
     print_settings = full_post.get('print_settings', {})
     disable_notification = print_settings.get('silent_mode', False)
@@ -615,7 +635,43 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
 
         await state.clear()
 
-    except Exception:
-        await bot.send_message(user_id, get_text('send_error_msg', lang))
+    except Exception as e:
+        # Server console ga yozish
+        import traceback
+        print(f"[ERROR] Post yuborishda xatolik! User: {user_id}, Post: {post_code}, Channel: {channel_id}")
+        print(f"[ERROR] Xatolik: {str(e)}")
+        print(traceback.format_exc())
+        
+        # Xatolikni bazaga yozish
+        error_msg = f"Post yuborishda xatolik: {str(e)}"
+        from xdata_handlers.database import log_user_error
+        await log_user_error(user_id, error_msg)
+        
+        # Foydalanuvchiga tushunarli xabar berish
+        error_text = str(e).lower()
+        
+        if 'not enough rights' in error_text or 'rights' in error_text or 'not an administrator' in error_text:
+            await bot.send_message(user_id, get_text('bot_no_rights_msg', lang))
+        elif 'chat not found' in error_text or 'channel not found' in error_text or "chat doesn't exist" in error_text:
+            await bot.send_message(user_id, get_text('channel_not_found_msg', lang))
+        elif 'bot was kicked' in error_text or 'bot was deleted' in error_text or 'user is deactivated' in error_text:
+            await bot.send_message(user_id, get_text('bot_kicked_msg', lang))
+        elif 'message not found' in error_text:
+            await bot.send_message(user_id, "❌ <b>Xabar topilmadi!</b>\nEski xabarni o'chirib, qayta urinib ko'ring.", parse_mode="HTML")
+        elif 'peer id invalid' in error_text or 'chat id is invalid' in error_text:
+            await bot.send_message(user_id, "❌ <b>Kanal ID noto'g'ri!</b>\nIltimos, kanalni qayta qo'shing.", parse_mode="HTML")
+        elif 'too many messages' in error_text or 'flood control' in error_text:
+            await bot.send_message(user_id, "⏳ <b>Kutish vaqti!</b>\n juda ko'p so'rovlar. Iltimos, bir necha soniya kuting.", parse_mode="HTML")
+        else:
+            # Umumiy xatolik - batafsil ma'lumot bilan
+            await bot.send_message(
+                user_id, 
+                f"❌ <b>Yuborishda xatolik yuz berdi!</b>\n\n"
+                f"<b>Xatolik:</b> {str(e)}\n\n"
+                f"<b>Post kodi:</b> {post_code}\n"
+                f"<b>Kanal ID:</b> {channel_id}\n\n"
+                f"Iltimos, bot admin ekanligini tekshiring va qayta urinib ko'ring.",
+                parse_mode="HTML"
+            )
 
     await callback.answer()

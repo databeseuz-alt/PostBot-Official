@@ -53,9 +53,6 @@ class PostCreation(StatesGroup):
     waiting_for_delete_timer = State()
     waiting_for_reply_setting = State()
 
-    waiting_for_watermark_text = State()
-    waiting_for_watermark_image = State()
-
     waiting_for_reply_message_id = State()
     waiting_for_auto_delete_time = State()
 
@@ -65,6 +62,19 @@ def clean_text_for_default_mode(text: str | None) -> str | None:
         return None
 
     cleaned_text = text
+    
+    # Custom emoji larni vaqtincha saqlash
+    import re
+    emoji_pattern = r'<tg-emoji[^>]*>.*?</tg-emoji>'
+    emoji_matches = re.findall(emoji_pattern, cleaned_text)
+    emoji_placeholders = []
+    
+    # Emoji larni vaqtincha placeholder bilan almashtirish
+    for i, emoji_match in enumerate(emoji_matches):
+        placeholder = f"__EMOJI_PLACEHOLDER_{i}__"
+        emoji_placeholders.append(emoji_match)
+        cleaned_text = cleaned_text.replace(emoji_match, placeholder, 1)
+    
     if BeautifulSoup:
         soup = BeautifulSoup(cleaned_text, 'html.parser')
         cleaned_text = soup.get_text()
@@ -75,6 +85,12 @@ def clean_text_for_default_mode(text: str | None) -> str | None:
     for char in markdown_chars:
         cleaned_text = cleaned_text.replace(char, '')
 
+    # Placeholder larni asl emoji larga qaytarish
+    for i, emoji_match in enumerate(emoji_placeholders):
+        placeholder = f"__EMOJI_PLACEHOLDER_{i}__"
+        cleaned_text = cleaned_text.replace(placeholder, emoji_match)
+
+    return cleaned_text
 
 async def apply_auto_signature(user_id: int, text: str | None) -> str | None:
     """Foydalanuvchining avto imzosini matnga qo'shadi.
@@ -143,6 +159,82 @@ async def maybe_apply_auto_signature(user_id: int, post_data: dict) -> dict:
     
     return post_data
 
+
+def validate_and_fix_html(html_text: str) -> str:
+    """
+    HTML matnni tekshiradi va xatolarni tuzatadi.
+    Noto'g'ri HTML teglarini olib tashlaydi va parse qilinishini ta'minlaydi.
+    """
+    if not html_text:
+        return ""
+    
+    # Noto'g'ri tugash teglarini topish va tuzatish
+    import re
+    
+    # Custom emoji uchun maxsus usul - ularni vaqtincha almashtirish
+    emoji_pattern = r'<tg-emoji[^>]*>.*?</tg-emoji>'
+    emoji_matches = re.findall(emoji_pattern, html_text)
+    emoji_placeholders = []
+    
+    # Emoji larni vaqtincha placeholder bilan almashtirish
+    for i, emoji_match in enumerate(emoji_matches):
+        placeholder = f"__EMOJI_PLACEHOLDER_{i}__"
+        emoji_placeholders.append(emoji_match)
+        html_text = html_text.replace(emoji_match, placeholder, 1)
+    
+    # Oddiy HTML validation - ochiq teglarni topish
+    tag_pattern = r'<(/?)([a-zA-Z][a-zA-Z0-9]*)(?:\s+[^>]*)?>'
+    
+    def replace_invalid_tags(match):
+        full_tag = match.group(0)
+        is_closing = match.group(1) == '/'
+        tag_name = match.group(2).lower()
+        
+        # Ruxsat etilgan teglar ro'yxati (tg-emoji dan tashqari)
+        allowed_tags = {
+            'b', 'i', 'u', 's', 'code', 'pre', 'a', 'tg-spoiler',
+            'blockquote', 'strong', 'em'
+        }
+        
+        # Agar teg ruxsat etilgan bo'lmasa, uni olib tashlash
+        if tag_name not in allowed_tags:
+            return ""
+        
+        # Tegning to'g'ri formatlanishini tekshirish
+        if '<' in full_tag and '>' not in full_tag:
+            return ""
+        
+        return full_tag
+    
+    # Noto'g'ri teglarni tozalash (placeholder larni o'zgartirmaslik uchun)
+    html_text = re.sub(tag_pattern, replace_invalid_tags, html_text)
+    
+    # Ortib qolgan ochiq teglarni yopish (tg-emoji dan tashqari)
+    tag_stack = []
+    tag_pattern_clean = r'<(/?)([a-zA-Z][a-zA-Z0-9]*)[^>]*>'
+    
+    for match in re.finditer(tag_pattern_clean, html_text):
+        is_closing = match.group(1) == '/'
+        tag_name = match.group(2).lower()
+        
+        if not is_closing and tag_name in ['b', 'i', 'u', 's', 'code', 'pre', 'blockquote']:
+            tag_stack.append(tag_name)
+        elif is_closing and tag_stack and tag_stack[-1] == tag_name:
+            tag_stack.pop()
+    
+    # Ochiq qolgan teglarni yopish
+    for tag in reversed(tag_stack):
+        html_text += f'</{tag}>'
+    
+    # HTML entitiylarini to'g'rilash
+    html_text = html.unescape(html_text)
+    
+    # Placeholder larni asl emoji larga qaytarish
+    for i, emoji_match in enumerate(emoji_placeholders):
+        placeholder = f"__EMOJI_PLACEHOLDER_{i}__"
+        html_text = html_text.replace(placeholder, emoji_match)
+    
+    return html_text
 
 def get_html_text(text: str, entities: list) -> str:
     """
@@ -243,7 +335,12 @@ def get_html_text(text: str, entities: list) -> str:
 
             elif entity_type == "custom_emoji":
                 emoji_id = getattr(entity, 'custom_emoji_id', '')
-                tag_start, tag_end = f'<tg-emoji emoji-id="{emoji_id}">', "</tg-emoji>"
+                if emoji_id:
+                    # Emoji ID ni to'g'ri formatlash
+                    tag_start, tag_end = f'<tg-emoji emoji-id="{emoji_id}">', "</tg-emoji>"
+                else:
+                    # Agar emoji_id bo'lmasa, oddiy emoji sifatida qoldirish
+                    tag_start, tag_end = "", ""
 
             elif entity_type == "blockquote":
                 tag_start, tag_end = "<blockquote>", "</blockquote>"
@@ -270,7 +367,8 @@ def get_html_text(text: str, entities: list) -> str:
 
         res.append(inner)
 
-    return "".join(res)
+    final_html = "".join(res)
+    return validate_and_fix_html(final_html)
 
 def format_user_info(user: types.User, lang: str = 'uzl') -> str:
     """Foydalanuvchi ma'lumotlarini formatlash."""
@@ -595,8 +693,12 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
 
     post_data = old_data.get('post_data', {})
     post_data.update(poll_data)
-
-    buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
+    
+    # If sending new poll content, reset buttons_matrix for new poll
+    if message.content_type == 'poll':
+        buttons_matrix = [[{'is_placeholder': True}]]
+    else:
+        buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
     keyboard = generate_post_keyboard(buttons_matrix, lang)
 
     poll_text = f"📊 So'rovnoma: {poll.question}\n\n"
@@ -816,7 +918,16 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                 post_data['text'] = new_text
                 post_data['caption'] = None
                 post_data['file_id'] = None
-            elif not is_incoming_media and old_content_type not in ('text',):
+            elif not is_incoming_media and old_content_type == 'poll':
+                # User is sending text but old content was a poll
+                # Replace poll question with the new text
+                # Keep the existing options and other poll settings
+                post_data['question'] = new_text
+                
+                # Check if user sends "anonim so'rov" - make it anonymous
+                if new_text and 'anonim' in new_text.lower():
+                    post_data['is_anonymous'] = True
+            elif not is_incoming_media and old_content_type not in ('text', 'poll'):
                 # User is sending text to media that supports caption
                 # Convert to caption
                 post_data['content_type'] = old_content_type  # Keep same content type
@@ -896,6 +1007,16 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
             "reply_markup": keyboard,
             "parse_mode": post_data.get('parse_mode', 'HTML'),
         }
+
+        # HTML matnini validatsiya qilish
+        if post_data.get('parse_mode', 'HTML') == 'HTML':
+            text_content = post_data.get('text') or post_data.get('caption', '')
+            if text_content:
+                validated_text = validate_and_fix_html(text_content)
+                if post_data.get('text'):
+                    post_data['text'] = validated_text
+                if post_data.get('caption'):
+                    post_data['caption'] = validated_text
 
         current_type = post_data.get('content_type', 'text')
         if current_type in ['photo', 'video', 'animation']:
@@ -1089,7 +1210,80 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                     pass
 
     except TelegramBadRequest as e:
-        if "can't parse entities" in str(e).lower():
+        error_msg = str(e).lower()
+        if "can't parse entities" in error_msg:
+            # HTML parsing xatolik bo'lsa, parse_mode ni o'zgartirib qayta urinish
+            try:
+                # Parse_mode ni o'zgartirish
+                post_data['parse_mode'] = None
+                
+                # Matnni tozalash
+                text_content = post_data.get('text') or post_data.get('caption', '')
+                if text_content:
+                    # HTML teglarini olib tashlash
+                    clean_text = clean_text_for_default_mode(text_content)
+                    if post_data.get('text'):
+                        post_data['text'] = clean_text
+                    if post_data.get('caption'):
+                        post_data['caption'] = clean_text
+                
+                # Xabarni qayta yuborish urinishi
+                message_kwargs = {
+                    "reply_markup": keyboard,
+                    "parse_mode": None,
+                    "disable_web_page_preview": post_data.get('disable_web_page_preview', False)
+                }
+                
+                if post_data.get('content_type') == 'text':
+                    preview_message = await message.answer(
+                        post_data.get('text', ''), 
+                        **message_kwargs
+                    )
+                else:
+                    # Media uchun qayta urinish
+                    current_type = post_data.get('content_type', 'text')
+                    file_id = post_data.get('file_id')
+                    caption = post_data.get('caption')
+                    
+                    if current_type == 'photo' and file_id:
+                        preview_message = await bot.send_photo(
+                            message.chat.id, file_id, caption=caption, **message_kwargs
+                        )
+                    elif current_type == 'video' and file_id:
+                        preview_message = await bot.send_video(
+                            message.chat.id, file_id, caption=caption, **message_kwargs
+                        )
+                    elif current_type == 'document' and file_id:
+                        preview_message = await bot.send_document(
+                            message.chat.id, file_id, caption=caption, **message_kwargs
+                        )
+                    elif current_type == 'audio' and file_id:
+                        preview_message = await bot.send_audio(
+                            message.chat.id, file_id, caption=caption, **message_kwargs
+                        )
+                    elif current_type == 'animation' and file_id:
+                        preview_message = await bot.send_animation(
+                            message.chat.id, file_id, caption=caption, **message_kwargs
+                        )
+                
+                if preview_message:
+                    post_data['message_id'] = preview_message.message_id
+                    post_data['chat_id'] = preview_message.chat.id
+                    await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+                    
+                    # Success message
+                    await message.answer(get_text('content_received', lang), reply_markup=get_post_settings_kb(
+                        content_type=post_data['content_type'],
+                        has_caption=bool(post_data.get('caption')),
+                        lang=lang,
+                        is_paid=post_data.get('is_paid', False)
+                    ))
+                    return
+                    
+            except Exception:
+                pass
+            
+            # Agar qayta urinish ham xato bersa, xatolik xabarini ko'rsatish
             error_mode = f"<code>{post_data.get('parse_mode', 'HTML')}</code>"
             await message.answer(get_text('parse_mode_error_user', lang).format(error_mode=error_mode))
         else:

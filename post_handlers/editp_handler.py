@@ -7,13 +7,99 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.types import ReplyKeyboardRemove
 
 from xdata_handlers import config
-from post_handlers.post_handler import PostCreation
+from post_handlers.post_handler import PostCreation, clean_text_for_default_mode
 from post_handlers.xreply_keyboard import get_post_settings_kb, get_main_menu
 from post_handlers.xinline_keyboard import generate_post_keyboard, get_edit_send_keyboard, EditSendCallbackFactory, generate_preview_keyboard
 from xdata_handlers.database import get_post_from_db, check_post_owner, get_user_language, unsave_post_name
 from xdata_handlers.translator import get_text
 from post_handlers.send_handler import start_sending_handler
 from post_handlers.start_handler import start_post_editing_process
+
+import re
+import html
+
+from typing import List, Dict
+
+try:
+    from bs4 import BeautifulSoup
+except ImportError:
+    BeautifulSoup = None
+
+def validate_and_fix_html(html_text: str) -> str:
+    """
+    HTML matnni tekshiradi va xatolarni tuzatadi.
+    Noto'g'ri HTML teglarini olib tashlaydi va parse qilinishini ta'minlaydi.
+    """
+    if not html_text:
+        return ""
+    
+    # Noto'g'ri tugash teglarini topish va tuzatish
+    import re
+    
+    # Custom emoji uchun maxsus usul - ularni vaqtincha almashtirish
+    emoji_pattern = r'<tg-emoji[^>]*>.*?</tg-emoji>'
+    emoji_matches = re.findall(emoji_pattern, html_text)
+    emoji_placeholders = []
+    
+    # Emoji larni vaqtincha placeholder bilan almashtirish
+    for i, emoji_match in enumerate(emoji_matches):
+        placeholder = f"__EMOJI_PLACEHOLDER_{i}__"
+        emoji_placeholders.append(emoji_match)
+        html_text = html_text.replace(emoji_match, placeholder, 1)
+    
+    # Oddiy HTML validation - ochiq teglarni topish
+    tag_pattern = r'<(/?)([a-zA-Z][a-zA-Z0-9]*)(?:\s+[^>]*)?>'
+    
+    def replace_invalid_tags(match):
+        full_tag = match.group(0)
+        is_closing = match.group(1) == '/'
+        tag_name = match.group(2).lower()
+        
+        # Ruxsat etilgan teglar ro'yxati (tg-emoji dan tashqari)
+        allowed_tags = {
+            'b', 'i', 'u', 's', 'code', 'pre', 'a', 'tg-spoiler',
+            'blockquote', 'strong', 'em'
+        }
+        
+        # Agar teg ruxsat etilgan bo'lmasa, uni olib tashlash
+        if tag_name not in allowed_tags:
+            return ""
+        
+        # Tegning to'g'ri formatlanishini tekshirish
+        if '<' in full_tag and '>' not in full_tag:
+            return ""
+        
+        return full_tag
+    
+    # Noto'g'ri teglarni tozalash (placeholder larni o'zgartirmaslik uchun)
+    html_text = re.sub(tag_pattern, replace_invalid_tags, html_text)
+    
+    # Ortib qolgan ochiq teglarni yopish (tg-emoji dan tashqari)
+    tag_stack = []
+    tag_pattern_clean = r'<(/?)([a-zA-Z][a-zA-Z0-9]*)[^>]*>'
+    
+    for match in re.finditer(tag_pattern_clean, html_text):
+        is_closing = match.group(1) == '/'
+        tag_name = match.group(2).lower()
+        
+        if not is_closing and tag_name in ['b', 'i', 'u', 's', 'code', 'pre', 'blockquote']:
+            tag_stack.append(tag_name)
+        elif is_closing and tag_stack and tag_stack[-1] == tag_name:
+            tag_stack.pop()
+    
+    # Ochiq qolgan teglarni yopish
+    for tag in reversed(tag_stack):
+        html_text += f'</{tag}>'
+    
+    # HTML entitiylarini to'g'rilash
+    html_text = html.unescape(html_text)
+    
+    # Placeholder larni asl emoji larga qaytarish
+    for i, emoji_match in enumerate(emoji_placeholders):
+        placeholder = f"__EMOJI_PLACEHOLDER_{i}__"
+        html_text = html_text.replace(placeholder, emoji_match)
+    
+    return html_text
 
 edit_post_router = Router()
 
@@ -206,6 +292,19 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
                 emoji=post_data.get('dice_emoji', '🎲'),
                 reply_markup=keyboard
             )
+        elif content_type == 'poll':
+            await bot.send_message(chat_id, instruction, reply_markup=settings_kb, parse_mode="HTML")
+            sent_message = await bot.send_poll(
+                chat_id,
+                question=post_data.get('question', ''),
+                options=post_data.get('options', []),
+                is_anonymous=post_data.get('is_anonymous', True),
+                type=post_data.get('type', 'regular'),
+                allows_multiple_answers=post_data.get('allows_multiple_answers', False),
+                correct_option_id=post_data.get('correct_option_id'),
+                explanation=post_data.get('explanation'),
+                reply_markup=keyboard
+            )
         elif content_type == 'paid_media':
             await bot.send_message(chat_id, instruction, reply_markup=settings_kb, parse_mode="HTML")
             from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
@@ -240,7 +339,75 @@ async def load_post_for_editing(post_code: str, user_id: int, chat_id: int, stat
             await state.update_data(post_data=post_data)
 
     except TelegramBadRequest as e:
-        if "can't parse entities" in str(e).lower():
+        error_msg = str(e).lower()
+        if "can't parse entities" in error_msg:
+            # HTML parsing xatolik bo'lsa, parse_mode ni o'zgartirib qayta urinish
+            try:
+                # Parse_mode ni o'zgartirish
+                post_data['parse_mode'] = None
+                
+                # Matnni tozalash
+                text_content = post_data.get('text') or post_data.get('caption', '')
+                if text_content:
+                    # HTML teglarini olib tashlash
+                    clean_text = clean_text_for_default_mode(text_content)
+                    
+                    if post_data.get('text'):
+                        post_data['text'] = clean_text
+                    if post_data.get('caption'):
+                        post_data['caption'] = clean_text
+                
+                # Xabarni qayta yuborish urinishi
+                message_kwargs = {
+                    "reply_markup": keyboard,
+                    "parse_mode": None,
+                    "disable_web_page_preview": post_data.get('disable_web_page_preview', False)
+                }
+                
+                if post_data.get('content_type') == 'text':
+                    sent_message = await bot.send_message(
+                        chat_id, 
+                        f"{instruction}\n\n{post_data.get('text', '')}", 
+                        **message_kwargs
+                    )
+                else:
+                    # Media uchun qayta urinish
+                    current_type = post_data.get('content_type', 'text')
+                    file_id = post_data.get('file_id')
+                    caption = post_data.get('caption')
+                    full_caption = f"{instruction}\n\n{caption}" if caption else instruction
+                    
+                    if current_type == 'photo' and file_id:
+                        sent_message = await bot.send_photo(
+                            chat_id, file_id, caption=full_caption, **message_kwargs
+                        )
+                    elif current_type == 'video' and file_id:
+                        sent_message = await bot.send_video(
+                            chat_id, file_id, caption=full_caption, **message_kwargs
+                        )
+                    elif current_type == 'document' and file_id:
+                        sent_message = await bot.send_document(
+                            chat_id, file_id, caption=full_caption, **message_kwargs
+                        )
+                    elif current_type == 'audio' and file_id:
+                        sent_message = await bot.send_audio(
+                            chat_id, file_id, caption=full_caption, **message_kwargs
+                        )
+                    elif current_type == 'animation' and file_id:
+                        sent_message = await bot.send_animation(
+                            chat_id, file_id, caption=full_caption, **message_kwargs
+                        )
+                
+                if sent_message:
+                    post_data['message_id'] = sent_message.message_id
+                    post_data['chat_id'] = sent_message.chat.id
+                    await state.update_data(post_data=post_data)
+                    return
+                    
+            except Exception:
+                pass
+            
+            # Agar qayta urinish ham xato bersa, xatolik xabarini ko'rsatish
             error_mode = f"<code>{post_data.get('parse_mode', 'HTML') or 'HTML'}</code>"
             await bot.send_message(chat_id, get_text('parse_mode_error', lang).format(parse_mode=error_mode))
         else:
@@ -310,6 +477,18 @@ async def show_post_preview(message: types.Message, post_code: str, bot: Bot):
             await bot.send_dice(
                 chat_id,
                 emoji=post_data.get('dice_emoji', '🎲'),
+                reply_markup=keyboard
+            )
+        elif content_type == 'poll':
+            await bot.send_poll(
+                chat_id,
+                question=post_data.get('question', ''),
+                options=post_data.get('options', []),
+                is_anonymous=post_data.get('is_anonymous', True),
+                type=post_data.get('type', 'regular'),
+                allows_multiple_answers=post_data.get('allows_multiple_answers', False),
+                correct_option_id=post_data.get('correct_option_id'),
+                explanation=post_data.get('explanation'),
                 reply_markup=keyboard
             )
         elif content_type == 'location':

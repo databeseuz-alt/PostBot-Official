@@ -153,7 +153,8 @@ async def check_subscription_again(callback: types.CallbackQuery, state: FSMCont
     else:
         await callback.answer(get_text('join_alert_msg', lang), show_alert=True)
 
-@start_router.message(LocalizedText('new_post_btn'), StateFilter(None))
+@start_router.message(LocalizedText('new_post_btn'))
+@start_router.message(LocalizedText('cr_another_post_btn'))
 async def start_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
     is_member, text, keyboard = await check_user_membership(user, bot)
@@ -170,7 +171,11 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
             await event.answer(text, reply_markup=keyboard)
             return
 
-    await state.clear()
+    # Faqat yangi post yaratish jarayonida state ni tozalash
+    current_state = await state.get_state()
+    if current_state is None:
+        await state.clear()
+    
     lang = await get_user_language(user.id)
 
     user_settings = await get_user_post_settings(user.id)
@@ -189,7 +194,7 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     await state.set_state(PostCreation.waiting_for_content)
 
-@start_router.message(LocalizedText('edit_post_btn'), StateFilter(None))
+@start_router.message(LocalizedText('edit_post_btn'))
 async def start_post_editing_process(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
     lang = await get_user_language(user.id)

@@ -235,7 +235,7 @@ async def ai_assistant_button_handler(message: types.Message, state: FSMContext,
     )
 
 @ai_assistant_router.message(AIAssistant.waiting_for_user_message, LocalizedText('back_btn'))
-async def ai_assistant_back_reply(message: types.Message, state: FSMContext):
+async def ai_assistant_back_reply(message: types.Message, state: FSMContext, bot: Bot):
     """Reply klaviaturadagi 'Orqaga' tugmasi uchun."""
 
     data = await state.get_data()
@@ -252,16 +252,9 @@ async def ai_assistant_back_reply(message: types.Message, state: FSMContext):
             content_text = get_text('content_msg', lang)
             await message.answer(content_text, reply_markup=get_cancel_reply_kb(lang, True))  # AI assistant is enabled if user was in AI flow
         else:
-            await message.answer(
-                get_text('cancel_success_msg', lang),
-                reply_markup=await get_main_menu(lang=lang, user_id=message.from_user.id)
-            )
-    else:
-        await state.clear()
-        await message.answer(
-            get_text('cancel_success_msg', lang),
-            reply_markup=await get_main_menu(lang=lang, user_id=message.from_user.id)
-        )
+            await state.clear()
+            from post_handlers.start_handler import show_main_menu
+            await show_main_menu(message, state, bot)
 
 @ai_assistant_router.message(AIAssistant.waiting_for_user_message, F.text, ~F.text.startswith('/'))
 async def ai_assistant_process_message(message: types.Message, state: FSMContext, bot: Bot):
@@ -297,7 +290,7 @@ async def ai_assistant_non_text(message: types.Message, state: FSMContext):
 
 
 @ai_assistant_router.callback_query(F.data == "ai_assistant_back")
-async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext):
+async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     """Orqaga tugmasi bosilganda."""
     await callback.answer("Orqaga qaytmoqda...")
 
@@ -324,16 +317,9 @@ async def ai_assistant_back(callback: types.CallbackQuery, state: FSMContext):
                     reply_markup=get_ai_assistant_keyboard(lang)
                 )
             else:
-                await callback.message.answer(
-                    get_text('cancel_success_msg', lang),
-                    reply_markup=await get_main_menu(lang=lang, user_id=callback.from_user.id)
-                )
-        else:
-            await state.clear()
-            await callback.message.answer(
-                get_text('cancel_success_msg', lang),
-                reply_markup=await get_main_menu(lang=lang, user_id=callback.from_user.id)
-            )
+                await state.clear()
+                from post_handlers.start_handler import show_main_menu
+                await show_main_menu(callback, state, bot)
 
     except Exception:
         pass
