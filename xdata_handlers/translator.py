@@ -120,14 +120,12 @@ def log_error(
     # Agar error bo'lsa, bazaga ham yozish
     if level == "error" and exc_info:
         try:
-            from xdata_handlers.database import log_error_to_db
-            # Asinxron chaqirish uchun to'liq traceback
-            tb = traceback.format_exc()
-            asyncio.create_task(log_error_to_db(
+            from xdata_handlers.database import log_user_error
+            # Xato matnini tayyorlash
+            error_msg = f"{error_type}: {str(exc_info)}"
+            asyncio.create_task(log_user_error(
                 user_id=user_id,
-                error_type=error_type,
-                error_message=str(exc_info),
-                traceback_text=tb
+                error_text=error_msg
             ))
         except:
             pass

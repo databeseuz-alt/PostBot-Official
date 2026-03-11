@@ -11,3 +11,4 @@ Pillow
 requests
 google-genai
 matplotlib
+qrcode

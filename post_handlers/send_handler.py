@@ -626,18 +626,8 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
         
         # Xatolikni bazaga yozish
         error_msg = f"Post yuborishda xatolik: {str(e)}"
-        from xdata_handlers.database import log_user_error, log_error_to_db
+        from xdata_handlers.database import log_user_error
         await log_user_error(user_id, error_msg)
-        
-        # Yangi log_error_to_db funksiyasini chaqirish
-        await log_error_to_db(
-            user_id=user_id,
-            error_type="PostSendError",
-            error_message=str(e),
-            file_name="send_handler.py",
-            function_name="confirm_send_handler",
-            traceback_text=traceback.format_exc()
-        )
         
         # Foydalanuvchiga tushunarli xabar berish
         error_text = str(e).lower()

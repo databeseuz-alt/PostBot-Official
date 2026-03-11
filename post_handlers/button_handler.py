@@ -181,7 +181,7 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
                 return
             except Exception as e:
                 logger.error(f"Poll qayta yuborishda xatolik: {e}")
-                from xdata_handlers.database import log_user_error, log_error_to_db
+                from xdata_handlers.database import log_user_error
                 user_id = message.from_user.id if message.from_user else post_data.get('user_id')
                 await log_user_error(user_id, f"Poll qayta yuborishda xatolik: {str(e)}")
                 return

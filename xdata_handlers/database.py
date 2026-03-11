@@ -1459,51 +1459,6 @@ async def log_user_error(user_id: int, error_text: str) -> bool:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def log_error_to_db(
-    user_id: int = None,
-    error_type: str = "GeneralError",
-    error_message: str = "",
-    file_name: str = "",
-    function_name: str = "",
-    line_number: int = None,
-    traceback_text: str = ""
-) -> bool:
-    """
-    Xatoni error_logs jadvaliga yozadi.
-    
-    Args:
-        user_id: Foydalanuvchi ID (agar mavjud bo'lsa)
-        error_type: Xato turi (masalan: 'PostSendError', 'DatabaseError')
-        error_message: Xato xabari
-        file_name: Xato yuz bergan fayl nomi
-        function_name: Xato yuz bergan funksiya nomi
-        line_number: Xato yuz bergan qator raqami
-        traceback_text: To'liq traceback matni
-    
-    Returns:
-        bool: Muvaffaqiyatli yozildi True, aks holda False
-    """
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO error_logs 
-                (user_id, error_type, error_message, file_name, function_name, line_number, traceback_text)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (user_id, error_type, error_message, file_name, function_name, line_number, traceback_text))
-            conn.commit()
-            return True
-        except Exception as e:
-            # Agar jadvalga yozishda xatolik bo'lsa, console ga yozish
-            import logging
-            logging.error(f"Xatoni bazaga yozishda xatolik: {e}")
-            return False
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
 async def get_feedbacks_by_user(user_id: int) -> List[Dict]:
     """Foydalanuvchi feedbacklarini oladi (users jadvalidan)."""
     def _sync():
@@ -2303,30 +2258,6 @@ async def init_db():
                 )
             """)
 
-            # Xatolar logi uchun jadval
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS error_logs (
-                    id SERIAL PRIMARY KEY,
-                    user_id BIGINT,
-                    error_type TEXT,
-                    error_message TEXT NOT NULL,
-                    file_name TEXT,
-                    function_name TEXT,
-                    line_number INTEGER,
-                    traceback_text TEXT,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            """)
-
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_error_logs_created_at 
-                ON error_logs(created_at DESC)
-            """)
-
-            cursor.execute("""
-                CREATE INDEX IF NOT EXISTS idx_error_logs_user_id 
-                ON error_logs(user_id)
-            """)
 
             conn.commit()
         except Exception:
