@@ -1,5 +1,8 @@
 import asyncio
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext

@@ -6,6 +6,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.keyboard import InlineKeyboardBuilder, ReplyKeyboardBuilder, InlineKeyboardButton
+import logging
+
+logger = logging.getLogger(__name__)
 
 from admin_handlers.admin_handler import IsAdmin
 from admin_handlers.admin_handler import AdminStates

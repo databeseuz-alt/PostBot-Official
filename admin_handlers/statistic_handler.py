@@ -513,6 +513,7 @@ async def _format_stats_text(
 async def show_general_text_stats(callback: types.CallbackQuery):
     await callback.answer("⏳ Ma'lumotlar yuklanmoqda...")
 
+    # Adminlarni hisobga olish uchun admin_ids ni uzatamiz
     detailed_stats = await get_detailed_user_stats(config.ADMIN_IDS)
     new_user_stats = await get_new_users_stats_extended(config.ADMIN_IDS)
     posts_stats = await get_posts_stats(config.ADMIN_IDS)

@@ -1,6 +1,9 @@
 from aiogram import F, Router, types
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+import logging
+
+logger = logging.getLogger(__name__)
 
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import (

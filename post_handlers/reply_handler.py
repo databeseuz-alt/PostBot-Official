@@ -3,6 +3,9 @@ from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import logging
+
+logger = logging.getLogger(__name__)
 
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import (

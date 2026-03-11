@@ -1,4 +1,5 @@
 import re
+import logging
 
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
@@ -16,6 +17,7 @@ from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
 button_router = Router()
+logger = logging.getLogger(__name__)
 
 URL_PATTERN = re.compile(
     r'^(https?:\/\/)?'
@@ -50,29 +52,15 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
     if answer_text:
         await message.answer(answer_text, reply_markup=settings_keyboard)
 
-    try:
-        await message.bot.edit_message_reply_markup(
-            chat_id=chat_id,
-            message_id=message_id,
-            reply_markup=new_keyboard
-        )
-        try:
-            await message.delete()
-        except Exception:
-            pass
-        return
-    except TelegramBadRequest:
-        pass
-    except Exception:
-        pass
-
-    try:
-        await message.bot.delete_message(chat_id, message_id)
-    except Exception:
-        pass
-
     content_type = post_data.get('content_type')
+    
+    # Original postni o'chirmasdan, pastdan yangi xabar jo'natamiz (nusxa olib)
     file_id = post_data.get("file_id")
+    
+    # Agar storage_file_id mavjud bo'lsa, uni ishlatamiz (original sifatini saqlash uchun)
+    if post_data.get('storage_file_id'):
+        file_id = post_data.get('storage_file_id')
+    
     caption = post_data.get("caption")
     text = post_data.get("text")
     parse_mode = post_data.get("parse_mode", 'HTML')
@@ -167,7 +155,7 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             correct_option_id = post_data.get('correct_option_id') or post_data.get('poll_correct_option_id')
             explanation = post_data.get('explanation') or post_data.get('poll_explanation')
             
-            print(f"[DEBUG] Poll qayta yuborish: chat_id={chat_id}, question={question}, message_id={message_id}")
+            logger.debug(f"Poll qayta yuborish: chat_id={chat_id}, question={question}, message_id={message_id}")
             
             try:
                 new_poll = await message.bot.send_poll(
@@ -184,7 +172,7 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
                     is_closed=post_data.get('is_closed', False),
                     reply_markup=new_keyboard
                 )
-                print(f"[DEBUG] Yangi poll yuborildi: message_id={new_poll.message_id}")
+                logger.debug(f"Yangi poll yuborildi: message_id={new_poll.message_id}")
                 # yangi ma'lumotlarni saqlash
                 post_data['message_id'] = new_poll.message_id
                 post_data['chat_id'] = new_poll.chat.id
@@ -192,8 +180,8 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
                 # Settings keyboard yuborish - faqat return qilamiz, btn_added_msg avval yuborilgan
                 return
             except Exception as e:
-                print(f"[ERROR] Poll qayta yuborishda xatolik: {e}")
-                from xdata_handlers.database import log_user_error
+                logger.error(f"Poll qayta yuborishda xatolik: {e}")
+                from xdata_handlers.database import log_user_error, log_error_to_db
                 user_id = message.from_user.id if message.from_user else post_data.get('user_id')
                 await log_user_error(user_id, f"Poll qayta yuborishda xatolik: {str(e)}")
                 return
@@ -276,11 +264,7 @@ async def start_add_button(callback: types.CallbackQuery, state: FSMContext):
 
     await state.set_state(PostCreation.waiting_for_button_type)
 
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
-
+    # Postni o'chirmasdan, yangi xabar sifatida tugma turini tanlashni so'raymiz
     await callback.message.answer(get_text('ask_btn_type_msg', lang), reply_markup=get_button_type_reply_kb(lang), parse_mode='HTML')
     await callback.answer()
 
@@ -636,6 +620,13 @@ async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
     if not content:
         await callback.answer(get_text('btn_not_found_msg', lang), show_alert=True)
         return
+
+    # Statistika yangilash (agar kanal bo'lsa)
+    if callback.message and callback.message.chat.type in ['channel', 'supergroup']:
+        from xdata_handlers.database import update_post_stats
+        post_code = content.get('post_code')
+        if post_code:
+            await update_post_stats(post_code, callback.message.chat.id, clicks=1)
 
     is_member, warning_text, keyboard = await check_user_membership(callback.from_user, bot)
 

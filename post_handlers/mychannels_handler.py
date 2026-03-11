@@ -1,4 +1,7 @@
 import html
+import logging
+
+logger = logging.getLogger(__name__)
 
 from aiogram import F, Router, types
 from aiogram.filters import Command
@@ -56,10 +59,18 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl'):
 @mychannels_router.message(Command("mychannels"))
 async def cmd_my_channels(message: types.Message):
     """/mychannels buyrug'iga javob beradi va kanallar ro'yxatini ko'rsatadi."""
-    keyboard = await get_my_channels_keyboard(message.from_user.id)
-    lang = await get_user_language(message.from_user.id)
+    user_id = message.from_user.id
+    user_channels = await get_user_channels(user_id)
+    lang = await get_user_language(user_id)
+
+    if not user_channels:
+        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa
+        await message.answer(get_text('need_channel_msg', lang))
+        return
+
+    keyboard = await get_my_channels_keyboard(user_id)
     await message.answer(
-        get_text('select_channel_msg', lang),
+        get_text('choose_channel_msg', lang),
         reply_markup=keyboard
     )
 
@@ -97,11 +108,18 @@ async def handle_delete_channel(callback: types.CallbackQuery, callback_data: My
 
     if success:
         await callback.answer(get_text('delete_channel_success_msg', lang), show_alert=True)
-        keyboard = await get_my_channels_keyboard(callback.from_user.id)
-        await callback.message.edit_text(
-            get_text('select_channel_msg', lang),
-            reply_markup=keyboard
-        )
+        
+        # Tekshirish - agar kanallar qolgan bo'lsa ro'yxatini ko'rsat, yo'qsa need_channel_msg
+        remaining_channels = await get_user_channels(callback.from_user.id)
+        if not remaining_channels:
+            # Barcha kanallar o'chirildi
+            await callback.message.edit_text(get_text('need_channel_msg', lang))
+        else:
+            keyboard = await get_my_channels_keyboard(callback.from_user.id)
+            await callback.message.edit_text(
+                get_text('choose_channel_msg', lang),
+                reply_markup=keyboard
+            )
     else:
         await callback.answer(get_text('delete_channel_error_msg', lang), show_alert=True)
 
@@ -111,7 +129,7 @@ async def handle_back_to_list(callback: types.CallbackQuery):
     keyboard = await get_my_channels_keyboard(callback.from_user.id)
     lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
-        get_text('select_channel_msg', lang),
+        get_text('choose_channel_msg', lang),
         reply_markup=keyboard
     )
     await callback.answer()

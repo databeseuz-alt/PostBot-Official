@@ -1,4 +1,5 @@
 import html
+import logging
 
 from aiogram import F, Router, types, Bot
 from aiogram.filters import CommandStart, Command, StateFilter
@@ -16,6 +17,7 @@ from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
 
 start_router = Router()
+logger = logging.getLogger(__name__)
 
 async def check_user_has_language(user_id: int) -> bool:
     """Foydalanuvchi til tanlaganligini tekshiradi"""

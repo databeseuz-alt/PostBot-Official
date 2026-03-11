@@ -1,7 +1,16 @@
 import asyncio
 import threading
 import os
+import logging
 from flask import Flask
+
+# Logging sozlamalari
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
@@ -16,7 +25,7 @@ from admin_handlers.admin_handler import admin_router
 from admin_handlers.advertisement import ad_router
 from admin_handlers.block_handler import block_router
 from admin_handlers.channel_handler import channel_router
-from admin_handlers.statistic_handler import statistic_router
+from admin_handlers.statistic_handler import statistic_router as admin_statistic_router
 from admin_handlers.database_handler import db_router
 
 from post_handlers.start_handler import start_router
@@ -33,11 +42,11 @@ from post_handlers.mychannels_handler import mychannels_router
 from post_handlers.schedule_handler import schedule_router
 from post_handlers.assistant_handler import ai_assistant_router
 from post_handlers.signature_handler import router as auto_signature_router
+from post_handlers.statistic_handler import statistic_router as user_statistic_router
+from post_handlers.analytics_handler import analytics_router
 
 from user_handlers.feedback_handler import feedback_router
 from user_handlers.settings_handler import settings_router
-
-from user_handlers.ad_handler import ad_router as user_ad_router
 
 from admin_handlers.block_handler import BlockUserMiddleware
 from admin_handlers.statsmiddleware import UserActivityMiddleware
@@ -76,16 +85,15 @@ async def main():
     dp.include_router(ad_router)
     dp.include_router(block_router)
     dp.include_router(channel_router)
-    dp.include_router(statistic_router)
+    dp.include_router(admin_statistic_router)
+    dp.include_router(user_statistic_router)
     dp.include_router(db_router)
 
     dp.include_router(start_router)
-    dp.include_router(ai_assistant_router) 
+    dp.include_router(ai_assistant_router)
 
     dp.include_router(feedback_router)
     dp.include_router(settings_router)
-    dp.include_router(user_ad_router)
-
     dp.include_router(lang_router)
     dp.include_router(post_router)
     dp.include_router(button_router)
@@ -99,6 +107,7 @@ async def main():
     dp.include_router(mychannels_router)
     dp.include_router(schedule_router)
     dp.include_router(auto_signature_router)
+    dp.include_router(analytics_router)
 
     from post_handlers.schedule_handler import start_scheduler
     start_scheduler(bot)

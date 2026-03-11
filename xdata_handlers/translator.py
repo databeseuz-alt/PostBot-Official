@@ -2,7 +2,12 @@
 import json
 from typing import Dict
 import os
+import logging
+import asyncio
 from pathlib import Path
+
+# Logger sozlamalari
+logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 translations: Dict[str, Dict[str, str]] = {}
@@ -59,6 +64,73 @@ def safe_format(text: str, **kwargs) -> str:
             return text.format(**{k: '' for k in kwargs})
         except:
             return text
+
+def get_text_formatted(key: str, lang: str = "uzl", **kwargs) -> str:
+    """
+    Berilgan kalit bo'yicha tarjima matnini oladi va uni xavfsiz tarzda formatlaydi.
+    
+    Args:
+        key: Tarjima kaliti
+        lang: Til kodi (default: "uzl")
+        **kwargs: Formatlash uchun qiymatlar
+    
+    Returns:
+        Formatlangan tarjima matni
+    """
+    text = get_text(key, lang)
+    if kwargs:
+        return safe_format(text, **kwargs)
+    return text
+
+def log_error(
+    level: str = "error",
+    message: str = "",
+    user_id: int = None,
+    error_type: str = "GeneralError",
+    exc_info: Exception = None
+):
+    """
+    Xatolik yoki ogohlantirishni log qiladi.
+    
+    Args:
+        level: "error", "warning", "info", "debug"
+        message: Log xabari
+        user_id: Foydalanuvchi ID (ixtiyoriy)
+        error_type: Xato turi (ixtiyoriy)
+        exc_info: Exception obyekti (ixtiyoriy)
+    """
+    import traceback
+    
+    log_message = message
+    if user_id:
+        log_message = f"[User: {user_id}] {message}"
+    
+    if exc_info:
+        log_message += f" | Exception: {str(exc_info)}"
+    
+    if level == "error":
+        logger.error(log_message)
+    elif level == "warning":
+        logger.warning(log_message)
+    elif level == "info":
+        logger.info(log_message)
+    else:
+        logger.debug(log_message)
+    
+    # Agar error bo'lsa, bazaga ham yozish
+    if level == "error" and exc_info:
+        try:
+            from xdata_handlers.database import log_error_to_db
+            # Asinxron chaqirish uchun to'liq traceback
+            tb = traceback.format_exc()
+            asyncio.create_task(log_error_to_db(
+                user_id=user_id,
+                error_type=error_type,
+                error_message=str(exc_info),
+                traceback_text=tb
+            ))
+        except:
+            pass
 
 def save_translation(lang_code: str, key: str, new_text: str) -> bool:
     """Tarjimani o'zgartiradi va faylga saqlaydi (JSON)."""

@@ -1,6 +1,9 @@
 import html
 from typing import Callable, Dict, Any, Awaitable
 from datetime import datetime, timedelta
+import logging
+
+logger = logging.getLogger(__name__)
 
 from aiogram import BaseMiddleware, Bot
 from aiogram.types import Message

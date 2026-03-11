@@ -1,4 +1,7 @@
 from aiogram import Router, types, Bot
+import logging
+
+logger = logging.getLogger(__name__)
 
 from post_handlers.xinline_keyboard import generate_final_keyboard
 from xdata_handlers.database import get_post_from_db, get_user_language

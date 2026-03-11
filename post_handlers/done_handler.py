@@ -2,6 +2,9 @@ from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 from contextlib import suppress
+import logging
+
+logger = logging.getLogger(__name__)
 
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import get_post_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_reply_kb

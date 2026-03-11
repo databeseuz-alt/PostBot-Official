@@ -1,5 +1,6 @@
 import re
 import html
+import logging
 
 from typing import List, Dict
 
@@ -20,6 +21,8 @@ from post_handlers.xinline_keyboard import generate_post_keyboard
 from xdata_handlers.database import get_user_language, get_user_post_settings, get_user_auto_signature
 from xdata_handlers.translator import get_text
 from post_handlers.localize_filter import LocalizedText
+
+logger = logging.getLogger(__name__)
 
 post_router = Router()
 
@@ -719,7 +722,7 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
         await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
 
     try:
-        print(f"[DEBUG] Poll yuborish: chat_id={message.chat.id}, question={poll.question}")
+        logger.debug(f"Poll yuborish: chat_id={message.chat.id}, question={poll.question}")
         preview_message = await bot.send_poll(
             chat_id=message.chat.id,
             question=poll.question,
@@ -735,7 +738,7 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
             is_closed=poll.is_closed,
             reply_markup=keyboard
         )
-        print(f"[DEBUG] Poll yuborildi: message_id={preview_message.message_id}, chat_id={preview_message.chat.id}")
+        logger.debug(f"Poll yuborildi: message_id={preview_message.message_id}, chat_id={preview_message.chat.id}")
 
         if preview_message:
             post_data['message_id'] = preview_message.message_id
@@ -841,14 +844,354 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
 
 @post_router.message(
     PostCreation.waiting_for_content,
+    F.forward_origin
+)
+async def handle_forwarded_message(message: types.Message, state: FSMContext, bot: Bot):
+    """Boshqa kanaldan forward qilingan xabarlarni qabul qilish"""
+    user_id = message.from_user.id
+    lang = await get_user_language(user_id)
+    
+    # Emoji-only validation - warn if user forwards only emojis without text
+    if message.content_type == 'text' and message.text:
+        text = message.text.strip()
+        import re
+        text_without_emojis = re.sub(r'[\U0001F000-\U0001F9FF]|[\U0001F600-\U0001F64F]|[\U0001F300-\U0001F5FF]|[\U0001F680-\U0001F6FF]|[\U0001F1E0-\U0001F1FF]', '', text)
+        text_without_emojis = text_without_emojis.replace('🔵', '').replace('🔴', '').replace('🟢', '').replace(' ', '')
+        if not text_without_emojis:
+            return await message.answer(get_text('emoji_only_warning', lang))
+    
+    forward_origin = message.forward_origin
+    
+    if forward_origin.type == "channel":
+        # Forward qilingan xabarni to'g'ridan-to'g'ri qayta ishlash
+        # Admin huquqi talab qilinmaydi!
+        await state.set_state(PostCreation.configuring_post)
+        
+        old_data = await state.get_data()
+        is_editing_session = 'editing_post_code' in old_data
+        post_data = old_data.get('post_data', {})
+        
+        message_has_spoiler = False
+        message_caption_above = getattr(message, 'show_caption_above_media', False)
+        
+        if message.content_type == 'photo' and message.photo:
+            message_has_spoiler = getattr(message.photo[-1], 'has_spoiler', False) or getattr(message, 'has_media_spoiler', False)
+        elif message.content_type == 'video' and message.video:
+            message_has_spoiler = getattr(message.video, 'has_spoiler', False) or getattr(message, 'has_media_spoiler', False)
+        elif message.content_type == 'animation' and message.animation:
+            message_has_spoiler = getattr(message.animation, 'has_spoiler', False) or getattr(message, 'has_media_spoiler', False)
+        
+        new_text = message.html_text if message.text else None
+        new_caption = message.html_text if message.caption else None
+        is_incoming_media = message.content_type != 'text' and message.content_type != 'dice'
+        
+        # Media types that don't support captions
+        media_without_caption = ('video_note', 'sticker', 'location', 'voice', 'dice')
+        
+        # Post data ni to'ldirish
+        if message.content_type == 'text':
+            post_data['content_type'] = 'text'
+            post_data['text'] = new_text
+        elif message.content_type in ('photo', 'video', 'animation', 'document', 'audio', 'voice', 'video_note', 'sticker'):
+            file_id = await _get_permanent_file_id(bot, message, lang)
+            post_data['content_type'] = message.content_type
+            post_data['file_id'] = file_id
+            post_data['caption'] = new_caption
+            post_data['has_spoiler'] = message_has_spoiler
+        elif message.content_type == 'location':
+            location = message.location
+            if location:
+                post_data['content_type'] = 'location'
+                post_data['latitude'] = location.latitude
+                post_data['longitude'] = location.longitude
+                post_data['title'] = getattr(location, 'title', None)
+                post_data['address'] = getattr(location, 'address', None)
+        elif message.content_type == 'voice':
+            file_id = await _get_permanent_file_id(bot, message, lang)
+            post_data['content_type'] = 'voice'
+            post_data['file_id'] = file_id
+            post_data['caption'] = new_caption
+        elif message.content_type == 'video_note':
+            file_id = await _get_permanent_file_id(bot, message, lang)
+            post_data['content_type'] = 'video_note'
+            post_data['file_id'] = file_id
+        elif message.content_type == 'sticker':
+            file_id = await _get_permanent_file_id(bot, message, lang)
+            post_data['content_type'] = 'sticker'
+            post_data['file_id'] = file_id
+        elif message.content_type == 'poll':
+            poll = message.poll
+            if poll:
+                post_data['content_type'] = 'poll'
+                post_data['question'] = poll.question
+                post_data['options'] = [opt.text for opt in poll.options]
+                post_data['is_anonymous'] = poll.is_anonymous
+                post_data['allows_multiple_answers'] = poll.allows_multiple_answers
+        elif message.content_type == 'dice':
+            dice = message.dice
+            if dice:
+                post_data['content_type'] = 'dice'
+                post_data['emoji'] = dice.emoji
+                post_data['value'] = dice.value
+        else:
+            await message.answer(
+                get_text('wrong_format', lang),
+                parse_mode="HTML"
+            )
+            return
+        
+        post_data['chat_id'] = message.chat.id
+        
+        buttons_matrix = old_data.get("buttons_matrix", [[{'is_placeholder': True}]])
+        keyboard = generate_post_keyboard(buttons_matrix, lang)
+        
+        # Forward ma'lumotlarini saqlash (keyinchalik foydalanish uchun)
+        post_data['forward_from_chat_id'] = forward_origin.chat.id
+        post_data['forward_from_message_id'] = forward_origin.message_id
+        
+        # AVVAL "content received" xabarini yuborish
+        settings_kb_kwargs = {
+            "content_type": post_data.get('content_type', 'text'),
+            "has_caption": bool(new_caption),
+            "lang": lang,
+            "is_paid": post_data.get('is_paid', False)
+        }
+        reply_markup = get_post_settings_kb(**settings_kb_kwargs)
+        
+        await message.answer(
+            get_text('content_received', lang),
+            reply_markup=reply_markup
+        )
+        
+        # Preview yuborish
+        if message.content_type == 'photo' and message.photo:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_photo(
+                    message.chat.id,
+                    photo=file_id,
+                    caption=new_caption,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='photo', has_caption=bool(new_caption), lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'video' and message.video:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_video(
+                    message.chat.id,
+                    video=file_id,
+                    caption=new_caption,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='video', has_caption=bool(new_caption), lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'animation' and message.animation:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_animation(
+                    message.chat.id,
+                    animation=file_id,
+                    caption=new_caption,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='animation', has_caption=bool(new_caption), lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'document' and message.document:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_document(
+                    message.chat.id,
+                    document=file_id,
+                    caption=new_caption,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='document', has_caption=bool(new_caption), lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'audio' and message.audio:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_audio(
+                    message.chat.id,
+                    audio=file_id,
+                    caption=new_caption,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='audio', has_caption=bool(new_caption), lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'voice' and message.voice:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_voice(
+                    message.chat.id,
+                    voice=file_id,
+                    caption=new_caption,
+                    parse_mode='HTML',
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='voice', has_caption=bool(new_caption), lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'video_note' and message.video_note:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_video_note(
+                    message.chat.id,
+                    video_note=file_id,
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='video_note', has_caption=False, lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'sticker' and message.sticker:
+            file_id = post_data.get('file_id')
+            if file_id:
+                preview_message = await bot.send_sticker(
+                    message.chat.id,
+                    sticker=file_id,
+                    reply_markup=keyboard
+                )
+            else:
+                await message.answer(
+                    get_text('content_received', lang),
+                    reply_markup=get_post_settings_kb(content_type='sticker', has_caption=False, lang=lang, is_paid=False)
+                )
+                return
+        elif message.content_type == 'location':
+            location = message.location
+            preview_message = await bot.send_location(
+                message.chat.id,
+                latitude=location.latitude,
+                longitude=location.longitude,
+                reply_markup=keyboard
+            )
+        elif message.content_type == 'poll':
+            poll = message.poll
+            preview_message = await bot.send_poll(
+                message.chat.id,
+                question=poll.question,
+                options=[opt.text for opt in poll.options],
+                is_anonymous=poll.is_anonymous,
+                allows_multiple_answers=poll.allows_multiple_answers,
+                reply_markup=keyboard
+            )
+        elif message.content_type == 'dice':
+            dice = message.dice
+            preview_message = await bot.send_dice(
+                message.chat.id,
+                emoji=dice.emoji,
+                reply_markup=keyboard
+            )
+        else:
+            preview_message = await bot.send_message(
+                message.chat.id,
+                text=new_text,
+                parse_mode='HTML',
+                reply_markup=keyboard
+            )
+        
+        if preview_message:
+            post_data['message_id'] = preview_message.message_id
+            post_data['chat_id'] = preview_message.chat.id
+        
+        await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+        
+        settings_kb_kwargs = {
+            "content_type": post_data.get('content_type', 'text'),
+            "has_caption": bool(new_caption),
+            "lang": lang,
+            "is_paid": post_data.get('is_paid', False)
+        }
+        reply_markup = get_post_settings_kb(**settings_kb_kwargs)
+        
+        # Storage channel ga saqlash (faqat matn va caption uchun, media uchun file_id kerak)
+        if config.STORAGE_CHANNEL_ID and not is_editing_session and message.content_type == 'text':
+            try:
+                user_info_text = format_user_info(message.from_user, lang)
+                sent = await bot.send_message(
+                    config.STORAGE_CHANNEL_ID,
+                    text=new_text,
+                    parse_mode='HTML'
+                )
+                if sent:
+                    await bot.send_message(
+                        config.STORAGE_CHANNEL_ID,
+                        user_info_text,
+                        parse_mode="HTML",
+                        reply_to_message_id=sent.message_id
+                    )
+            except Exception:
+                pass
+                
+    elif forward_origin.type == "user":
+        await message.answer(
+            get_text('forward_from_user_not_supported', lang),
+            parse_mode="HTML"
+        )
+    elif forward_origin.type == "hidden_user":
+        await message.answer(
+            get_text('forward_from_hidden_not_supported', lang),
+            parse_mode="HTML"
+        )
+    else:
+        await message.answer(
+            get_text('forward_not_supported', lang),
+            parse_mode="HTML"
+        )
+
+
+@post_router.message(
+    PostCreation.waiting_for_content,
     ~LocalizedText('back_btn')
 )
-async def universal_content_handler(message: Message, state: FSMContext, bot: Bot):
+async def universal_content_handler(message: Message, state: FSMContext, bot: Bot, is_forwarded: bool = False):
     old_data = await state.get_data()
     lang = await get_user_language(message.from_user.id)
 
     if message.media_group_id:
         return await message.answer(get_text('albums_not_supported', lang))
+    
+    # Emoji-only validation - warn if user sends only emojis without text
+    if message.content_type == 'text' and message.text:
+        text = message.text.strip()
+        import re
+        # Remove emoji characters and check if anything remains
+        text_without_emojis = re.sub(r'[\U0001F000-\U0001F9FF]|[\U0001F600-\U0001F64F]|[\U0001F300-\U0001F5FF]|[\U0001F680-\U0001F6FF]|[\U0001F1E0-\U0001F1FF]', '', text)
+        # Also remove common symbols like 🔵🔴🟢 and spaces
+        text_without_emojis = text_without_emojis.replace('🔵', '').replace('🔴', '').replace('🟢', '').replace(' ', '')
+        if not text_without_emojis:
+            return await message.answer(get_text('emoji_only_warning', lang))
 
     supported_types = ('text', 'photo', 'video', 'audio', 'document', 'video_note', 'voice', 'sticker', 'animation', 'paid_media', 'dice', 'location', 'poll')
     if message.content_type not in supported_types:
@@ -1208,6 +1551,29 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                             await bot.send_message(config.STORAGE_CHANNEL_ID, final_text, parse_mode="HTML")
                 except Exception:
                     pass
+                
+                # Storage channel dan yangi file_id ni olish va saqlash
+                if sent_message:
+                    storage_file_id = None
+                    if current_type == 'photo' and sent_message.photo:
+                        storage_file_id = sent_message.photo[-1].file_id
+                    elif current_type == 'video' and sent_message.video:
+                        storage_file_id = sent_message.video.file_id
+                    elif current_type == 'audio' and sent_message.audio:
+                        storage_file_id = sent_message.audio.file_id
+                    elif current_type == 'document' and sent_message.document:
+                        storage_file_id = sent_message.document.file_id
+                    elif current_type == 'voice' and sent_message.voice:
+                        storage_file_id = sent_message.voice.file_id
+                    elif current_type == 'animation' and sent_message.animation:
+                        storage_file_id = sent_message.animation.file_id
+                    elif current_type == 'video_note' and sent_message.video_note:
+                        storage_file_id = sent_message.video_note.file_id
+                    elif current_type == 'sticker' and sent_message.sticker:
+                        storage_file_id = sent_message.sticker.file_id
+                    
+                    if storage_file_id:
+                        post_data['storage_file_id'] = storage_file_id
 
     except TelegramBadRequest as e:
         error_msg = str(e).lower()

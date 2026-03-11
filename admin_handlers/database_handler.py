@@ -7,6 +7,9 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import StateFilter, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+import logging
+
+logger = logging.getLogger(__name__)
 
 from xdata_handlers import config
 from admin_handlers.admin_handler import IsAdmin

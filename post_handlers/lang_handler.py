@@ -1,6 +1,9 @@
 from aiogram import F, Router, types, Bot
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
+import logging
+
+logger = logging.getLogger(__name__)
 
 from xdata_handlers.database import set_user_language, get_user_language
 from xdata_handlers.translator import get_text

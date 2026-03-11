@@ -23,7 +23,7 @@ from post_handlers.xinline_keyboard import (
     get_post_management_keyboard
 )
 
-from xdata_handlers.translator import get_text
+from xdata_handlers.translator import get_text, safe_format, get_text_formatted
 from post_handlers.xreply_keyboard import get_post_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
 from post_handlers.localize_filter import LocalizedText
 
@@ -84,11 +84,11 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
     try:
         bot_member = await bot.get_chat_member(chat_info.id, bot.id)
         if bot_member.status not in ['administrator', 'creator']:
-            return await message.answer(get_text('bot_not_admin_msg', lang).format(channel_name=html.escape(chat_info.title)))
+            return await message.answer(get_text_formatted('bot_not_admin_msg', lang, channel_name=html.escape(chat_info.title)))
 
         user_member = await bot.get_chat_member(chat_info.id, user_id)
         if user_member.status not in ['administrator', 'creator']:
-            return await message.answer(get_text('user_not_admin_msg', lang).format(channel_name=html.escape(chat_info.title)))
+            return await message.answer(get_text_formatted('user_not_admin_msg', lang, channel_name=html.escape(chat_info.title)))
 
     except Exception:
         error_text = get_text('add_channel_error_msg', lang)
@@ -119,15 +119,12 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
             with suppress(Exception):
                 await message.delete()
 
-            await message.answer(get_text('add_channel_success_msg', lang).format(channel_name=html.escape(chat_info.title)))
+            await message.answer(get_text_formatted('add_channel_success_msg', lang, channel_name=html.escape(chat_info.title)))
 
             bot_info = await bot.get_me()
             bot_username = bot_info.username
 
-            final_message = get_text('post_saved_msg', lang).format(
-                post_code=pending_post_code,
-                bot_username=bot_username
-            )
+            final_message = get_text_formatted('post_saved_msg', lang, post_code=pending_post_code, bot_username=bot_username)
 
             inline_kb = await get_post_management_keyboard(pending_post_code)
             await message.answer(final_message, reply_markup=inline_kb, parse_mode="HTML")
@@ -135,7 +132,7 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
             await state.clear()
         else:
             await state.clear()
-            await message.answer(get_text('add_channel_success_msg', lang).format(channel_name=html.escape(chat_info.title)))
+            await message.answer(get_text_formatted('add_channel_success_msg', lang, channel_name=html.escape(chat_info.title)))
             from post_handlers.start_handler import cmd_start # LOCAL IMPORT
             await cmd_start(message, state, bot)
     else:
@@ -153,9 +150,9 @@ async def process_channel_id_or_username(message: types.Message, state: FSMConte
         chat_info = await bot.get_chat(channel_identifier)
         await _add_channel_to_db(message, state, bot, chat_info)
     except TelegramBadRequest:
-        await message.answer(get_text('channel_not_found_msg', lang).format(channel_name=html.escape(channel_identifier)))
+        await message.answer(get_text_formatted('channel_not_found_msg', lang, channel_name=html.escape(channel_identifier)))
     except Exception as e:
-        await message.answer(get_text('unknown_error_msg', lang).format(error=e))
+        await message.answer(get_text_formatted('unknown_error_msg', lang, error=e))
 
 @send_router.callback_query(PostSendCallbackFactory.filter(F.action == "start_sending"))
 async def start_sending_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, state: FSMContext, bot: Bot):
@@ -250,7 +247,7 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
     await state.update_data(selected_channel_id=callback_data.channel_id, selected_channel_name=safe_channel_name)
 
     await callback.message.edit_text(
-        get_text('send_timing_msg', lang).format(channel_name=safe_channel_name),
+        get_text_formatted('send_timing_msg', lang, channel_name=safe_channel_name),
         reply_markup=get_send_timing_keyboard(callback_data.post_code, callback_data.channel_id, lang)
     )
 
@@ -266,7 +263,7 @@ async def confirm_prompt_handler(callback: types.CallbackQuery, callback_data: P
     safe_channel_name = data.get('selected_channel_name', get_text('channel_label_msg', lang))
 
     await callback.message.edit_text(
-        get_text('confirm_send_msg', lang).format(channel_name=safe_channel_name),
+        get_text_formatted('confirm_send_msg', lang, channel_name=safe_channel_name),
         reply_markup=get_send_confirmation_keyboard(callback_data.post_code, callback_data.channel_id, lang)
     )
 
@@ -282,7 +279,7 @@ async def back_to_timing_from_confirm(callback: types.CallbackQuery, callback_da
     channel_name = data.get('selected_channel_name', get_text('channel_label_msg', lang))
 
     await callback.message.edit_text(
-        get_text('send_timing_msg', lang).format(channel_name=channel_name),
+        get_text_formatted('send_timing_msg', lang, channel_name=channel_name),
         reply_markup=get_send_timing_keyboard(callback_data.post_code, callback_data.channel_id, lang)
     )
 
@@ -614,23 +611,8 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
 
         await bot.send_message(
             user_id,
-            get_text('post_sent_success_msg', lang),
+            safe_format(get_text('post_sent_success_msg', lang), channel_name=data.get('selected_channel_name', '')),
             reply_markup=get_post_done_menu(lang)
-        )
-
-        bot_info = await bot.get_me()
-        final_message = get_text('post_saved_msg', lang).format(
-            post_code=post_code,
-            bot_username=bot_info.username
-        )
-
-        inline_kb = await get_post_management_keyboard(post_code)
-
-        await bot.send_message(
-            user_id,
-            final_message,
-            reply_markup=inline_kb,
-            parse_mode="HTML"
         )
 
         await state.clear()
@@ -638,14 +620,24 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
     except Exception as e:
         # Server console ga yozish
         import traceback
-        print(f"[ERROR] Post yuborishda xatolik! User: {user_id}, Post: {post_code}, Channel: {channel_id}")
-        print(f"[ERROR] Xatolik: {str(e)}")
-        print(traceback.format_exc())
+        logger.error(f"[XATOLIK] Post yuborishda xatolik! User: {user_id}, Post: {post_code}, Channel: {channel_id}")
+        logger.error(f"[XATOLIK] Xatolik: {str(e)}")
+        logger.debug(f"[XATOLIK DETAL] Traceback: {traceback.format_exc()}")
         
         # Xatolikni bazaga yozish
         error_msg = f"Post yuborishda xatolik: {str(e)}"
-        from xdata_handlers.database import log_user_error
+        from xdata_handlers.database import log_user_error, log_error_to_db
         await log_user_error(user_id, error_msg)
+        
+        # Yangi log_error_to_db funksiyasini chaqirish
+        await log_error_to_db(
+            user_id=user_id,
+            error_type="PostSendError",
+            error_message=str(e),
+            file_name="send_handler.py",
+            function_name="confirm_send_handler",
+            traceback_text=traceback.format_exc()
+        )
         
         # Foydalanuvchiga tushunarli xabar berish
         error_text = str(e).lower()

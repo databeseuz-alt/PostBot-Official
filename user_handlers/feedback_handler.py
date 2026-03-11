@@ -4,6 +4,9 @@ from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.fsm.state import State, StatesGroup
+import logging
+
+logger = logging.getLogger(__name__)
 
 from xdata_handlers.database import (
     get_user_language, add_or_update_user
@@ -76,7 +79,7 @@ async def process_first_feedback(message: types.Message, state: FSMContext, bot:
 
         lang = await get_user_language(message.from_user.id)
         await message.answer(
-            get_text('feedback_success_msg', lang),
+            get_text('admin_receive_msg', lang),
             reply_markup=await get_main_menu(lang, message.from_user.id)
         )
         await state.clear()
@@ -91,8 +94,11 @@ async def reply_from_admin_handler(callback: types.CallbackQuery, state: FSMCont
     await remover_message.delete()
 
     parts = callback.data.split(":")
-    admin_id_to_reply = int(parts[1]) if len(parts) > 1 else None
     user_id_to_reply = int(parts[1]) if len(parts) > 1 else None
+    if not user_id_to_reply:
+        await callback.answer("Xatolik: User ID topilmadi", show_alert=True)
+        return
+
     await state.set_state(FeedbackState.chatting_with_admin)
     await state.update_data(recipient_user_id=user_id_to_reply)
 
@@ -129,7 +135,7 @@ async def send_message_from_admin(message: types.Message, state: FSMContext, bot
             chat_id=recipient_user_id,
             reply_markup=get_feedback_reply_to_admin_keyboard()
         )
-        await message.answer(get_text('admin_reply_success_msg', lang), reply_markup=ReplyKeyboardRemove())
+        await message.answer(get_text('admin_reply_success_msg', lang).format(user_id=recipient_user_id), reply_markup=ReplyKeyboardRemove())
     except Exception:
         await message.answer(get_text('admin_reply_error_msg', lang), reply_markup=ReplyKeyboardRemove())
     finally:
