@@ -163,9 +163,9 @@ class StatDrawer:
                             f"+{stats.get('today_users', 0)} bugun" if stats.get('today_users', 0) > 0 else None)
 
         self._draw_stat_card(draw, margin*2 + card_w, start_y, card_w, card_h,
-                            f"{stats.get('active_users', 0):,}",
-                            "FAOL A'ZOLAR",
-                            "Bloklamaganlar")
+                             f"{stats.get('active_users', {}).get('daily', 0):,}",
+                             "FAOL A'ZOLAR",
+                             "Bloklamaganlar")
 
         self._draw_stat_card(draw, margin, start_y + card_h + margin, card_w, card_h,
                             f"{stats.get('total_posts', 0):,}",

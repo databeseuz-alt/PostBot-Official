@@ -1,16 +1,37 @@
 
-import json
-from typing import Dict
-import os
-import logging
-import asyncio
-from pathlib import Path
+from aiogram.types import Message
+from aiogram import Bot
+import html
 
 # Logger sozlamalari
 logger = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 translations: Dict[str, Dict[str, str]] = {}
+
+def escape_html(text: str) -> str:
+    """HTML maxsus belgilarini escape qiladi."""
+    if not text:
+        return ""
+    return html.escape(str(text))
+
+async def safe_answer(message: Message, text: str, bot: Bot = None, parse_mode: str = None, **kwargs):
+    """
+    Xavfsiz xabar yuborish - HTML parsing xatolarini boshqaradi.
+    """
+    from aiogram.errors import TelegramBadRequest
+    try:
+        await message.answer(text, parse_mode=parse_mode, **kwargs)
+    except TelegramBadRequest as e:
+        # Agar HTML parsing xatolik bo'lsa, parse_mode=siz qayta urinib ko'rish
+        if "can't parse entities" in str(e):
+            logger.warning(f"HTML parsing xatolik, parse_mode=None bilan qayta yuborilmoqda")
+            try:
+                await message.answer(text, parse_mode=None, **kwargs)
+            except Exception as e2:
+                logger.error(f"Xatolik: {e2}")
+        else:
+            raise
 
 def load_translations():
     """language_packs papkasidagi barcha .json fayllarni avtomatik o'qiydi va `translations` lug'atiga yuklaydi."""

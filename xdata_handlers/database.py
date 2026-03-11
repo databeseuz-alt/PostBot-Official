@@ -120,12 +120,13 @@ async def set_user_language(user_id: int, nickname: str = None, username: str = 
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO users (user_id, nickname, username, language, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
+                INSERT INTO users (user_id, nickname, username, language, created_at, last_activity)
+                VALUES (%s, %s, %s, %s, NOW(), NOW())
                 ON CONFLICT (user_id) DO UPDATE SET
                     nickname = COALESCE(EXCLUDED.nickname, users.nickname),
                     username = COALESCE(EXCLUDED.username, users.username),
                     language = EXCLUDED.language,
+                    last_activity = NOW(),
                     created_at = COALESCE(users.created_at, EXCLUDED.created_at);
             """, (user_id, nickname, username, language))
             conn.commit()
@@ -219,21 +220,23 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
             
             if language is None:
                 cursor.execute("""
-                    INSERT INTO users (user_id, nickname, username, language, created_at)
-                    VALUES (%s, %s, %s, NULL, NOW())
+                    INSERT INTO users (user_id, nickname, username, language, created_at, last_activity)
+                    VALUES (%s, %s, %s, NULL, NOW(), NOW())
                     ON CONFLICT (user_id) DO UPDATE SET
                         nickname = EXCLUDED.nickname,
                         username = EXCLUDED.username,
+                        last_activity = NOW(),
                         created_at = COALESCE(users.created_at, EXCLUDED.created_at);
                 """, (user_id, nickname, username))
             else:
                 cursor.execute("""
-                    INSERT INTO users (user_id, nickname, username, language, created_at)
-                    VALUES (%s, %s, %s, %s, NOW())
+                    INSERT INTO users (user_id, nickname, username, language, created_at, last_activity)
+                    VALUES (%s, %s, %s, %s, NOW(), NOW())
                     ON CONFLICT (user_id) DO UPDATE SET
                         nickname = EXCLUDED.nickname,
                         username = EXCLUDED.username,
                         language = EXCLUDED.language,
+                        last_activity = NOW(),
                         created_at = COALESCE(users.created_at, EXCLUDED.created_at);
                 """, (user_id, nickname, username, language))
             
@@ -265,10 +268,12 @@ async def get_user_language(user_id: int) -> str:
             cursor = conn.cursor()
             cursor.execute("SELECT language FROM users WHERE user_id = %s", (user_id,))
             result = cursor.fetchone()
-            return result[0] if result else 'uz'
+            language = result[0] if result else 'uz'
+            # Til kodini normalize qilish
+            return _normalize_language(language)
         except Exception:
-
-            return 'uz'
+ 
+            return _normalize_language('uz')
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
@@ -1103,13 +1108,13 @@ async def record_user_activity(user_id: int, username: str = None, nickname: str
                 nickname = username
             cursor.execute("""
                 INSERT INTO users (user_id, username, nickname, last_activity, created_at)
-                VALUES (%s, %s, %s, %s, NOW())
+                VALUES (%s, %s, %s, NOW(), NOW())
                 ON CONFLICT (user_id) DO UPDATE SET
                     username = COALESCE(EXCLUDED.username, users.username),
                     nickname = COALESCE(EXCLUDED.nickname, users.nickname),
-                    last_activity = EXCLUDED.last_activity,
+                    last_activity = NOW(),
                     created_at = COALESCE(users.created_at, EXCLUDED.created_at);
-            """, (user_id, username, nickname, get_now()))
+            """, (user_id, username, nickname))
             conn.commit()
             return True
         except Exception:
@@ -1808,7 +1813,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-
+            
             excluded_ids = admin_ids or []
             params: List[Any] = []
             where_parts = []
@@ -1816,16 +1821,16 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                 where_parts.append("user_id NOT IN (" + ','.join(['%s'] * len(excluded_ids)) + ")")
                 params.extend(excluded_ids)
             where_sql = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
-
+            
             cursor.execute(f"SELECT COUNT(*) FROM users {where_sql}", params)
             total_users = int((cursor.fetchone() or [0])[0] or 0)
-
+            
             cursor.execute(
                 f"SELECT COUNT(*) FROM users {where_sql} AND COALESCE(is_blocked, 0) = 0 AND last_activity >= (NOW() - INTERVAL '30 days')" if where_sql else "SELECT COUNT(*) FROM users WHERE COALESCE(is_blocked, 0) = 0 AND last_activity >= (NOW() - INTERVAL '30 days')",
                 params
             )
             active_users = int((cursor.fetchone() or [0])[0] or 0)
-
+            
             # Adminlarni chiqarib tashlash uchun postlarni ham filter qilamiz
             post_where_parts = []
             post_params = []
@@ -1836,15 +1841,15 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
             
             cursor.execute(f"SELECT COUNT(*) FROM post_info {post_where_sql}", post_params)
             total_posts = int((cursor.fetchone() or [0])[0] or 0)
-
+            
             today = get_now().strftime('%Y-%m-%d')
             
             # Bugungi yangi foydalanuvchilar - users jadvalidan (created_at bo'yicha) - adminlarsiz
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(f"SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) = %s AND user_id NOT IN ({user_ids_str})", (today,) + tuple(excluded_ids))
+                cursor.execute(f"SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})", (today,) + tuple(excluded_ids))
             else:
-                cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) = %s", (today,))
+                cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s", (today,))
             today_users = int(cursor.fetchone()[0] or 0)
             
             # Bugungi postlar - post_info jadvalidan - adminlarsiz
@@ -1854,16 +1859,16 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
             else:
                 cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (today,))
             today_posts = int(cursor.fetchone()[0] or 0)
-
+            
             # Oxirgi 7 kun - users va post_info jadvalidan hisoblash - adminlarsiz
             last_7_days = []
             for i in range(7):
                 day = (get_now() - timedelta(days=i)).strftime('%Y-%m-%d')
                 if excluded_ids:
                     user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                    cursor.execute(f"SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) = %s AND user_id NOT IN ({user_ids_str})", (day,) + tuple(excluded_ids))
+                    cursor.execute(f"SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})", (day,) + tuple(excluded_ids))
                 else:
-                    cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) = %s", (day,))
+                    cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s", (day,))
                 day_users = int(cursor.fetchone()[0] or 0)
                 if excluded_ids:
                     user_ids_str = ','.join(['%s'] * len(excluded_ids))
@@ -1872,7 +1877,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                     cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (day,))
                 day_posts = int(cursor.fetchone()[0] or 0)
                 last_7_days.append({'date': day, 'users': day_users, 'posts': day_posts})
-
+            
             # Get top language (excluding NULL and admins)
             top_lang = None
             try:
@@ -1887,7 +1892,7 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
                     top_lang = lang_row[0]
             except Exception:
                 top_lang = None
-
+            
             return {
                 'total_users': total_users,
                 'today_users': today_users,
@@ -1920,60 +1925,60 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-
+            
             now = get_now()
             today = now.strftime('%Y-%m-%d')
-
+            
             # Hafta boshlanishi (dushanba)
             week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
-
+            
             # Oy boshlanishi
             month_start = now.replace(day=1).strftime('%Y-%m-%d')
-
+            
             excluded_ids = admin_ids or []
-
+            
             # Kunlik - bugungi yangi foydalanuvchilar (created_at bo'yicha) - adminlarsiz
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) = %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})",
                     (today,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) = %s",
+                    "SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s",
                     (today,)
                 )
             daily = int(cursor.fetchone()[0] or 0)
-
+            
             # Haftalik - ushbu haftadagi yangi foydalanuvchilar - adminlarsiz
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) >= %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s AND user_id NOT IN ({user_ids_str})",
                     (week_start,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) >= %s",
+                    "SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s",
                     (week_start,)
                 )
             weekly = int(cursor.fetchone()[0] or 0)
-
+            
             # Oylik - ushbu oydagi yangi foydalanuvchilar - adminlarsiz
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) >= %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s AND user_id NOT IN ({user_ids_str})",
                     (month_start,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(COALESCE(created_at, last_activity)) >= %s",
+                    "SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s",
                     (month_start,)
                 )
             monthly = int(cursor.fetchone()[0] or 0)
-
+            
             logger.info(f"Statistika: today={today}, daily={daily}, weekly={weekly}, monthly={monthly}")
             return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
         except Exception as e:
