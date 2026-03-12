@@ -361,7 +361,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT channel_id, channel_name, send_posts, aded_at, recorded_at
+                SELECT channel_id, channel_name, send_posts, added_at, recorded_at
                 FROM channels WHERE user_id = %s
             """, (user_id,))
             rows = cursor.fetchall()
@@ -370,7 +370,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                     'channel_id': row[0],
                     'channel_name': row[1], 
                     'send_posts': row[2],
-                    'aded_at': row[3],
+                    'added_at': row[3],
                     'recorded_at': row[4]
                 }
                 for row in rows
