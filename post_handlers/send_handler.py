@@ -603,6 +603,10 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 message_id=sent_message.message_id
             )
 
+            # Kanalga post kodini yozish
+            from xdata_handlers.database import update_channel_post_code
+            await update_channel_post_code(user_id, channel_id, post_code)
+
             # Avtomatik pin
             if auto_pin:
                 try:

@@ -456,7 +456,6 @@ async def _format_stats_text(
     new_user_stats: dict,
     posts_stats: dict,
     lang_dist: dict,
-    active_users: dict,
     total_errors: int,
     current_time
 ) -> str:
@@ -492,17 +491,14 @@ async def _format_stats_text(
         f"<b>📊 Bot Statistikasi</b>\n\n"
         f"<b>👥 Jami foydalanuvchilar:</b> {detailed_stats.get('total_users', 0)} ta{status_line}\n\n"
         f"<b>📈 Yangi a'zolar:</b>\n"
-        f"  - Bugun: {new_user_stats.get('daily', 0)} ta\n"
-        f"  - Shu hafta: {new_user_stats.get('weekly', 0)} ta\n"
-        f"  - Shu oy: {new_user_stats.get('monthly', 0)} ta\n\n"
+        f"  - Shu hafta: {new_user_stats.get('weekly_new', 0)} ta\n"
+        f"  - Shu oy: {new_user_stats.get('monthly_new', 0)} ta\n\n"
         f"<b>🏃‍♂️ Faol a'zolar:</b>\n"
-        f"  - Bugun: {active_users.get('daily', 0)} ta\n"
-        f"  - Shu hafta: {active_users.get('weekly', 0)} ta\n"
-        f"  - Shu oy: {active_users.get('monthly', 0)} ta\n\n"
+        f"  - Shu hafta: {new_user_stats.get('weekly_active', 0)} ta\n"
+        f"  - Shu oy: {new_user_stats.get('monthly_active', 0)} ta\n\n"
         f"{lang_text}\n\n"
         f"<b>✍️ Yaratilgan postlar:</b>\n"
         f"  - Jami: {posts_stats.get('total', 0)} ta\n"
-        f"  - Bugun: {posts_stats.get('daily', 0)} ta\n"
         f"  - Shu hafta: {posts_stats.get('weekly', 0)} ta\n"
         f"  - Shu oy: {posts_stats.get('monthly', 0)} ta\n\n"
         f"<b>⚙️ Tizim holati:</b>\n"
@@ -518,14 +514,13 @@ async def show_general_text_stats(callback: types.CallbackQuery):
     new_user_stats = await get_new_users_stats_extended(config.ADMIN_IDS)
     posts_stats = await get_posts_stats(config.ADMIN_IDS)
     lang_dist = await get_language_distribution(config.ADMIN_IDS)
-    active_users = await get_active_users_by_period(config.ADMIN_IDS)
     total_errors = await get_total_errors_count()
 
     current_time = get_now()
 
     text = await _format_stats_text(
         detailed_stats, new_user_stats, posts_stats, lang_dist,
-        active_users, total_errors, current_time
+        total_errors, current_time
     )
 
     keyboard = get_back_navigation_keyboard("admin:stats_menu")

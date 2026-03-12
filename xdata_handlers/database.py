@@ -423,6 +423,29 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
+async def update_channel_post_code(user_id: int, channel_id: int, post_code: str) -> bool:
+    """Kanalga post kodi ni yozadi."""
+    logger.info(f"[CHANNEL] update_channel_post_code: user_id={user_id}, channel_id={channel_id}, post_code={post_code}")
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE channels 
+                SET send_posts = %s, recorded_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND channel_id = %s
+            """, (post_code, user_id, channel_id))
+            conn.commit()
+            logger.info(f"[CHANNEL] Post code updated: channel_id={channel_id}, post_code={post_code}")
+            return True
+        except Exception as e:
+            logger.error(f"[CHANNEL] Error updating post code: user_id={user_id}, channel_id={channel_id}, error={e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
 async def get_user_bot_settings(user_id: int) -> Dict:
     """Foydalanuvchi bot sozlamalarini oladi."""
     def _sync():
@@ -1924,14 +1947,21 @@ async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
     return await asyncio.to_thread(_sync)
 
 async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
-    """Yangi foydalanuvchilar statistikasi (kunlik, haftalik, oylik)"""
+    """Yangi foydalanuvchilar statistikasi (kunlik, haftalik, oylik) - Toshkent vaqtida"""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             
-            now = get_now()
+            # Database vaqtidan foydalanamiz (Toshkent)
+            cursor.execute("SELECT NOW() AT TIME ZONE 'Asia/Tashkent'")
+            now_row = cursor.fetchone()
+            if now_row:
+                now = now_row[0]
+            else:
+                now = datetime.now()
+            
             today = now.strftime('%Y-%m-%d')
             
             # Hafta boshlanishi (dushanba)
@@ -1946,12 +1976,12 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s AND user_id NOT IN ({user_ids_str})",
                     (today,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s",
+                    "SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s",
                     (today,)
                 )
             daily = int(cursor.fetchone()[0] or 0)
@@ -1960,12 +1990,12 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
                     (week_start,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s",
+                    "SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
                     (week_start,)
                 )
             weekly = int(cursor.fetchone()[0] or 0)
@@ -1974,17 +2004,17 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
                     (month_start,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(created_at) >= %s",
+                    "SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
                     (month_start,)
                 )
             monthly = int(cursor.fetchone()[0] or 0)
             
-            logger.info(f"Statistika: today={today}, daily={daily}, weekly={weekly}, monthly={monthly}")
+            logger.info(f"Statistika (Toshkent): today={today}, daily={daily}, weekly={weekly}, monthly={monthly}")
             return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
         except Exception as e:
             logger.error(f"get_new_users_stats_extended xatolik: {e}")
@@ -1994,14 +2024,21 @@ async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
     return await asyncio.to_thread(_sync)
 
 async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
-    """Postlar statistikasi (jami, kunlik, haftalik, oylik)"""
+    """Postlar statistikasi (jami, kunlik, haftalik, oylik) - Toshkent vaqtida"""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
 
-            now = get_now()
+            # Database vaqtidan foydalanamiz (Toshkent)
+            cursor.execute("SELECT NOW() AT TIME ZONE 'Asia/Tashkent'")
+            now_row = cursor.fetchone()
+            if now_row:
+                now = now_row[0]
+            else:
+                now = datetime.now()
+            
             today = now.strftime('%Y-%m-%d')
 
             # Hafta boshlanishi (dushanba)
@@ -2024,12 +2061,12 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s AND user_id NOT IN ({user_ids_str})",
                     (today,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s",
+                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s",
                     (today,)
                 )
             daily = int(cursor.fetchone()[0] or 0)
@@ -2038,12 +2075,12 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at) >= %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
                     (week_start,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at) >= %s",
+                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
                     (week_start,)
                 )
             weekly = int(cursor.fetchone()[0] or 0)
@@ -2052,16 +2089,17 @@ async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
             if excluded_ids:
                 user_ids_str = ','.join(['%s'] * len(excluded_ids))
                 cursor.execute(
-                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at) >= %s AND user_id NOT IN ({user_ids_str})",
+                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
                     (month_start,) + tuple(excluded_ids)
                 )
             else:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at) >= %s",
+                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
                     (month_start,)
                 )
             monthly = int(cursor.fetchone()[0] or 0)
 
+            logger.info(f"Post statistika (Toshkent): today={today}, daily={daily}, weekly={weekly}, monthly={monthly}, total={total}")
             return {'total': total, 'daily': daily, 'weekly': weekly, 'monthly': monthly}
         except Exception:
             return {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
