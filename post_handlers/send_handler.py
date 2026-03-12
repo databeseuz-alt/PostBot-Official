@@ -75,8 +75,13 @@ async def cmd_add_channel(message: types.Message, state: FSMContext):
 
 async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot, chat_info: types.Chat):
     """Kanalni tekshiradi va bazaga qo'shish uchun yordamchi funksiya."""
+    from xdata_handlers.database import add_user_channel
+    import logging
+    logger = logging.getLogger(__name__)
+    
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
+    logger.info(f"[SEND_HANDLER] _add_channel_to_db: user_id={user_id}, chat_info.id={chat_info.id}, chat_info.title={chat_info.title}")
 
     if chat_info.type != 'channel':
         return await message.answer(get_text('invalid_channel_msg', lang))
@@ -90,7 +95,8 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
         if user_member.status not in ['administrator', 'creator']:
             return await message.answer(get_text_formatted('user_not_admin_msg', lang, channel_name=html.escape(chat_info.title)))
 
-    except Exception:
+    except Exception as e:
+        logger.error(f"[SEND_HANDLER] Error checking channel membership: {e}")
         error_text = get_text('add_channel_error_msg', lang)
         return await message.answer(error_text)
 
@@ -99,6 +105,7 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
         channel_id=chat_info.id,
         channel_name=chat_info.title
     )
+    logger.info(f"[SEND_HANDLER] add_user_channel result: success={success}")
 
     if success:
         data = await state.get_data()
@@ -156,6 +163,9 @@ async def process_channel_id_or_username(message: types.Message, state: FSMConte
 
 @send_router.callback_query(PostSendCallbackFactory.filter(F.action == "start_sending"))
 async def start_sending_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, state: FSMContext, bot: Bot):
+    import logging
+    logger = logging.getLogger(__name__)
+    
     post_code = callback_data.post_code
     
     # post_code None bo'lsa, state dan olishga urinib ko'rish
@@ -171,6 +181,8 @@ async def start_sending_handler(callback: types.CallbackQuery, callback_data: Po
         return
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
+    
+    logger.info(f"[SEND_HANDLER] start_sending_handler: user_id={user_id}, post_code={post_code}")
 
     await state.set_state(PostSending.choosing_channel_to_send)
     await state.update_data(
@@ -180,6 +192,7 @@ async def start_sending_handler(callback: types.CallbackQuery, callback_data: Po
     )
 
     user_channels = await get_user_channels(user_id)
+    logger.info(f"[SEND_HANDLER] user_channels: user_id={user_id}, count={len(user_channels)}")
 
     if not user_channels:
         await callback.message.answer(

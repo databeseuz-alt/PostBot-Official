@@ -331,6 +331,7 @@ async def unblock_user(user_id: int) -> bool:
 
 async def add_user_channel(user_id: int, channel_id: int, channel_name: str, send_posts: bool = False) -> bool:
     """Foydalanuvchi kanalini qo'shadi."""
+    logger.info(f"[CHANNEL] add_user_channel called: user_id={user_id}, channel_id={channel_id}, channel_name={channel_name}")
     def _sync():
         conn = None
         try:
@@ -345,9 +346,10 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
                     recorded_at = CURRENT_TIMESTAMP;
             """, (user_id, channel_id, channel_name, send_posts))
             conn.commit()
+            logger.info(f"[CHANNEL] Channel added successfully: user_id={user_id}, channel_id={channel_id}")
             return True
-        except Exception:
-
+        except Exception as e:
+            logger.error(f"[CHANNEL] Error adding channel: user_id={user_id}, channel_id={channel_id}, error={e}")
             return False
         finally:
             if conn: release_connection(conn)
@@ -355,6 +357,7 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
 
 async def get_user_channels(user_id: int) -> List[Dict]:
     """Foydalanuvchi kanallarini oladi."""
+    logger.info(f"[CHANNEL] get_user_channels called: user_id={user_id}")
     def _sync():
         conn = None
         try:
@@ -365,7 +368,7 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                 FROM channels WHERE user_id = %s
             """, (user_id,))
             rows = cursor.fetchall()
-            return [
+            result = [
                 {
                     'channel_id': row[0],
                     'channel_name': row[1], 
@@ -375,8 +378,10 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                 }
                 for row in rows
             ]
-        except Exception:
-
+            logger.info(f"[CHANNEL] get_user_channels result: user_id={user_id}, count={len(result)}")
+            return result
+        except Exception as e:
+            logger.error(f"[CHANNEL] Error getting user channels: user_id={user_id}, error={e}")
             return []
         finally:
             if conn: release_connection(conn)

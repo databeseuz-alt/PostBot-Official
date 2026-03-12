@@ -64,8 +64,17 @@ async def cmd_my_channels(message: types.Message):
     lang = await get_user_language(user_id)
 
     if not user_channels:
-        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa
-        await message.answer(get_text('need_channel_msg', lang))
+        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - klaviatura bilan xabar yuborish
+        builder = InlineKeyboardBuilder()
+        builder.button(
+            text=get_text('add_channel_btn', lang),
+            callback_data=MyChannelsCallback(action="add_new").pack()
+        )
+        builder.adjust(1)
+        await message.answer(
+            get_text('need_channel_msg', lang),
+            reply_markup=builder.as_markup()
+        )
         return
 
     keyboard = await get_my_channels_keyboard(user_id)

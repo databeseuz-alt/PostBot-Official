@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 from aiogram import Router, types, Bot, F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import BufferedInputFile
+from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.filters.callback_data import CallbackData
 
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import (
@@ -19,6 +21,10 @@ from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
 
 statistic_router = Router()
+
+
+class AddChannelFromStatsCallback(CallbackData, prefix="add_channel_from_stats"):
+    action: str
 
 
 class ChannelStatDrawer:
@@ -317,9 +323,16 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
     # Foydalanuvchi kanal ulaganligni tekshirish
     user_channels = await get_user_channels(user_id)
     if not user_channels:
+        # Kanal yo'q bo'lsa - klaviatura bilan xabar yuborish
+        builder = InlineKeyboardBuilder()
+        builder.button(
+            text=get_text('add_channel_btn', lang),
+            callback_data=AddChannelFromStatsCallback(action="add").pack()
+        )
+        builder.adjust(1)
         await message.answer(
             get_text('statistics_no_channel_msg', lang),
-            reply_markup=await get_main_menu(lang, user_id)
+            reply_markup=builder.as_markup()
         )
         return
 
@@ -361,3 +374,11 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
             f"Statistikani yaratishda xatolik yuz berdi: {str(e)}",
             reply_markup=await get_main_menu(lang, user_id)
         )
+
+@statistic_router.callback_query(AddChannelFromStatsCallback.filter(F.action == "add"))
+async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FSMContext):
+    """Statistika bo'limidan kanal qo'shish tugmasi bosilganda."""
+    await callback.message.delete()
+    from post_handlers.send_handler import cmd_add_channel
+    await cmd_add_channel(callback.message, state)
+    await callback.answer()
