@@ -1,7 +1,6 @@
 aiogram
 python-dotenv
 flask
-beautifulsoup4
 aiohttp
 psycopg2-binary
 gunicorn

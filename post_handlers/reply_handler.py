@@ -9,8 +9,8 @@ logger = logging.getLogger(__name__)
 
 from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import (
-    get_main_menu, get_cancel_kb, get_post_settings_kb,
-    get_button_creation_cancel_kb, get_edit_content_kb, get_back_button_kb
+    get_button_creation_cancel_kb, get_edit_content_kb, get_back_button_kb,
+    get_main_menu, get_cancel_kb, get_post_settings_kb
 )
 from aiogram.types import Message, InputMediaPhoto, InputMediaVideo, InputMediaAudio, InputMediaDocument, InputMediaAnimation
 from post_handlers.xinline_keyboard import (
@@ -58,6 +58,17 @@ async def preview_post_handler(message: types.Message, state: FSMContext, bot: B
     await message.answer(get_text('preview_title_msg', lang))
 
     from post_handlers.xinline_keyboard import generate_preview_keyboard
+    
+    # Suv belgisini qo'shish (agar yoqilgan bo'lsa)
+    if post_data.get('watermark_enabled') and post_data.get('watermark_file_id'):
+        if 'original_file_id' not in post_data or post_data.get('file_id') == post_data.get('original_file_id'):
+            from post_handlers.watermark_handler import apply_watermark
+            new_file_id = await apply_watermark(bot, post_data['file_id'], post_data['watermark_file_id'])
+            if new_file_id and new_file_id != post_data['file_id']:
+                post_data['original_file_id'] = post_data['file_id']
+                post_data['file_id'] = new_file_id
+                await state.update_data(post_data=post_data)
+
     preview_keyboard = generate_preview_keyboard(buttons_matrix)
 
     content_type = post_data.get('content_type', 'text')
@@ -298,6 +309,19 @@ async def media_settings_reply_handler(message: types.Message, state: FSMContext
     """Media sozlamalari tugmasi - inline klaviaturani ko'rsatish"""
     from post_handlers.media_handler import open_media_settings_from_reply
     await open_media_settings_from_reply(message, state)
+
+@reply_router.message(
+    PostCreation.configuring_post,
+    LocalizedText('watermark_btn')
+)
+@reply_router.message(
+    PostCreation.waiting_for_media_settings,
+    LocalizedText('watermark_btn')
+)
+async def watermark_reply_handler(message: types.Message, state: FSMContext):
+    """Suv belgisi tugmasi - sozlamalarni ko'rsatish"""
+    from post_handlers.watermark_handler import show_watermark_settings
+    await show_watermark_settings(message, state)
 
 @reply_router.message(
     PostCreation.waiting_for_media_settings,

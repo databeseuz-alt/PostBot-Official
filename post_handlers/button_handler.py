@@ -621,12 +621,10 @@ async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
         await callback.answer(get_text('btn_not_found_msg', lang), show_alert=True)
         return
 
-    # Statistika yangilash (agar kanal bo'lsa)
-    if callback.message and callback.message.chat.type in ['channel', 'supergroup']:
-        from xdata_handlers.database import update_post_stats
-        post_code = content.get('post_code')
-        if post_code:
-            await update_post_stats(post_code, callback.message.chat.id, clicks=1)
+    # Tugma bosilishini hisoblash
+    post_code = content.get('post_code')
+    if post_code and callback.message:
+        pass
 
     is_member, warning_text, keyboard = await check_user_membership(callback.from_user, bot)
 
@@ -861,7 +859,11 @@ async def handle_reaction_click(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     chat_id = callback.message.chat.id
     message_id = callback.message.message_id
-
+    
+    # Reaksiya bosilganda tugma bosilishlarini hisoblash
+    from xdata_handlers.database import get_post_code_from_chat_message
+    post_code, channel_id = await get_post_code_from_chat_message(chat_id, message_id)
+    
     from xdata_handlers.database import add_or_update_reaction_by_chat_message, get_user_language, get_reaction_count_by_chat_message
 
     lang = await get_user_language(user_id)

@@ -21,7 +21,7 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang)))  # Tugma
     builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))  # Tahrirlash
 
-    # 2-qator: auto_signature (caption mavjud bo'lsa), media (media mavjud bo'lsa)
+    # 2-qator: auto_signature, media, watermark
     row2_buttons = 0
     
     # auto_signature - text, photo, video, document, audio, voice (agar caption mavjud)
@@ -33,6 +33,11 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     # media_settings - photo, video, animation, paid_media
     if content_type in ['photo', 'video', 'animation', 'paid_media']:
         builder.add(KeyboardButton(text=get_text('media_settings_btn', lang)))
+        row2_buttons += 1
+
+    # watermark - faqat photo uchun
+    if content_type == 'photo':
+        builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
         row2_buttons += 1
     
     # 3-qator: bekor qilish va tayyor (2 ta)

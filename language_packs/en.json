@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Data not found</b>\n\nAdmins have been notified, the problem will be fixed soon, please wait",
     "admin_reply_error_msg": "<b>❌ Error sending message</b>\n\nThe user may have blocked the bot",
     "save_error": "<b>❌ Error saving.</b>\n\nAdmins have been notified, the problem will be fixed soon, please wait",
+    "cant_generate_code_poll_reaction": "<b>❌ Code generation failed!</b>\n\nThis post contains poll or reaction buttons. Code cannot be generated in inline mode.",
     "you_are_blocked_msg": "<b>☹️ Sorry, I can't serve you!</b>\n\n<blockquote>🔹 You have been blocked from the bot by the administrator for certain reasons\n\n👨‍🔧 You can contact the support center to get full information about your situation, and they will tell you why you were blocked. If necessary, they can unblock you</blockquote>",
     "already_voted_msg": "You have already answered.",
     "vote_accepted_msg": "Your answer: {reaction}",

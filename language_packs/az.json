@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Məlumat tapılmadı</b>\n\nAdminlər məlumatlandırıldı, problem tezliklə həll olunacaq, gözləyin",
     "admin_reply_error_msg": "<b>❌ Mesaj göndərmə xətası</b>\n\nİstifadəçi botu bloklamış ola bilər",
     "save_error": "<b>❌ Saxlama xətası.</b>\n\nAdminlər məlumatlandırıldı, problem tezliklə həll olunacaq, gözləyin",
+    "cant_generate_code_poll_reaction": "<b>❌ Kod generasiyası uğursuz oldu!</b>\n\nBu post sorğu və ya reaksiya düymələrini ehtiva edir. Kod inline rejimdə generasiya edilə bilməz.",
     "you_are_blocked_msg": "<b>☹️ Təəssüf ki, sizə xidmət edə bilmirəm!</b>\n\n<blockquote>🔹 Siz müəyyən səbəblərə görə bot administratoru tərəfindən bloklanmısınız\n\n👨‍🔧 Vəziyyətiniz haqqında tam məlumat almaq üçün dəstək mərkəzinə müraciət edə bilərsiniz və onlar sizə niyə bloklandığınızı deyəcəklər. Lazım gələrsə, blokdan çıxarıla bilərsiniz</blockquote>",
     "already_voted_msg": "Siz artıq cavab verdiniz.",
     "vote_accepted_msg": "Sizin cavabınız: {reaction}",

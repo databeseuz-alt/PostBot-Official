@@ -10,6 +10,7 @@ from aiohttp.client_exceptions import (
 )
 
 from xdata_handlers.database import log_user_error
+from xdata_handlers import config
 
 # Logging sozlamalari
 logging.basicConfig(
@@ -58,6 +59,24 @@ async def error_handler(exception: types.ErrorEvent):
     if isinstance(exception.exception, TelegramAPIError):
         logger.warning(f"[TELEGRAM API ERROR] {exception.exception}")
         return False
+
+    # Adminlarga xabar yuborish
+    try:
+        from aiogram import Bot
+        bot: Bot = exception.bot
+        for admin_id in config.ADMIN_IDS:
+            try:
+                msg = (
+                    f"🛑 <b>BOTDA XATOLIK!</b>\n\n"
+                    f"👤 Foydalanuvchi: <code>{user_id}</code>\n"
+                    f"❌ Xatolik: <code>{exception.exception}</code>\n\n"
+                    f"<i>Xatolik bazaga saqlandi.</i>"
+                )
+                await bot.send_message(chat_id=admin_id, text=msg, parse_mode="HTML")
+            except Exception as send_err:
+                logger.error(f"[ADMIN NOTIFY ERROR] {send_err}")
+    except Exception as notify_err:
+        logger.error(f"[NOTIFY GENERAL ERROR] {notify_err}")
 
     logger.info("[XATOLIK QAYTA ISHLANDI] Xatolik muvaffaqiyatli qayta ishlandi")
     return True

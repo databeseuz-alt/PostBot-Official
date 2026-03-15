@@ -1,74 +1,119 @@
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
+from xdata_handlers.translator import get_text
+from xdata_handlers import config
 
 def get_main_admin_keyboard():
     builder = InlineKeyboardBuilder()
-    builder.button(text="📊 Statistika bo'limi", callback_data="admin:stats_menu")
-    builder.button(text="🚫 Bloklanganlar", callback_data="admin:blocked_users_menu")
-    builder.button(text="📢 Reklama yuborish", callback_data="admin:send_ad_start")
-    builder.button(text="📢 Kanalni ulash", callback_data="admin:channel_menu")
-    builder.button(text="ℹ️ Foydalanuvchi ma'lumotlari", callback_data="admin:user_data_menu")
+    builder.button(text="📊 Statistika", callback_data="admin:statistics_menu")
+    builder.button(text="🚫 Bloklangan", callback_data="admin:blocked_users_menu")
+    builder.button(text="📢 Reklama", callback_data="admin:send_ad_start")
+    builder.button(text="📢 Kanal ulash", callback_data="admin:channel_menu")
+    builder.button(text="💾 Ma'lumotlar", callback_data="admin:export_menu_period")
+    builder.button(text="⚙️ sozlamalar", callback_data="admin:settings_main_menu")
 
+    builder.adjust(2, 2, 2)
+    return builder.as_markup()
+
+def get_settings_menu_keyboard():
+    """Sozlamalar bo'limi uchun klaviatura."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🏷 Bot nomi", callback_data="admin:bot_name_lang_select")
+    builder.button(text="📝 Buyruqlar", callback_data="admin:bot_commands_lang_select")
+    builder.button(text="ℹ️ description", callback_data="admin:bot_desc_lang_select")
+    builder.button(text="👤 Tarjimai hol", callback_data="admin:bot_bio_lang_select")
+    builder.button(text="🔙 Admin paneliga qaytish", callback_data="admin:back_to_main_menu")
+    
     builder.adjust(2, 2, 1)
     return builder.as_markup()
 
-def get_stats_menu_keyboard():
-    """Asosiy statistika menyusi (2-1 strukturasi)."""
+def get_no_commands_keyboard(mode: str = "commands", text: str = "Buyruq"):
+    """Ma'lumot mavjud bo'lmaganda chiqadigan klaviatura (1, 2 adjust)."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="📊 Umumiy statistika", callback_data="admin:stats:general_text")
-    builder.button(text="📈 Grafika bo'limi", callback_data="admin:stats:graphics_menu")
-    builder.button(text="💾 Ma'lumotlar bazasi", callback_data="admin:stats:db_tables")
+    builder.button(text=f"➕ {text} qo'shish", callback_data=f"admin:bot_{mode}_start:all")
+    builder.button(text="🔙 Admin paneli", callback_data="admin:back_to_main_menu")
+    builder.button(text="🔙 Orqaga", callback_data="admin:settings_main_menu")
+    builder.adjust(1, 2)
+    return builder.as_markup()
+
+def get_commands_input_nav_keyboard(mode: str = "commands"):
+    """Buyruq/Bio/Desc kiritish jarayonidagi navigatsiya (2 adjust)."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
+    builder.button(text="🔙 Orqaga", callback_data=f"admin:bot_{mode}_lang_select")
+    builder.adjust(2)
+    return builder.as_markup()
+
+def get_language_selection_keyboard(has_global: bool = True, mode: str = "commands"):
+    """Tillar ro'yxatini chiqaruvchi klaviatura."""
+    import os
+    from xdata_handlers.translator import BASE_DIR
+    locales_dir = os.path.join(BASE_DIR, "language_packs")
+    builder = InlineKeyboardBuilder()
     
+    LANG_MAP = {
+        'uz': '🇺🇿 UZ',
+        'en': '🇬🇧 EN',
+        'ru': '🇷🇺 RU',
+        'ar': '🇸🇦 AR',
+        'az': '🇦🇿 AZ',
+        'de': '🇩🇪 DE',
+        'es': '🇪🇸 ES',
+        'fr': '🇫🇷 FR',
+        'it': '🇮🇹 IT',
+        'kg': '🇰🇬 KG',
+        'kz': '🇰🇿 KZ',
+        'tj': '🇹🇯 TJ',
+        'tk': '🇹🇲 TK',
+        'tr': '🇹🇷 TR'
+    }
+    
+    try:
+        if os.path.exists(locales_dir):
+            added_langs = set()
+            for file in os.listdir(locales_dir):
+                if file.endswith(".json"):
+                    lang_code = file[:-5]
+                    
+                    if lang_code in ['uzl', 'uzk']:
+                        lang_code = 'uz'
+                        
+                    if lang_code not in added_langs:
+                        text = LANG_MAP.get(lang_code, lang_code.upper())
+                        builder.button(text=text, callback_data=f"admin:bot_{mode}_start:{lang_code}")
+                        added_langs.add(lang_code)
+    except Exception as e:
+        pass
+        
+    if has_global:
+        builder.button(text="🌐 Default", callback_data=f"admin:bot_{mode}_start:all")
+    
+    builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
+    builder.button(text="🔙 Orqaga", callback_data="admin:settings_main_menu")
+    
+    if has_global:
+        builder.adjust(5, 5, 5, 2)
+    else:
+        builder.adjust(5, 5, 2)
+        
+    return builder.as_markup()
+
+
+def get_statistics_keyboard():
+    """Statistika bo'limi uchun klaviatura."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📋 Asosiy statistika", callback_data="admin:statistics_main")
+    builder.button(text="📊 Grafika", callback_data="admin:statistics_graphic")
     builder.button(text="🔙 Admin paneliga qaytish", callback_data="admin:back_to_main_menu")
-
-    builder.adjust(2, 1, 1)
+    
+    builder.adjust(2, 1)
     return builder.as_markup()
 
-def get_graphics_menu_keyboard():
-    """Grafikalar bo'limining menyusi (1-3-2 strukturasi)."""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📊 DASHBOARD", callback_data="admin:stats:dashboard")
-
-    builder.button(text="👥 A'zolar", callback_data="admin:stats:users_menu")
-    builder.button(text="🌍 Tillar", callback_data="admin:stats:langs_menu")
-    builder.button(text="📝 Postlar", callback_data="admin:stats:posts_menu")
-
-    builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
-    builder.button(text="🔙 Ortga", callback_data="admin:stats_menu")
-
-    builder.adjust(1, 3, 2)
-    return builder.as_markup()
-
-def get_users_stats_keyboard():
-    """A'zolar statistikasi menyusi (3-2)."""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📈 30 kunlik", callback_data="admin:stats:users:monthly")
-    builder.button(text="📅 Haftalik", callback_data="admin:stats:users:weekly")
-    builder.button(text="🕒 Kunlik (soat)", callback_data="admin:stats:users:hourly")
-
-    builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
-    builder.button(text="🔙 Ortga", callback_data="admin:stats:graphics_menu")
-
-    builder.adjust(3, 2)
-    return builder.as_markup()
-
-def get_posts_stats_keyboard():
-    """Postlar statistikasi menyusi (3-2)."""
-    builder = InlineKeyboardBuilder()
-    builder.button(text="📈 30 kunlik", callback_data="admin:stats:posts:monthly")
-    builder.button(text="📄 Formatlar", callback_data="admin:stats:posts:formats")
-    builder.button(text="🔘 Tugmalar", callback_data="admin:stats:posts:buttons")
-
-    builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
-    builder.button(text="🔙 Ortga", callback_data="admin:stats:graphics_menu")
-
-    builder.adjust(3, 2)
-    return builder.as_markup()
-
-def get_back_navigation_keyboard(back_callback="admin:stats:graphics_menu"):
-    """Grafiklar ostida chiqadigan navigatsiya (2 ta tugma)."""
+def get_back_to_main_orqaga_keyboard():
+    """Asosiy statistika ko'rsatilganda 2 ta tugma: Asosiy panel va Orqaga."""
     builder = InlineKeyboardBuilder()
     builder.button(text="🔙 Asosiy panel", callback_data="admin:back_to_main_menu")
-    builder.button(text="🔙 Ortga", callback_data=back_callback)
+    builder.button(text="🔙 Orqaga", callback_data="admin:statistics_menu")
+    
     builder.adjust(2)
     return builder.as_markup()
 
@@ -170,8 +215,6 @@ def get_unblock_confirmation_keyboard(user_id: int):
     builder.button(text="❌ Yo'q, qolsin", callback_data=f"admin:view_blocked_user:{user_id}")
     builder.adjust(2)
     return builder.as_markup()
-
-from xdata_handlers.translator import get_text
 
 def generate_ad_edit_keyboard(buttons_matrix: list | None = None):
     builder = InlineKeyboardBuilder()

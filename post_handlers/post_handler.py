@@ -53,6 +53,9 @@ class PostCreation(StatesGroup):
     waiting_for_paid_price = State()
     waiting_for_location = State()
 
+    waiting_for_watermark_settings = State()
+    waiting_for_watermark_photo = State()
+
     waiting_for_delete_timer = State()
     waiting_for_reply_setting = State()
 

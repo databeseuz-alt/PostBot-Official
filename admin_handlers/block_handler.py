@@ -192,6 +192,12 @@ class BlockUserMiddleware(BaseMiddleware):
         user = data.get('event_from_user')
         chat = data.get('event_chat')
 
+        if chat and chat.type not in ('private', 'group', 'supergroup'):
+            return await handler(event, data)
+        
+        if chat and chat.type in ('group', 'supergroup'):
+            return
+
         if user and not user.is_bot and chat and chat.type == 'private':
             await add_or_update_user(
                 user_id=user.id,

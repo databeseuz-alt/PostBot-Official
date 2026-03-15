@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Malumot topilmadi</b>\n\nbu haqida adminlarga xabar berildi muammo tez orada tuzatiladi , kuting",
     "admin_reply_error_msg": "<b>❌ Xabar yuborishda xatolik</b>\n\n🚫 Foydalanuvchi botni bloklagan bo'lishi mumkin",
     "save_error": "<b>❌ Saqlashda xatolik yuz berdi.</b>\n\nbu haqida adminlarga xabar berildi muammo tez orada tuzatiladi , kuting",
+    "cant_generate_code_poll_reaction": "<b>❌ Kod generatsiya qilinmadi!</b>\n\nUshbu post tarkibida poll yoki reaksiya tugmalari mavjud. Inline rezhimda kod berib bo'lmaydi.",
     "you_are_blocked_msg": "<b>☹️ afsuski, sizga xizmat ko'rsata olmayman!</b>\n\n<blockquote>🔹 Sizni bot administratori ma'lum sabablarga ko'ra botdan bloklashgan\n\n👨‍🔧 Qo'llab quvvatlash markaziga murojaat qilib holat haqida to'liq ma'lumot olishingiz mumkin shuningdek ular sizga blocklanishingiz sababini aytishadi. Zarurat bo'lsa blockdan chiqarishdadi</blockquote>",
     "already_voted_msg": "Siz allaqachon javob berdingiz.",
     "vote_accepted_msg": "Sizning javobingiz: {reaction}",

@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Données non trouvées</b>\n\nLes administrateurs ont été informés, le problème sera bientôt résolu, veuillez patienter",
     "admin_reply_error_msg": "<b>❌ Erreur lors de l'envoi du message</b>\n\nL'utilisateur a peut-être bloqué le bot",
     "save_error": "<b>❌ Erreur lors de la sauvegarde.</b>\n\nLes administrateurs ont été informés, le problème sera bientôt résolu, veuillez patienter",
+    "cant_generate_code_poll_reaction": "<b>❌ Échec de la génération du code!</b>\n\nCe message contient des boutons de sondage ou de réaction. Le code ne peut pas être généré en mode inline.",
     "you_are_blocked_msg": "<b>☹️ Désolé, je ne peux pas vous aider!</b>\n\n<blockquote>🔹 Vous avez été bloqué du bot par l'administrateur pour certaines raisons\n\n👨‍🔧 Vous pouvez contacter le centre de support pour obtenir des informations complètes sur votre situation, et ils vous diront pourquoi vous avez été bloqué. Si nécessaire, ils peuvent vous débloquer</blockquote>",
     "already_voted_msg": "Vous avez déjà répondu.",
     "vote_accepted_msg": "Votre réponse: {reaction}",

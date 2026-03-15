@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Daten nicht gefunden</b>\n\nAdministratoren wurden benachrichtigt, das Problem wird bald behoben, bitte warte",
     "admin_reply_error_msg": "<b>❌ Fehler beim Senden der Nachricht</b>\n\nDer Benutzer hat den Bot möglicherweise blockiert",
     "save_error": "<b>❌ Fehler beim Speichern.</b>\n\nAdministratoren wurden benachrichtigt, das Problem wird bald behoben, bitte warte",
+    "cant_generate_code_poll_reaction": "<b>❌ Code-Erstellung fehlgeschlagen!</b>\n\nDieser Beitrag enthält Umfrage- oder Reaktionsschaltflächen. Code kann nicht im Inline-Modus erstellt werden.",
     "you_are_blocked_msg": "<b>☹️ Entschuldigung, ich kann dir nicht helfen!</b>\n\n<blockquote>🔹 Du wurdest vom Bot-Administrator aus bestimmten Gründen blockiert\n\n👨‍🔧 Du kannst das Support-Center kontaktieren, um vollständige Informationen über deine Situation zu erhalten, und sie werden dir sagen, warum du blockiert wurdest. Bei Bedarf können sie dich entblocken</blockquote>",
     "already_voted_msg": "Du hast bereits geantwortet.",
     "vote_accepted_msg": "Deine Antwort: {reaction}",

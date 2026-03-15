@@ -79,6 +79,28 @@ def get_text(key: str, lang: str = "uzl") -> str:
 
     return text if text is not None else f"_{key}_"
 
+def get_all_translations(key: str) -> set:
+    """Barcha tillardagi ma'lum bir kalitning tarjimalarini set sifatida qaytaradi."""
+    result = set()
+    for lang_code in translations:
+        text = translations.get(lang_code, {}).get(key)
+        if text:
+            import html
+            result.add(text)
+            
+    # Asosiy til "uzl" uchun har doim qo'shish
+    fallback = translations.get("uzl", {}).get(key)
+    if fallback:
+        result.add(fallback)
+    
+    # Kiritilgan belgi uz, ru, en da ham bo'lish ehtimoliga qarshi
+    for manual_lang in ['uzl', 'ru', 'en']:
+        man_text = get_text(key, manual_lang)
+        if man_text:
+            result.add(man_text)
+            
+    return result
+
 def safe_format(text: str, **kwargs) -> str:
     """
     Matnni formatlashda xavfsiz usul. Agar formatlashda xatolik yuz bersa,

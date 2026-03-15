@@ -21,7 +21,7 @@ from post_handlers.localize_filter import LocalizedText
 
 done_router = Router()
 
-async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot, success_keyboard=None):
+async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot, success_keyboard=None, show_code: bool = True):
     """Postni preview sifatida yuboradi va post kodi xabarini chiqaradi."""
     full_post = await get_post_from_db(post_code)
     if not full_post:
@@ -197,20 +197,21 @@ async def send_post_preview(chat_id: int, post_code: str, lang: str, bot: Bot, s
 
     bot_info = await bot.get_me()
     bot_username = bot_info.username
+    
+    if show_code:
+        post_code_message = get_text('post_saved_msg', lang).format(
+            post_code=post_code,
+            bot_username=bot_username
+        )
 
-    post_code_message = get_text('post_saved_msg', lang).format(
-        post_code=post_code,
-        bot_username=bot_username
-    )
+        inline_kb = await get_post_management_keyboard(post_code, lang)
 
-    inline_kb = await get_post_management_keyboard(post_code, lang)
-
-    await bot.send_message(
-        chat_id,
-        post_code_message,
-        reply_markup=inline_kb,
-        parse_mode="HTML"
-    )
+        await bot.send_message(
+            chat_id,
+            post_code_message,
+            reply_markup=inline_kb,
+            parse_mode="HTML"
+        )
 
     return preview_message
 
@@ -272,6 +273,57 @@ async def done_post_creation(event: types.Message | types.CallbackQuery, state: 
         else:
             return await event.message.answer(get_text('save_error', lang))
 
+    # Suv belgisini qo'llash (agar yoqilgan bo'lsa va hali qo'llanilmagan bo'lsa)
+    if post_data.get('watermark_enabled') and post_data.get('watermark_file_id'):
+        # Agar file_id o'zgarmagan bo'lsa (hali wm qo'shilmagan)
+        if 'original_file_id' not in post_data or post_data.get('file_id') == post_data.get('original_file_id'):
+            try:
+                from post_handlers.watermark_handler import apply_watermark
+                new_file_id = await apply_watermark(bot, post_data['file_id'], post_data['watermark_file_id'])
+                if new_file_id and new_file_id != post_data['file_id']:
+                    post_data['original_file_id'] = post_data['file_id']
+                    post_data['file_id'] = new_file_id
+                    await state.update_data(post_data=post_data)
+            except Exception as e:
+                logger.error(f"Auto watermark application error: {e}")
+
+    # Tekshirish: agar post tarkibida inline rejimga mos kelmaydigan elementlar bo'lsa, kod ko'rsatilmaydi
+    has_incompatible_feature = False
+    incompatible_reason = None
+
+    if buttons_matrix:
+        for row in buttons_matrix:
+            for btn in row:
+                if btn:
+                    btn_type = btn.get('type')
+                    if btn_type == 'reaction':
+                        has_incompatible_feature = True
+                        break
+                    elif btn_type == 'text_btn':
+                        has_incompatible_feature = True
+                        break
+            if has_incompatible_feature:
+                break
+    
+    content_type = post_data.get('content_type')
+    if content_type in ['poll', 'paid_media', 'dice', 'location']:
+        has_incompatible_feature = True
+    
+    # Print settings (inline rejimda ishlamaydi)
+    print_settings = data.get('print_settings', {})
+    if any(print_settings.get(k) for k in ['silent_mode', 'protect_content', 'auto_pin', 'comments_enabled', 'auto_delete', 'reply_to_msg_id']):
+        has_incompatible_feature = True
+
+    show_code = not has_incompatible_feature
+
+    if has_incompatible_feature:
+        if isinstance(event, types.Message):
+            await event.answer(get_text('cant_generate_code_poll_reaction', lang))
+        else:
+            await event.message.answer(get_text('cant_generate_code_poll_reaction', lang))
+        if isinstance(event, types.CallbackQuery):
+            await event.answer()
+
     editing_post_code = data.get("editing_post_code")
     if editing_post_code:
         success = await update_post_in_db(editing_post_code, post_data, buttons_matrix)
@@ -326,13 +378,13 @@ async def done_post_creation(event: types.Message | types.CallbackQuery, state: 
         if isinstance(event, types.CallbackQuery):
             await event.answer()
         
-        await send_post_preview(chat_id, post_code_for_user, lang, bot)
+        await send_post_preview(chat_id, post_code_for_user, lang, bot, show_code=show_code)
     else:
         # If there are NO buttons, show success message IN the preview message via reply_markup
         if isinstance(event, types.CallbackQuery):
             await event.answer()
         
-        await send_post_preview(chat_id, post_code_for_user, lang, bot, get_post_done_menu(lang))
+        await send_post_preview(chat_id, post_code_for_user, lang, bot, get_post_done_menu(lang), show_code=show_code)
 
 @done_router.callback_query(SavePostCallbackFactory.filter(F.action == "start_save"))
 async def save_post_prompt(callback: types.CallbackQuery, callback_data: SavePostCallbackFactory, state: FSMContext):
@@ -1030,7 +1082,7 @@ async def process_auto_delete_time(message: types.Message, state: FSMContext):
 
                 if parsed > now:
                     delete_after_seconds = int((parsed - now).total_seconds())
-                    display_time = parsed.strftime("%d.%m.%Y %H:%M")
+                    display_time = parsed.strftime("%d-%m-%Y %H:%M")
                 break
             except:
                 continue

@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Maglumat tapylmady</b>\n\nAdminler habardar edildi, mesele tizden çözülär, gözläň",
     "admin_reply_error_msg": "<b>❌ Habar iberişde säwlik</b>\n\nUlanyjy boty blokirleýän biler",
     "save_error": "<b>❌ Saklamakda säwlik.</b>\n\nAdminler habardar edildi, mesele tizden çözülär, gözläň",
+    "cant_generate_code_poll_reaction": "<b>❌ Kod generatsiýasy başartmady!</b>\n\nBu post anket ýa-da reaction düwmelerini öz içine alýar. Kod inline rejimde döredilip bilinmez.",
     "you_are_blocked_msg": "<b>☹️ Howluk, men size hyzmat edip bilemok!</b>\n\n<blockquote>🔹 Siz adminstrator tarapyndan belli sebäpler bilen botdan blokirleniňiz\n\n👨‍🔧 Ýagdaýyňyz barada doly maglumat almak üçin goldaw merkezine ýüz tutyp bilersiňiz, olar siz näme üçin blokirleniňizi size aýtarlar. Gerek bolsa, blokdan çykaryp bilerler</blockquote>",
     "already_voted_msg": "Siz eýýäm jogap berdiňiz.",
     "vote_accepted_msg": "Siziň jogabyňyz: {reaction}",

@@ -25,7 +25,6 @@ TASHKENT_TZ = timezone(timedelta(hours=5))
 _connection_pool = None
 
 def _get_database_url() -> str | None:
-    """DATABASE_URL ni environment yoki .env fayldan oladi."""
     db_url = os.getenv("DATABASE_URL")
     if db_url:
         return db_url
@@ -39,7 +38,6 @@ def _get_database_url() -> str | None:
 DB_URL = _get_database_url()
 
 def _get_connection_pool():
-    """PostgreSQL connection pool hosil qiladi (singleton)."""
     global _connection_pool
     if _connection_pool is None:
         db_url = _get_database_url() or DB_URL
@@ -75,6 +73,10 @@ def get_connection():
         pool = _get_connection_pool()
         conn = pool.getconn()
         conn.set_client_encoding('UTF8')
+        # Toshkent vaqtini o'rnatish (UTC+5)
+        cursor = conn.cursor()
+        cursor.execute("SET TIME ZONE 'Asia/Tashkent'")
+        cursor.close()
         return conn
     except Exception as e:
         logger.error(f"Ulanishda xatolik: {e}")
@@ -84,6 +86,10 @@ def get_connection():
             raise ValueError("DATABASE_URL topilmadi!")
         conn = psycopg2.connect(db_url, sslmode="require", connect_timeout=30)
         conn.set_client_encoding('UTF8')
+        # Toshkent vaqtini o'rnatish (UTC+5)
+        cursor = conn.cursor()
+        cursor.execute("SET TIME ZONE 'Asia/Tashkent'")
+        cursor.close()
         return conn
 
 def release_connection(conn):
@@ -120,14 +126,12 @@ async def set_user_language(user_id: int, nickname: str = None, username: str = 
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO users (user_id, nickname, username, language, created_at, last_activity)
-                VALUES (%s, %s, %s, %s, NOW(), NOW())
+                INSERT INTO users (user_id, nickname, username, language)
+                VALUES (%s, %s, %s, %s)
                 ON CONFLICT (user_id) DO UPDATE SET
                     nickname = COALESCE(EXCLUDED.nickname, users.nickname),
                     username = COALESCE(EXCLUDED.username, users.username),
-                    language = EXCLUDED.language,
-                    last_activity = NOW(),
-                    created_at = COALESCE(users.created_at, EXCLUDED.created_at);
+                    language = EXCLUDED.language;
             """, (user_id, nickname, username, language))
             conn.commit()
             return True
@@ -215,46 +219,79 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
             cursor = conn.cursor()
             
             # Avval foydalanuvchi mavjudligini tekshiramiz
-            cursor.execute("SELECT 1 FROM users WHERE user_id = %s", (user_id,))
-            user_exists = cursor.fetchone() is not None
+            cursor.execute("SELECT user_id FROM users WHERE user_id = %s", (user_id,))
+            result = cursor.fetchone()
+            is_new_user = result is None
             
             if language is None:
-                cursor.execute("""
-                    INSERT INTO users (user_id, nickname, username, language, created_at, last_activity)
-                    VALUES (%s, %s, %s, NULL, NOW(), NOW())
-                    ON CONFLICT (user_id) DO UPDATE SET
-                        nickname = EXCLUDED.nickname,
-                        username = EXCLUDED.username,
-                        last_activity = NOW(),
-                        created_at = COALESCE(users.created_at, EXCLUDED.created_at);
-                """, (user_id, nickname, username))
+                if is_new_user:
+                    cursor.execute("""
+                        INSERT INTO users (user_id, nickname, username, language)
+                        VALUES (%s, %s, %s, NULL)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            nickname = EXCLUDED.nickname,
+                            username = EXCLUDED.username;
+                    """, (user_id, nickname, username))
+                else:
+                    cursor.execute("""
+                        INSERT INTO users (user_id, nickname, username, language)
+                        VALUES (%s, %s, %s, NULL)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            nickname = EXCLUDED.nickname,
+                            username = EXCLUDED.username;
+                    """, (user_id, nickname, username))
             else:
-                cursor.execute("""
-                    INSERT INTO users (user_id, nickname, username, language, created_at, last_activity)
-                    VALUES (%s, %s, %s, %s, NOW(), NOW())
-                    ON CONFLICT (user_id) DO UPDATE SET
-                        nickname = EXCLUDED.nickname,
-                        username = EXCLUDED.username,
-                        language = EXCLUDED.language,
-                        last_activity = NOW(),
-                        created_at = COALESCE(users.created_at, EXCLUDED.created_at);
-                """, (user_id, nickname, username, language))
-            
-            # Agar yangi foydalanuvchi bo'lsa, statistikani yangilaymiz
-            if not user_exists:
-                today = get_now().strftime('%Y-%m-%d')
-                cursor.execute("""
-                    INSERT INTO bot_stats (stat_date, new_users, new_posts)
-                    VALUES (%s, 1, 0)
-                    ON CONFLICT (stat_date) DO UPDATE SET
-                        new_users = bot_stats.new_users + 1;
-                """, (today,))
+                if is_new_user:
+                    cursor.execute("""
+                        INSERT INTO users (user_id, nickname, username, language)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            nickname = EXCLUDED.nickname,
+                            username = EXCLUDED.username,
+                            language = EXCLUDED.language;
+                    """, (user_id, nickname, username, language))
+                else:
+                    cursor.execute("""
+                        INSERT INTO users (user_id, nickname, username, language)
+                        VALUES (%s, %s, %s, %s)
+                        ON CONFLICT (user_id) DO UPDATE SET
+                            nickname = EXCLUDED.nickname,
+                            username = EXCLUDED.username,
+                            language = EXCLUDED.language;
+                    """, (user_id, nickname, username, language))
             
             conn.commit()
-            if not user_exists:
-                logger.info(f"Yangi foydalanuvchi qo'shildi: {user_id}, stat_date: {today}")
+            if is_new_user:
+                logger.info(f"Yangi foydalanuvchi qo'shildi: {user_id}")
+            return is_new_user
         except Exception as e:
             logger.error(f"add_or_update_user xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+
+
+async def record_new_post():
+    """Yangi post yaratilganda statistikaga qo'shadi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                INSERT INTO bot_stats (stat_date, new_posts)
+                VALUES (CURRENT_DATE, 1)
+                ON CONFLICT (stat_date) DO UPDATE SET
+                    new_posts = bot_stats.new_posts + 1
+            """)
+            
+            conn.commit()
+        except Exception as e:
+            logger.error(f"record_new_post xatolik: {e}")
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
@@ -331,7 +368,7 @@ async def unblock_user(user_id: int) -> bool:
 
 async def add_user_channel(user_id: int, channel_id: int, channel_name: str, send_posts: bool = False) -> bool:
     """Foydalanuvchi kanalini qo'shadi."""
-    logger.info(f"[CHANNEL] add_user_channel called: user_id={user_id}, channel_id={channel_id}, channel_name={channel_name}")
+    # logger.info(f"[CHANNEL] add_user_channel called: user_id={user_id}, channel_id={channel_id}, channel_name={channel_name}")
     def _sync():
         conn = None
         try:
@@ -343,10 +380,10 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
                 ON CONFLICT (user_id, channel_id) DO UPDATE SET
                     channel_name = EXCLUDED.channel_name,
                     send_posts = EXCLUDED.send_posts,
-                    recorded_at = CURRENT_TIMESTAMP;
+                    recorded_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent');
             """, (user_id, channel_id, channel_name, send_posts))
             conn.commit()
-            logger.info(f"[CHANNEL] Channel added successfully: user_id={user_id}, channel_id={channel_id}")
+            # logger.info(f"[CHANNEL] Channel added successfully: user_id={user_id}, channel_id={channel_id}")
             return True
         except Exception as e:
             logger.error(f"[CHANNEL] Error adding channel: user_id={user_id}, channel_id={channel_id}, error={e}")
@@ -357,14 +394,14 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
 
 async def get_user_channels(user_id: int) -> List[Dict]:
     """Foydalanuvchi kanallarini oladi."""
-    logger.info(f"[CHANNEL] get_user_channels called: user_id={user_id}")
+    # logger.info(f"[CHANNEL] get_user_channels called: user_id={user_id}")
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT channel_id, channel_name, send_posts, added_at, recorded_at
+                SELECT channel_id, channel_name, send_posts, recorded_at
                 FROM channels WHERE user_id = %s
             """, (user_id,))
             rows = cursor.fetchall()
@@ -373,16 +410,119 @@ async def get_user_channels(user_id: int) -> List[Dict]:
                     'channel_id': row[0],
                     'channel_name': row[1], 
                     'send_posts': row[2],
-                    'added_at': row[3],
-                    'recorded_at': row[4]
+                    'recorded_at': row[3]
                 }
                 for row in rows
             ]
-            logger.info(f"[CHANNEL] get_user_channels result: user_id={user_id}, count={len(result)}")
+            # logger.info(f"[CHANNEL] get_user_channels result: user_id={user_id}, count={len(result)}")
             return result
         except Exception as e:
             logger.error(f"[CHANNEL] Error getting user channels: user_id={user_id}, error={e}")
             return []
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+async def get_user_channel_statistics(user_id: int, channel_id: int = None) -> Dict:
+    """Foydalanuvchining kanallar statistikasini oladi."""
+    # logger.info(f"[STATS] get_user_channel_statistics called: user_id={user_id}")
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            if channel_id is not None:
+                channel_ids = [channel_id]
+            else:
+                # Foydalanuvchining kanallarini olish
+                cursor.execute("""
+                    SELECT channel_id FROM channels WHERE user_id = %s
+                """, (user_id,))
+                channel_rows = cursor.fetchall()
+                
+                if not channel_rows:
+                    return {
+                        'total_posts': 0,
+                        'total_reactions': 0,
+                        'total_shares': 0,
+                        'top_reactions': []
+                    }
+                
+                channel_ids = [row[0] for row in channel_rows]
+            
+            # Yuborilgan postlar sonini olish
+            cursor.execute("""
+                SELECT COUNT(*) FROM send_posts 
+                WHERE user_id = %s AND channel_id = ANY(%s) AND status = 'sent'
+            """, (user_id, channel_ids))
+            total_posts = cursor.fetchone()[0] or 0
+            
+            # Yuborilgan postlar sonini olish
+            cursor.execute("""
+                SELECT COUNT(*) FROM send_posts 
+                WHERE user_id = %s AND channel_id = ANY(%s) AND status = 'sent'
+            """, (user_id, channel_ids))
+            total_posts = cursor.fetchone()[0] or 0
+            
+            # Reaksiyalar sonini olish
+            try:
+                cursor.execute("""
+                    SELECT COUNT(DISTINCT r.id) FROM reactions r
+                    JOIN send_posts sp ON r.post_code = sp.post_code
+                    WHERE sp.user_id = %s AND sp.channel_id = ANY(%s)
+                """, (user_id, channel_ids))
+                total_reactions = cursor.fetchone()[0] or 0
+            except Exception:
+                total_reactions = 0
+            
+            # Ulashishlar sonini olish
+            try:
+                cursor.execute("""
+                    SELECT COALESCE(SUM(forward_count), 0) FROM send_posts 
+                    WHERE user_id = %s AND channel_id = ANY(%s) AND status = 'sent'
+                """, (user_id, channel_ids))
+                total_shares = cursor.fetchone()[0] or 0
+            except Exception:
+                total_shares = 0
+            
+            # Top reaksiyalarni olish
+            try:
+                cursor.execute("""
+                    SELECT r.reaction_emoji, COUNT(*) as cnt 
+                    FROM reactions r
+                    JOIN send_posts sp ON r.post_code = sp.post_code
+                    WHERE sp.user_id = %s AND sp.channel_id = ANY(%s)
+                    GROUP BY r.reaction_emoji 
+                    ORDER BY cnt DESC 
+                    LIMIT 5
+                """, (user_id, channel_ids))
+                reaction_rows = cursor.fetchall()
+                top_reactions = [
+                    {'emoji': row[0], 'count': row[1]} 
+                    for row in reaction_rows if row[0]
+                ]
+            except Exception:
+                top_reactions = []
+            
+            result = {
+                'total_posts': total_posts,
+                'total_reactions': total_reactions,
+                'total_shares': total_shares,
+                'top_reactions': top_reactions
+            }
+            # logger.info(f"[STATS] get_user_channel_statistics result: user_id={user_id}, stats={result}")
+            return result
+        except Exception as e:
+            logger.error(f"[STATS] Error getting user channel statistics: user_id={user_id}, error={e}")
+            return {
+                'total_posts': 0,
+                'total_views': 0,
+                'total_reactions': 0,
+                'total_shares': 0,
+                'total_button_clicks': 0,
+                'top_reactions': []
+            }
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
@@ -425,7 +565,7 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
 
 async def update_channel_post_code(user_id: int, channel_id: int, post_code: str) -> bool:
     """Kanalga post kodi ni yozadi."""
-    logger.info(f"[CHANNEL] update_channel_post_code: user_id={user_id}, channel_id={channel_id}, post_code={post_code}")
+    # logger.info(f"[CHANNEL] update_channel_post_code: user_id={user_id}, channel_id={channel_id}, post_code={post_code}")
     def _sync():
         conn = None
         try:
@@ -433,11 +573,11 @@ async def update_channel_post_code(user_id: int, channel_id: int, post_code: str
             cursor = conn.cursor()
             cursor.execute("""
                 UPDATE channels 
-                SET send_posts = %s, recorded_at = CURRENT_TIMESTAMP
+                SET send_posts = %s, recorded_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
                 WHERE user_id = %s AND channel_id = %s
             """, (post_code, user_id, channel_id))
             conn.commit()
-            logger.info(f"[CHANNEL] Post code updated: channel_id={channel_id}, post_code={post_code}")
+            # logger.info(f"[CHANNEL] Post code updated: channel_id={channel_id}, post_code={post_code}")
             return True
         except Exception as e:
             logger.error(f"[CHANNEL] Error updating post code: user_id={user_id}, channel_id={channel_id}, error={e}")
@@ -522,7 +662,7 @@ async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datet
     return await asyncio.to_thread(_sync)
 
 async def save_sent_post(post_code: str, user_id: int, channel_id: int, channel_name: str = None, message_id: int = None) -> bool:
-    """Yuborilgan postni saqlaydi va statistika jadvalini inisializatsiya qiladi."""
+    """Yuborilgan postni saqlaydi."""
     def _sync():
         conn = None
         try:
@@ -547,10 +687,6 @@ async def save_sent_post(post_code: str, user_id: int, channel_id: int, channel_
             if conn: release_connection(conn)
     
     success = await asyncio.to_thread(_sync)
-    if success:
-        # Statistika jadvalida post uchun qator ochib qo'yamiz (yoki yangilaymiz)
-        # Ilk bor yuborilganda 1 ta ko'rish deb hisoblaymiz
-        await update_post_stats(post_code, channel_id, views=1)
     return success
 
 async def get_scheduled_posts() -> List[Dict]:
@@ -733,7 +869,7 @@ async def remove_required_channel(channel_id: int) -> bool:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def add_reaction(post_code: str, button_index: int, reaction_emoji: str, 
+async def add_reaction(button_index: int, reaction_emoji: str, 
                       user_id: int, chat_id: int, message_id: int) -> bool:
     """Reaksiya qo'shadi."""
     def _sync():
@@ -742,13 +878,10 @@ async def add_reaction(post_code: str, button_index: int, reaction_emoji: str,
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO reactions (post_code, button_index, reaction_emoji, user_id, chat_id, message_id)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                ON CONFLICT (post_code, button_index, user_id) DO UPDATE SET
-                    reaction_emoji = EXCLUDED.reaction_emoji,
-                    chat_id = EXCLUDED.chat_id,
-                    message_id = EXCLUDED.message_id;
-            """, (post_code, button_index, reaction_emoji, user_id, chat_id, message_id))
+                INSERT INTO reactions (button_index, reaction_emoji, user_id, chat_id, message_id)
+                VALUES (%s, %s, %s, %s, %s)
+                ON CONFLICT DO NOTHING
+            """, (button_index, reaction_emoji, user_id, chat_id, message_id))
             conn.commit()
             return True
         except Exception:
@@ -758,17 +891,23 @@ async def add_reaction(post_code: str, button_index: int, reaction_emoji: str,
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def get_post_reactions(post_code: str) -> List[Dict]:
-    """Post reaksiyalarini oladi."""
+async def get_post_reactions(chat_id: int = None, message_id: int = None) -> List[Dict]:
+    """Reaksiyalarni oladi."""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT button_index, reaction_emoji, user_id, chat_id, message_id
-                FROM reactions WHERE post_code = %s
-            """, (post_code,))
+            if chat_id and message_id:
+                cursor.execute("""
+                    SELECT button_index, reaction_emoji, user_id, chat_id, message_id
+                    FROM reactions WHERE chat_id = %s AND message_id = %s
+                """, (chat_id, message_id))
+            else:
+                cursor.execute("""
+                    SELECT button_index, reaction_emoji, user_id, chat_id, message_id
+                    FROM reactions
+                """)
             rows = cursor.fetchall()
             return [
                 {
@@ -787,10 +926,9 @@ async def get_post_reactions(post_code: str) -> List[Dict]:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def add_or_update_reaction(post_code: str, button_index: int, reaction_emoji: str,
+async def add_or_update_reaction(button_index: int, reaction_emoji: str,
                                  user_id: int, chat_id: int, message_id: int) -> bool:
     return await add_reaction(
-        post_code=post_code,
         button_index=button_index,
         reaction_emoji=reaction_emoji,
         user_id=user_id,
@@ -809,60 +947,48 @@ async def add_or_update_reaction_by_chat_message(user_id: int, chat_id: int, mes
             cursor = conn.cursor()
 
             cursor.execute("""
-                SELECT reaction_emoji, post_code FROM reactions 
+                SELECT reaction_emoji FROM reactions 
                 WHERE user_id = %s AND chat_id = %s AND message_id = %s
             """, (user_id, chat_id, message_id))
             existing = cursor.fetchone()
 
             if existing:
-                old_reaction, post_code = existing
+                old_reaction = existing[0]
                 if old_reaction == reaction_emoji:
-                    return ('already_voted', old_reaction, post_code)
+                    return ('already_voted', old_reaction)
 
                 cursor.execute("""
                     UPDATE reactions SET reaction_emoji = %s 
                     WHERE user_id = %s AND chat_id = %s AND message_id = %s
                 """, (reaction_emoji, user_id, chat_id, message_id))
                 conn.commit()
-                return ('updated', old_reaction, post_code)
+                return ('updated', old_reaction)
             else:
-                cursor.execute("SELECT post_code FROM send_posts WHERE channel_id = %s AND message_id = %s", (chat_id, message_id))
-                post_code_res = cursor.fetchone()
-                post_code = post_code_res[0] if post_code_res else "__unknown__"
-
                 cursor.execute("""
-                    INSERT INTO reactions (user_id, chat_id, message_id, reaction_emoji, post_code, button_index)
-                    VALUES (%s, %s, %s, %s, %s, 0)
-                """, (user_id, chat_id, message_id, reaction_emoji, post_code))
+                    INSERT INTO reactions (user_id, chat_id, message_id, reaction_emoji, button_index)
+                    VALUES (%s, %s, %s, %s, 0)
+                """, (user_id, chat_id, message_id, reaction_emoji))
                 conn.commit()
-                return ('added', None, post_code)
+                return ('added', None)
         except Exception as e:
             logger.error(f"add_or_update_reaction_by_chat_message xatolik: {e}")
-            return ('error', None, None)
+            return ('error', None)
         finally:
             if conn: release_connection(conn)
     
-    status, old_r, p_code = await asyncio.to_thread(_sync)
+    status, old_r = await asyncio.to_thread(_sync)
     
-    if status in ['added', 'updated'] and p_code and p_code != "__unknown__":
-        # Summary jadvalni yangilaymiz
-        # Reaksiyalar soni o'zgargani uchun reactions=1 beramiz (update_post_stats da + qilingan)
-        # Agar updated bo'lsa reactions soni o'zgarmaydi (faqat emoji o'zgaradi), 
-        # lekin aggregate summary da bizga reaction soni muhim.
-        if status == 'added':
-            await update_post_stats(p_code, chat_id, reactions=1)
-            
     return (status, old_r)
 
-async def get_reaction_count(post_code: str, button_index: int) -> int:
+async def get_reaction_count(chat_id: int, message_id: int, button_index: int) -> int:
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT COUNT(*) FROM reactions WHERE post_code = %s AND button_index = %s",
-                (post_code, button_index)
+                "SELECT COUNT(*) FROM reactions WHERE chat_id = %s AND message_id = %s AND button_index = %s",
+                (chat_id, message_id, button_index)
             )
             row = cursor.fetchone()
             return int(row[0] or 0) if row else 0
@@ -929,18 +1055,6 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
                 INSERT INTO post_info (post_code, user_id, full_post_data, post_name)
                 VALUES (%s, %s, %s, %s)
             """, (post_code, user_id, full_post_json, post_name))
-
-            if buttons_matrix:
-                for row in buttons_matrix:
-                    for btn in row:
-                        if btn and btn.get('type') == 'text_btn':
-                            db_id = btn.get('db_id')
-                            if db_id:
-                                cursor.execute("""
-                                    UPDATE text_buttons 
-                                    SET post_code = %s, button_type = %s
-                                    WHERE id = %s
-                                """, (post_code, 'text_btn', db_id))
 
             conn.commit()
             return post_code
@@ -1056,6 +1170,26 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
 
 async def update_post_message_id(post_code: str, message_id: int) -> bool:
     """Post message_id sini yangilaydi."""
+
+async def get_post_code_from_chat_message(chat_id: int, message_id: int) -> tuple:
+    """Chat va message ID dan post_code va channel_id ni oladi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT post_code, channel_id FROM send_posts WHERE channel_id = %s AND message_id = %s",
+                (chat_id, message_id)
+            )
+            result = cursor.fetchone()
+            return (result[0], result[1]) if result else (None, None)
+        except Exception as e:
+            logger.error(f"get_post_code_from_chat_message xatolik: {e}")
+            return (None, None)
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
     def _sync():
         conn = None
         try:
@@ -1115,34 +1249,6 @@ async def update_post_print_settings(post_code: str, print_settings: dict) -> bo
                 "UPDATE post_info SET full_post_data = %s WHERE post_code = %s",
                 (json.dumps(full_post_data, ensure_ascii=False), post_code)
             )
-            conn.commit()
-            return True
-        except Exception:
-
-            return False
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def record_user_activity(user_id: int, username: str = None, nickname: str = None) -> bool:
-    """Foydalanuvchi faoliyatini yozib boradi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            # Agar nickname NULL bo'lsa va username mavjud bo'lsa, username ni nickname qilib ishlatamiz
-            if nickname is None and username:
-                nickname = username
-            cursor.execute("""
-                INSERT INTO users (user_id, username, nickname, last_activity, created_at)
-                VALUES (%s, %s, %s, NOW(), NOW())
-                ON CONFLICT (user_id) DO UPDATE SET
-                    username = COALESCE(EXCLUDED.username, users.username),
-                    nickname = COALESCE(EXCLUDED.nickname, users.nickname),
-                    last_activity = NOW(),
-                    created_at = COALESCE(users.created_at, EXCLUDED.created_at);
-            """, (user_id, username, nickname))
             conn.commit()
             return True
         except Exception:
@@ -1260,16 +1366,14 @@ async def update_user_post_settings(user_id: int, settings: Dict = None, **kwarg
 async def create_text_button(*args, **kwargs) -> int | None:
     """Matnli tugma yaratadi."""
     if args and len(args) == 2 and not kwargs:
-        post_code = None
         button_type = None
         content_sub, content_nonsub = args
     else:
-        post_code = kwargs.get('post_code')
         button_type = kwargs.get('button_type')
         content_sub = kwargs.get('content_sub')
         content_nonsub = kwargs.get('content_nonsub')
         if args:
-            post_code, button_type, content_sub, content_nonsub = args
+            button_type, content_sub, content_nonsub = args
 
     def _sync():
         conn = None
@@ -1277,11 +1381,11 @@ async def create_text_button(*args, **kwargs) -> int | None:
             conn = get_connection()
             cursor = conn.cursor()
 
-            if post_code is not None or button_type is not None:
+            if button_type is not None:
                 cursor.execute("""
-                    INSERT INTO text_buttons (post_code, button_type, content_sub, content_nonsub)
-                    VALUES (%s, %s, %s, %s) RETURNING id
-                """, (post_code, button_type, content_sub, content_nonsub))
+                    INSERT INTO text_buttons (button_type, content_sub, content_nonsub)
+                    VALUES (%s, %s, %s) RETURNING id
+                """, (button_type, content_sub, content_nonsub))
             else:
                 cursor.execute("""
                     INSERT INTO text_buttons (content_sub, content_nonsub)
@@ -1316,136 +1420,6 @@ async def get_text_button_content(btn_id: int) -> dict | None:
             } if row else None
         except Exception:
             return None
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def update_bot_stats(stat_date: str, new_users: int = 0, new_posts: int = 0) -> bool:
-    """Bot statistikasini yangilaydi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO bot_stats (stat_date, new_users, new_posts)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (stat_date) DO UPDATE SET
-                    new_users = bot_stats.new_users + EXCLUDED.new_users,
-                    new_posts = bot_stats.new_posts + EXCLUDED.new_posts;
-            """, (stat_date, new_users, new_posts))
-            conn.commit()
-            return True
-        except Exception:
-
-            return False
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def get_bot_stats() -> List[Dict]:
-    """Bot statistikasini oladi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT stat_date, new_users, new_posts 
-                FROM bot_stats ORDER BY stat_date DESC LIMIT 30
-            """)
-            rows = cursor.fetchall()
-            return [
-                {
-                    'stat_date': row[0],
-                    'new_users': row[1],
-                    'new_posts': row[2]
-                }
-                for row in rows
-            ]
-        except Exception:
-
-            return []
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def set_absolute_views(post_code: str, channel_id: int, views: int) -> bool:
-    """Post ko'rishlar sonini absolut qiymatga o'rnatadi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                UPDATE post_stats SET total_views = %s
-                WHERE post_code = %s AND channel_id = %s;
-            """, (views, post_code, channel_id))
-            conn.commit()
-            return True
-        except Exception:
-            return False
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def update_post_stats(post_code: str, channel_id: int, views: int = 0, 
-                           clicks: int = 0, shares: int = 0, reactions: int = 0, 
-                           reactions_data: dict = None) -> bool:
-    """Post statistikasini yangilaydi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-
-            reactions_json = json.dumps(reactions_data) if reactions_data else '{}'
-
-            cursor.execute("""
-                INSERT INTO post_stats (post_code, channel_id, total_views, total_clicks, total_shares, reactions, reactions_data)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-                ON CONFLICT (post_code, channel_id) DO UPDATE SET
-                    total_views = post_stats.total_views + EXCLUDED.total_views,
-                    total_clicks = post_stats.total_clicks + EXCLUDED.total_clicks,
-                    total_shares = post_stats.total_shares + EXCLUDED.total_shares,
-                    reactions = post_stats.reactions + EXCLUDED.reactions,
-                    reactions_data = EXCLUDED.reactions_data;
-            """, (post_code, channel_id, views, clicks, shares, reactions, reactions_json))
-            conn.commit()
-            return True
-        except Exception:
-
-            return False
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def get_post_stats(post_code: str) -> List[Dict]:
-    """Post statistikasini oladi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("""
-                SELECT channel_id, total_views, total_clicks, total_shares, reactions, reactions_data
-                FROM post_stats WHERE post_code = %s
-            """, (post_code,))
-            rows = cursor.fetchall()
-            return [
-                {
-                    'channel_id': row[0],
-                    'total_views': row[1],
-                    'total_clicks': row[2],
-                    'total_shares': row[3],
-                    'reactions': row[4],
-                    'reactions_data': json.loads(row[5]) if row[5] else {}
-                }
-                for row in rows
-            ]
-        except Exception:
-
-            return []
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
@@ -1556,10 +1530,10 @@ async def find_user_by_id_or_username(query: str) -> Dict | None:
             cursor = conn.cursor()
 
             if query.isdigit():
-                cursor.execute("SELECT user_id, nickname, username, language, is_blocked, last_activity FROM users WHERE user_id = %s", (int(query),))
+                cursor.execute("SELECT user_id, nickname, username, language, is_blocked, activate FROM users WHERE user_id = %s", (int(query),))
             else:
                 username = query.lstrip('@')
-                cursor.execute("SELECT user_id, nickname, username, language, is_blocked, last_activity FROM users WHERE username = %s", (username,))
+                cursor.execute("SELECT user_id, nickname, username, language, is_blocked, activate FROM users WHERE username = %s", (username,))
 
             result = cursor.fetchone()
             if result:
@@ -1570,8 +1544,8 @@ async def find_user_by_id_or_username(query: str) -> Dict | None:
                     'language': result[3],
                     'language_code': result[3],
                     'is_blocked': result[4],
-                    'join_date': None,
-                    'last_activity_date': result[5]
+                    'join_date': result[5],  # activate ustunidan olinadi
+                    'last_activity_date': result[5]  # activate ustunidan olinadi
                 }
             return None
         except Exception:
@@ -1589,7 +1563,7 @@ async def get_user_info_from_db(user_id: int) -> Dict | None:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT user_id, nickname, username, language, is_blocked, last_activity 
+                SELECT user_id, nickname, username, language, is_blocked
                 FROM users WHERE user_id = %s
             """, (user_id,))
             result = cursor.fetchone()
@@ -1599,8 +1573,7 @@ async def get_user_info_from_db(user_id: int) -> Dict | None:
                     'nickname': result[1],
                     'username': result[2],
                     'language': result[3],
-                    'is_blocked': result[4],
-                    'last_activity': result[5]
+                    'is_blocked': result[4]
                 }
             return None
         except Exception:
@@ -1618,7 +1591,7 @@ async def get_user_block_info(user_id: int) -> Dict | None:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT user_id, nickname, username, is_blocked, last_activity
+                SELECT user_id, nickname, username, is_blocked
                 FROM users WHERE user_id = %s
             """, (user_id,))
             result = cursor.fetchone()
@@ -1627,8 +1600,7 @@ async def get_user_block_info(user_id: int) -> Dict | None:
                     'user_id': result[0],
                     'nickname': result[1],
                     'username': result[2],
-                    'is_blocked': result[3],
-                    'last_activity': result[4]
+                    'is_blocked': result[3]
                 }
             return None
         except Exception:
@@ -1835,279 +1807,8 @@ async def get_prompt_by_id(prompt_id: int, user_id: int) -> Dict | None:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def get_detailed_user_stats(admin_ids: List[int] = None) -> Dict:
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            excluded_ids = admin_ids or []
-            params: List[Any] = []
-            where_parts = []
-            if excluded_ids:
-                where_parts.append("user_id NOT IN (" + ','.join(['%s'] * len(excluded_ids)) + ")")
-                params.extend(excluded_ids)
-            where_sql = ("WHERE " + " AND ".join(where_parts)) if where_parts else ""
-            
-            cursor.execute(f"SELECT COUNT(*) FROM users {where_sql}", params)
-            total_users = int((cursor.fetchone() or [0])[0] or 0)
-            
-            cursor.execute(
-                f"SELECT COUNT(*) FROM users {where_sql} AND COALESCE(is_blocked, 0) = 0 AND last_activity >= (NOW() - INTERVAL '30 days')" if where_sql else "SELECT COUNT(*) FROM users WHERE COALESCE(is_blocked, 0) = 0 AND last_activity >= (NOW() - INTERVAL '30 days')",
-                params
-            )
-            active_users = int((cursor.fetchone() or [0])[0] or 0)
-            
-            # Adminlarni chiqarib tashlash uchun postlarni ham filter qilamiz
-            post_where_parts = []
-            post_params = []
-            if excluded_ids:
-                post_where_parts.append("user_id NOT IN (" + ','.join(['%s'] * len(excluded_ids)) + ")")
-                post_params.extend(excluded_ids)
-            post_where_sql = ("WHERE " + " AND ".join(post_where_parts)) if post_where_parts else ""
-            
-            cursor.execute(f"SELECT COUNT(*) FROM post_info {post_where_sql}", post_params)
-            total_posts = int((cursor.fetchone() or [0])[0] or 0)
-            
-            today = get_now().strftime('%Y-%m-%d')
-            
-            # Bugungi yangi foydalanuvchilar - users jadvalidan (created_at bo'yicha) - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(f"SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})", (today,) + tuple(excluded_ids))
-            else:
-                cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s", (today,))
-            today_users = int(cursor.fetchone()[0] or 0)
-            
-            # Bugungi postlar - post_info jadvalidan - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})", (today,) + tuple(excluded_ids))
-            else:
-                cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (today,))
-            today_posts = int(cursor.fetchone()[0] or 0)
-            
-            # Oxirgi 7 kun - users va post_info jadvalidan hisoblash - adminlarsiz
-            last_7_days = []
-            for i in range(7):
-                day = (get_now() - timedelta(days=i)).strftime('%Y-%m-%d')
-                if excluded_ids:
-                    user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                    cursor.execute(f"SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})", (day,) + tuple(excluded_ids))
-                else:
-                    cursor.execute("SELECT COUNT(*) FROM users WHERE DATE(created_at) = %s", (day,))
-                day_users = int(cursor.fetchone()[0] or 0)
-                if excluded_ids:
-                    user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                    cursor.execute(f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s AND user_id NOT IN ({user_ids_str})", (day,) + tuple(excluded_ids))
-                else:
-                    cursor.execute("SELECT COUNT(*) FROM post_info WHERE DATE(created_at) = %s", (day,))
-                day_posts = int(cursor.fetchone()[0] or 0)
-                last_7_days.append({'date': day, 'users': day_users, 'posts': day_posts})
-            
-            # Get top language (excluding NULL and admins)
-            top_lang = None
-            try:
-                lang_params = list(params)
-                if excluded_ids:
-                    lang_where = "WHERE user_id NOT IN (" + ','.join(['%s'] * len(excluded_ids)) + ") AND language IS NOT NULL"
-                else:
-                    lang_where = "WHERE language IS NOT NULL"
-                cursor.execute(f"SELECT language, COUNT(*) FROM users {lang_where} GROUP BY language ORDER BY COUNT(*) DESC LIMIT 1", lang_params)
-                lang_row = cursor.fetchone()
-                if lang_row:
-                    top_lang = lang_row[0]
-            except Exception:
-                top_lang = None
-            
-            return {
-                'total_users': total_users,
-                'today_users': today_users,
-                'active_users': active_users,
-                'total_posts': total_posts,
-                'today_posts': today_posts,
-                'top_lang': top_lang,
-                'last_7_days': last_7_days
-            }
-        except Exception as e:
-            import logging
-            logging.error(f"get_detailed_user_stats xatolik: {e}")
-            return {
-                'total_users': 0,
-                'today_users': 0,
-                'active_users': 0,
-                'total_posts': 0,
-                'today_posts': 0,
-                'top_lang': None,
-                'last_7_days': []
-            }
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def get_new_users_stats_extended(admin_ids: List[int] = None) -> Dict:
-    """Yangi foydalanuvchilar statistikasi (kunlik, haftalik, oylik) - Toshkent vaqtida"""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            # Database vaqtidan foydalanamiz (Toshkent)
-            cursor.execute("SELECT NOW() AT TIME ZONE 'Asia/Tashkent'")
-            now_row = cursor.fetchone()
-            if now_row:
-                now = now_row[0]
-            else:
-                now = datetime.now()
-            
-            today = now.strftime('%Y-%m-%d')
-            
-            # Hafta boshlanishi (dushanba)
-            week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
-            
-            # Oy boshlanishi
-            month_start = now.replace(day=1).strftime('%Y-%m-%d')
-            
-            excluded_ids = admin_ids or []
-            
-            # Kunlik - bugungi yangi foydalanuvchilar (created_at bo'yicha) - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s AND user_id NOT IN ({user_ids_str})",
-                    (today,) + tuple(excluded_ids)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s",
-                    (today,)
-                )
-            daily = int(cursor.fetchone()[0] or 0)
-            
-            # Haftalik - ushbu haftadagi yangi foydalanuvchilar - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
-                    (week_start,) + tuple(excluded_ids)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
-                    (week_start,)
-                )
-            weekly = int(cursor.fetchone()[0] or 0)
-            
-            # Oylik - ushbu oydagi yangi foydalanuvchilar - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(
-                    f"SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
-                    (month_start,) + tuple(excluded_ids)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM users WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
-                    (month_start,)
-                )
-            monthly = int(cursor.fetchone()[0] or 0)
-            
-            logger.info(f"Statistika (Toshkent): today={today}, daily={daily}, weekly={weekly}, monthly={monthly}")
-            return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
-        except Exception as e:
-            logger.error(f"get_new_users_stats_extended xatolik: {e}")
-            return {'daily': 0, 'weekly': 0, 'monthly': 0}
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def get_posts_stats(admin_ids: List[int] = None) -> Dict:
-    """Postlar statistikasi (jami, kunlik, haftalik, oylik) - Toshkent vaqtida"""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-
-            # Database vaqtidan foydalanamiz (Toshkent)
-            cursor.execute("SELECT NOW() AT TIME ZONE 'Asia/Tashkent'")
-            now_row = cursor.fetchone()
-            if now_row:
-                now = now_row[0]
-            else:
-                now = datetime.now()
-            
-            today = now.strftime('%Y-%m-%d')
-
-            # Hafta boshlanishi (dushanba)
-            week_start = (now - timedelta(days=now.weekday())).strftime('%Y-%m-%d')
-
-            # Oy boshlanishi
-            month_start = now.replace(day=1).strftime('%Y-%m-%d')
-
-            excluded_ids = admin_ids or []
-
-            # Jami postlar - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(f"SELECT COUNT(*) FROM post_info WHERE user_id NOT IN ({user_ids_str})", tuple(excluded_ids))
-            else:
-                cursor.execute("SELECT COUNT(*) FROM post_info")
-            total = int((cursor.fetchone() or [0])[0] or 0)
-
-            # Kunlik - bugungi postlar - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(
-                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s AND user_id NOT IN ({user_ids_str})",
-                    (today,) + tuple(excluded_ids)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') = %s",
-                    (today,)
-                )
-            daily = int(cursor.fetchone()[0] or 0)
-
-            # Haftalik - ushbu haftadagi postlar - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(
-                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
-                    (week_start,) + tuple(excluded_ids)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
-                    (week_start,)
-                )
-            weekly = int(cursor.fetchone()[0] or 0)
-
-            # Oylik - ushbu oydagi postlar - adminlarsiz
-            if excluded_ids:
-                user_ids_str = ','.join(['%s'] * len(excluded_ids))
-                cursor.execute(
-                    f"SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s AND user_id NOT IN ({user_ids_str})",
-                    (month_start,) + tuple(excluded_ids)
-                )
-            else:
-                cursor.execute(
-                    "SELECT COUNT(*) FROM post_info WHERE DATE(created_at AT TIME ZONE 'Asia/Tashkent') >= %s",
-                    (month_start,)
-                )
-            monthly = int(cursor.fetchone()[0] or 0)
-
-            logger.info(f"Post statistika (Toshkent): today={today}, daily={daily}, weekly={weekly}, monthly={monthly}, total={total}")
-            return {'total': total, 'daily': daily, 'weekly': weekly, 'monthly': monthly}
-        except Exception:
-            return {'total': 0, 'daily': 0, 'weekly': 0, 'monthly': 0}
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
+async def log_user_error(user_id: int, error_text: str) -> bool:
+    """Foydalanuvchi xatosini users jadvaliga yozadi."""
     def _sync():
         conn = None
         try:
@@ -2130,81 +1831,6 @@ async def get_language_distribution(admin_ids: List[int] = None) -> Dict:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def get_daily_stats_for_graph(days: int = 30):
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT stat_date, new_users, new_posts FROM bot_stats ORDER BY stat_date DESC LIMIT %s",
-                (days,)
-            )
-            rows = cursor.fetchall()
-            rows.reverse()
-            dates = [str(r[0]) for r in rows]
-            users = [int(r[1] or 0) for r in rows]
-            posts = [int(r[2] or 0) for r in rows]
-            return dates, users, posts
-        except Exception:
-
-            return [], [], []
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-async def get_active_users_by_period(admin_ids: List[int] = None) -> Dict:
-    """Faol foydalanuvchilar statistikasi (kunlik, haftalik, oylik)"""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            now = get_now()
-            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
-            month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-            
-            # Adminlarni filter qilish uchun
-            admin_filter = ""
-            if admin_ids:
-                admin_ids_str = ','.join(str(id) for id in admin_ids)
-                admin_filter = f"AND user_id NOT IN ({admin_ids_str})"
-            
-            # Bugun faol bo'lganlar
-            cursor.execute(f"""
-                SELECT COUNT(DISTINCT user_id) 
-                FROM users 
-                WHERE last_activity >= %s {admin_filter}
-            """, (today_start,))
-            daily = int(cursor.fetchone()[0] or 0)
-            
-            # Shu hafta faol bo'lganlar
-            cursor.execute(f"""
-                SELECT COUNT(DISTINCT user_id) 
-                FROM users 
-                WHERE last_activity >= %s {admin_filter}
-            """, (week_start,))
-            weekly = int(cursor.fetchone()[0] or 0)
-            
-            # Shu oy faol bo'lganlar
-            cursor.execute(f"""
-                SELECT COUNT(DISTINCT user_id) 
-                FROM users 
-                WHERE last_activity >= %s {admin_filter}
-            """, (month_start,))
-            monthly = int(cursor.fetchone()[0] or 0)
-            
-            return {'daily': daily, 'weekly': weekly, 'monthly': monthly}
-        except Exception as e:
-            logger.error(f"get_active_users_by_period xatolik: {e}")
-            return {'daily': 0, 'weekly': 0, 'monthly': 0}
-        finally:
-            if conn: release_connection(conn)
-    
-    return await asyncio.to_thread(_sync)
-
 async def get_total_errors_count() -> int:
     def _sync():
         conn = None
@@ -2221,21 +1847,6 @@ async def get_total_errors_count() -> int:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def get_activity_heatmap_for_last_24h():
-    return {}
-
-async def get_weekly_activity(admin_ids: List[int] = None):
-    return [], []
-
-async def get_daily_hours_activity(admin_ids: List[int] = None):
-    return [], []
-
-async def get_post_formats(admin_ids: List[int] = None) -> Dict:
-    return {}
-
-async def get_button_stats(admin_ids: List[int] = None) -> Dict:
-    return {}
-
 async def init_db():
     """Bazani ishga tushirish uchun kerakli dastlabki ma'lumotlarni qo'shadi."""
     def _sync():
@@ -2244,14 +1855,6 @@ async def init_db():
             conn = get_connection()
             cursor = conn.cursor()
 
-            # users jadvaliga created_at ustunini qo'shish (agar mavjud bo'lmasa)
-            try:
-                cursor.execute("""
-                    ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP;
-                """)
-            except Exception:
-                pass  # Ustun allaqachon mavjud bo'lishi mumkin
-
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS text_buttons (
                     id SERIAL PRIMARY KEY,
@@ -2259,37 +1862,13 @@ async def init_db():
                     button_type TEXT,
                     content_sub TEXT NOT NULL,
                     content_nonsub TEXT NOT NULL,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
                 )
             """)
 
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_text_buttons_post_code 
                 ON text_buttons(post_code)
-            """)
-
-            # Bot statistikasi uchun jadval
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS bot_stats (
-                    stat_date DATE PRIMARY KEY,
-                    new_users INTEGER DEFAULT 0,
-                    new_posts INTEGER DEFAULT 0
-                )
-            """)
-
-            # Post statistikasi (agregatlangan ma'lumotlar)
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS post_stats (
-                    id SERIAL PRIMARY KEY,
-                    post_code TEXT NOT NULL,
-                    channel_id BIGINT NOT NULL,
-                    total_views INTEGER DEFAULT 0,
-                    total_clicks INTEGER DEFAULT 0,
-                    total_shares INTEGER DEFAULT 0,
-                    reactions INTEGER DEFAULT 0,
-                    reactions_data JSONB DEFAULT '{}'::jsonb,
-                    UNIQUE(post_code, channel_id)
-                )
             """)
 
             # Reaksiyalar (individual har bir foydalanuvchi uchun)
@@ -2302,18 +1881,138 @@ async def init_db():
                     reaction_emoji TEXT NOT NULL,
                     post_code TEXT,
                     button_index INTEGER DEFAULT 0,
-                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
                 )
             """)
 
+            # Bot statistikasi (kunlik yangi va faol foydalanuvchilar)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS bot_stats (
+                    id SERIAL PRIMARY KEY,
+                    stat_date DATE NOT NULL UNIQUE,
+                    new_users INTEGER DEFAULT 0,
+                    new_posts INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
+                )
+            """)
+
+            cursor.execute("""
+                CREATE INDEX IF NOT EXISTS idx_bot_stats_date
+                ON bot_stats(stat_date)
+            """)
 
             conn.commit()
         except Exception:
             pass
         finally:
             if conn: release_connection(conn)
-
     await asyncio.to_thread(_sync)
+
+async def record_bot_stat(stat_type: str):
+    """Bot statistikasini yangilaydi (faqat yangi a'zolar)."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            if stat_type == "new":
+                cursor.execute("""
+                    INSERT INTO bot_stats (stat_date, new_users)
+                    VALUES (CURRENT_DATE, 1)
+                    ON CONFLICT (stat_date) DO UPDATE SET
+                        new_users = bot_stats.new_users + 1
+                """)
+            
+            conn.commit()
+        except Exception as e:
+            logger.error(f"record_bot_stat xatolik: {e}")
+        finally:
+            if conn: release_connection(conn)
+    await asyncio.to_thread(_sync)
+
+
+async def get_bot_stats(days: int = 30) -> dict:
+    """Bot statistikasini qaytaradi (oxirgi N kun uchun)."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            from datetime import datetime, timezone, timedelta
+            tashkent_offset = timedelta(hours=5)
+            now_utc = datetime.now(timezone.utc)
+            now_tashkent = now_utc.astimezone(timezone(tashkent_offset))
+            
+            # Bugun boshlanishi
+            today_start = now_tashkent.replace(hour=0, minute=0, second=0, microsecond=0)
+            # Hafta boshlanishi (dushanba)
+            week_start = today_start - timedelta(days=today_start.weekday())
+            # Oy boshlanishi
+            month_start = today_start.replace(day=1)
+            
+            # Bugungi kun uchun stats (faqat yangi a'zolar va postlar)
+            cursor.execute("""
+                SELECT new_users, new_posts FROM bot_stats 
+                WHERE stat_date = CURRENT_DATE
+            """)
+            today_row = cursor.fetchone()
+            new_today = today_row[0] if today_row else 0
+            posts_today = today_row[1] if today_row else 0
+            
+            # Shu hafta uchun stats
+            cursor.execute("""
+                SELECT COALESCE(SUM(new_users), 0), COALESCE(SUM(new_posts), 0) FROM bot_stats 
+                WHERE stat_date >= %s
+            """, (week_start.date(),))
+            week_row = cursor.fetchone()
+            new_week = week_row[0] if week_row else 0
+            posts_week = week_row[1] if week_row else 0
+            
+            # Shu oy uchun stats
+            cursor.execute("""
+                SELECT COALESCE(SUM(new_users), 0), COALESCE(SUM(new_posts), 0) FROM bot_stats 
+                WHERE stat_date >= %s
+            """, (month_start.date(),))
+            month_row = cursor.fetchone()
+            new_month = month_row[0] if month_row else 0
+            posts_month = month_row[1] if month_row else 0
+            
+            # Jami foydalanuvchilar (adminlarni chiqarib tashlaymiz)
+            from xdata_handlers import config
+            if config.ADMIN_IDS:
+                admin_ids_str = ','.join(['%s'] * len(config.ADMIN_IDS))
+                cursor.execute(f"SELECT COUNT(*) FROM users WHERE user_id NOT IN ({admin_ids_str})", config.ADMIN_IDS)
+            else:
+                cursor.execute("SELECT COUNT(*) FROM users")
+            total_users = cursor.fetchone()[0] or 0
+            
+            return {
+                'total_users': total_users,
+                'new_today': new_today,
+                'new_week': new_week,
+                'new_month': new_month,
+                'posts_today': posts_today,
+                'posts_week': posts_week,
+                'posts_month': posts_month,
+                'current_time': now_tashkent
+            }
+        except Exception as e:
+            logger.error(f"get_bot_stats xatolik: {e}")
+            return {
+                'total_users': 0,
+                'new_today': 0,
+                'new_week': 0,
+                'new_month': 0,
+                'posts_today': 0,
+                'posts_week': 0,
+                'posts_month': 0,
+                'current_time': None
+            }
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
 
 
 # ============ AVTO IMZO FUNKSIYALARI (post_settings jadvalida) ============
@@ -2396,158 +2095,6 @@ async def get_user_auto_signature(user_id: int) -> dict:
     return await asyncio.to_thread(_sync)
 
 
-async def get_user_channel_statistics(user_id: int) -> Dict:
-    """Foydalanuvchining kanallaridagi postlar statistikasini oladi (post_stats jadvalidan).
-    Returns: {
-        'channels': [{'channel_id', 'channel_name', 'total_posts', 'total_views', 'total_reactions', 'total_button_clicks', 'total_shares'}],
-        'total_posts': int,
-        'total_views': int,
-        'total_reactions': int,
-        'total_button_clicks': int,
-        'total_shares': int
-    }
-    """
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            # Foydalanuvchi kanallari va ularning post_stats dagi agregatlari
-            cursor.execute("""
-                SELECT 
-                    c.channel_id, 
-                    c.channel_name,
-                    COUNT(ps.id) as total_posts,
-                    COALESCE(SUM(ps.total_views), 0) as total_views,
-                    COALESCE(SUM(ps.reactions), 0) as total_reactions,
-                    COALESCE(SUM(ps.total_clicks), 0) as total_button_clicks,
-                    COALESCE(SUM(ps.total_shares), 0) as total_shares
-                FROM channels c
-                LEFT JOIN post_stats ps ON c.channel_id = ps.channel_id
-                WHERE c.user_id = %s
-                GROUP BY c.channel_id, c.channel_name
-            """, (user_id,))
-            rows = cursor.fetchall()
-            
-            if not rows:
-                return {
-                    'channels': [],
-                    'total_posts': 0,
-                    'total_views': 0,
-                    'total_reactions': 0,
-                    'total_button_clicks': 0,
-                    'total_shares': 0
-                }
-            
-            channel_stats_list = []
-            grand_total_posts = 0
-            grand_total_views = 0
-            grand_total_reactions = 0
-            grand_total_clicks = 0
-            grand_total_shares = 0
-            
-            for row in rows:
-                ch_id, ch_name, posts, views, reacts, clicks, shares = row
-                
-                channel_stats_list.append({
-                    'channel_id': ch_id,
-                    'channel_name': ch_name,
-                    'total_posts': int(posts),
-                    'total_views': int(views),
-                    'total_reactions': int(reacts),
-                    'total_button_clicks': int(clicks),
-                    'total_shares': int(shares)
-                })
-                
-                grand_total_posts += int(posts)
-                grand_total_views += int(views)
-                grand_total_reactions += int(reacts)
-                grand_total_clicks += int(clicks)
-                grand_total_shares += int(shares)
-            
-            # Top 3 reactions yig'ish
-            cursor.execute("""
-                SELECT reaction_emoji, COUNT(*) as cnt
-                FROM reactions r
-                JOIN channels c ON r.chat_id = c.channel_id
-                WHERE c.user_id = %s
-                GROUP BY reaction_emoji
-                ORDER BY cnt DESC
-                LIMIT 3
-            """, (user_id,))
-            top_reacts_rows = cursor.fetchall()
-            top_reactions = []
-            for tr_row in top_reacts_rows:
-                top_reactions.append({'emoji': tr_row[0], 'count': tr_row[1]})
-
-            return {
-                'channels': channel_stats_list,
-                'total_posts': grand_total_posts,
-                'total_views': grand_total_views,
-                'total_reactions': grand_total_reactions,
-                'total_button_clicks': grand_total_clicks,
-                'total_shares': grand_total_shares,
-                'top_reactions': top_reactions
-            }
-        except Exception as e:
-            logger.error(f"get_user_channel_statistics xatolik: {e}")
-            return {
-                'channels': [],
-                'total_posts': 0,
-                'total_views': 0,
-                'total_reactions': 0,
-                'total_button_clicks': 0,
-                'total_shares': 0
-            }
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-
-async def get_database_table_stats() -> Dict[str, int]:
-    """Barcha jadval va ularning qatorlar sonini qaytaradi."""
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            # Jadval ro'yxati va ularning taxalluslari
-            tables = [
-                ('users', 'Foydalanuvchilar'),
-                ('post_info', 'Postlar'),
-                ('channels', 'Kanallar'),
-                ('send_posts', 'Rejalashtirilgan postlar'),
-                ('text_buttons', 'Tugmalar'),
-                ('bot_stats', 'Bot statistikasi'),
-                ('post_stats', 'Post statistikasi'),
-                ('reactions', 'Reaksiyalar'),
-                ('ai_prompts', 'AI promptlar'),
-                ('req_channels', 'Majburiy kanallar'),
-                ('bot_settings', 'Bot sozlamalari'),
-                ('post_settings', 'Post sozlamalari')
-            ]
-            
-            stats = {}
-            for table_name, display_name in tables:
-                try:
-                    cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-                    count = int(cursor.fetchone()[0])
-                    stats[display_name] = count
-                except Exception as e:
-                    logger.error(f"Error counting {table_name}: {e}")
-                    stats[display_name] = 0
-            
-            return stats
-        except Exception as e:
-            logger.error(f"get_database_table_stats xatolik: {e}")
-            return {}
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-
-
 async def toggle_auto_signature(user_id: int) -> bool:
     """Avto imzoni yoqish/o'chirish. Yangi holatni qaytaradi."""
     def _sync():
@@ -2577,7 +2124,7 @@ async def toggle_auto_signature(user_id: int) -> bool:
                 VALUES (%s, %s)
                 ON CONFLICT (user_id) DO UPDATE SET
                     signature = EXCLUDED.signature,
-                    updated_at = NOW();
+                    updated_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent');
             """, (user_id, new_value))
             conn.commit()
             return new_state
@@ -2616,13 +2163,142 @@ async def update_auto_signature_text(user_id: int, text: str) -> bool:
                 VALUES (%s, %s)
                 ON CONFLICT (user_id) DO UPDATE SET
                     signature = EXCLUDED.signature,
-                    updated_at = NOW();
+                    updated_at = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent');
             """, (user_id, new_value))
             conn.commit()
             return True
         except Exception as e:
             logger.error(f"update_auto_signature_text xatolik: {e}")
             return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+# ============ POST STATISTIKASI FUNKSIYALARI ============
+
+async def get_all_user_posts_for_stat(user_id: int) -> List[Dict]:
+    """Foydalanuvchining barcha postlarini statistika uchun oladi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT p.post_code, p.post_name, p.message_id, p.error_message, u.user_id, u.nickname
+                FROM post_info p
+                INNER JOIN users u ON p.user_id = u.user_id
+                WHERE u.user_id NOT IN (%s)
+            """, (','.join(map(str, config.ADMIN_IDS)),))
+            rows = cursor.fetchall()
+            return [
+                {
+                    'post_code': row[0],
+                    'post_name': row[1],
+                    'message_id': row[2],
+                    'error_message': row[3],
+                    'user_id': row[4],
+                    'nickname': row[5]
+                }
+                for row in rows
+            ]
+        except Exception:
+            return []
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_all_posts_from_channel(channel_id: int) -> list:
+    """Kanalning barcha postlarini oladi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                SELECT post_code, sent_at
+                FROM send_posts 
+                WHERE channel_id = %s
+                ORDER BY sent_at DESC
+            """, (channel_id,))
+            
+            rows = cursor.fetchall()
+            return [
+                {
+                    'post_code': row[0],
+                    'sent_at': row[1]
+                }
+                for row in rows
+            ]
+        except Exception as e:
+            logger.error(f"get_all_posts_from_channel xatolik: {e}")
+            return []
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+async def update_post_statistics(post_code: str, views: int = None, forwards: int = None, button_clicks: int = None) -> bool:
+    """Post statistikasini yangilaydi (views, forwards, button_clicks)."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Faqat berilgan qiymatlarni yangilaymiz
+            updates = []
+            params = []
+            
+            if views is not None:
+                updates.append("views = %s")
+                params.append(views)
+            
+            if forwards is not None:
+                updates.append("forward_count = %s")
+                params.append(forwards)
+            
+            if button_clicks is not None:
+                updates.append("button_clicks = %s")
+                params.append(button_clicks)
+            
+            if updates:
+                params.append(post_code)
+                query = f"UPDATE send_posts SET {', '.join(updates)} WHERE post_code = %s"
+                cursor.execute(query, params)
+                conn.commit()
+            
+            return True
+        except Exception as e:
+            logger.error(f"update_post_statistics xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_post_statistics(post_code: str) -> Dict | None:
+    """Post statistikasini oladi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT views, forward_count, button_clicks 
+                FROM send_posts WHERE post_code = %s
+            """, (post_code,))
+            result = cursor.fetchone()
+            if result:
+                return {
+                    'views': result[0] or 0,
+                    'forward_count': result[1] or 0,
+                    'button_clicks': result[2] or 0
+                }
+            return None
+        except Exception:
+            return None
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)

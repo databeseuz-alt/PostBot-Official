@@ -81,7 +81,7 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
     
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
-    logger.info(f"[SEND_HANDLER] _add_channel_to_db: user_id={user_id}, chat_info.id={chat_info.id}, chat_info.title={chat_info.title}")
+    logger.info(f"[SEND_HANDLER] _add_channel_to_db: user_id={user_id}, message.from_user.id={message.from_user.id}, chat_info.id={chat_info.id}, chat_info.title={chat_info.title}")
 
     if chat_info.type != 'channel':
         return await message.answer(get_text('invalid_channel_msg', lang))
@@ -179,11 +179,14 @@ async def start_sending_handler(callback: types.CallbackQuery, callback_data: Po
         await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
         await callback.answer()
         return
+    
+    # Foydalanuvchi ID sini aniqlash - callback dan olish
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
     
-    logger.info(f"[SEND_HANDLER] start_sending_handler: user_id={user_id}, post_code={post_code}")
-
+    logger.info(f"[SEND_HANDLER] start_sending_handler: callback.from_user.id={user_id}, message.from_user.id={callback.message.from_user.id}, post_code={post_code}")
+    logger.info(f"[SEND_HANDLER] Bot info: bot.id={bot.id}")
+    
     await state.set_state(PostSending.choosing_channel_to_send)
     await state.update_data(
         post_code=post_code,
@@ -191,8 +194,9 @@ async def start_sending_handler(callback: types.CallbackQuery, callback_data: Po
         original_post_chat_id=callback.message.chat.id
     )
 
+    logger.info(f"[SEND_HANDLER] About to call get_user_channels for user_id={user_id}")
     user_channels = await get_user_channels(user_id)
-    logger.info(f"[SEND_HANDLER] user_channels: user_id={user_id}, count={len(user_channels)}")
+    logger.info(f"[SEND_HANDLER] get_user_channels returned: user_id={user_id}, count={len(user_channels)}, channels={user_channels}")
 
     if not user_channels:
         await callback.message.answer(

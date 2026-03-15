@@ -43,6 +43,7 @@ def _extract_style_from_text(btn_text: str) -> tuple[str, Optional[str]]:
     Returns (cleaned_text, style) tuple.
     """
     style = None
+    original_text = btn_text
     for emoji_char, estyle in EMOJI_STYLES.items():
         if btn_text.startswith(emoji_char + emoji_char):
             style = estyle
@@ -52,6 +53,9 @@ def _extract_style_from_text(btn_text: str) -> tuple[str, Optional[str]]:
             style = estyle
             btn_text = btn_text[len(emoji_char):].strip()
             break
+    # Agar matn bo'sh qolsa (faqat emoji yuborilgan bo'lsa), asl emoji ni qoldir
+    if not btn_text and style:
+        btn_text = original_text
     return btn_text, style
 
 

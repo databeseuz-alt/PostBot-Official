@@ -159,10 +159,26 @@ async def process_user_search(message: types.Message, state: FSMContext):
         posts_list_str = f"{len(user_posts)} ta [ {', '.join(post_codes)} ]"
 
     join_date = user_data.get('join_date')
-    join_date_str = join_date.strftime('%d.%m.%Y %H:%M') if join_date else "Noma'lum"
+    if join_date:
+        # Vaqtni Toshkentga o'girish
+        from datetime import timezone, timedelta
+        if join_date.tzinfo is None:
+            join_date = join_date.replace(tzinfo=timezone.utc)
+        tashkent_date = join_date.astimezone(timezone(timedelta(hours=5)))
+        join_date_str = tashkent_date.strftime('%d.%m.%Y %H:%M')
+    else:
+        join_date_str = "00.00.0000 00:00"
 
     last_activity = user_data.get('last_activity_date')
-    last_activity_str = last_activity.strftime('%d.%m.%Y %H:%M') if last_activity else "Noma'lum"
+    if last_activity:
+        # Vaqtni Toshkentga o'girish
+        from datetime import timezone, timedelta
+        if last_activity.tzinfo is None:
+            last_activity = last_activity.replace(tzinfo=timezone.utc)
+        tashkent_activity = last_activity.astimezone(timezone(timedelta(hours=5)))
+        last_activity_str = tashkent_activity.strftime('%d.%m.%Y %H:%M')
+    else:
+        last_activity_str = "00.00.0000 00:00"
 
     lang_code = user_data.get('language_code', 'uzl')
     lang_map = {

@@ -95,6 +95,7 @@
     "no_data_error_msg": "<b>❌ Veri bulunamadı</b>\n\nYöneticiler bilgilendirildi, sorun yakında çözülecek, lütfen bekleyin",
     "admin_reply_error_msg": "<b>❌ Mesaj gönderme hatası</b>\n\nKullanıcı botu engellemiş olabilir",
     "save_error": "<b>❌ Kaydetme hatası.</b>\n\nYöneticiler bilgilendirildi, sorun yakında çözülecek, lütfen bekleyin",
+    "cant_generate_code_poll_reaction": "<b>❌ Kod üretimi başarısız!</b>\n\nBu gönderi anket veya tepki düğmeleri içeriyor. Kod satır içi modunda üretilemez.",
     "you_are_blocked_msg": "<b>☹️ Maalesef size hizmet veremiyorum!</b>\n\n<blockquote>🔹 Yönetici tarafından belirli nedenlerle bot kullanımınız engellenmiştir\n\n👨‍🔧 Durumunuz hakkında tam bilgi almak için destek merkezine başvurabilir ve engellenme nedeninizi öğrenebilirsiniz. Gerekirse engel kaldırılabilir</blockquote>",
     "already_voted_msg": "Zaten yanıt verdiniz.",
     "vote_accepted_msg": "Yanıtınız: {reaction}",

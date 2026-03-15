@@ -209,6 +209,12 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
     else:
         await event.answer(disabled_text, parse_mode="HTML")
 
+@start_router.message(LocalizedText('statistic_btn'))
+async def handle_statistics_button(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    """Statistika tugmasi bosilganda statistika sahifasini ko'rsatadi"""
+    from post_handlers.statistic_handler import handle_generate_statistics
+    await handle_generate_statistics(event, state, bot)
+
 @start_router.callback_query(F.data.startswith("lang:"))
 async def set_language_from_start(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     """Yangi foydalanuvchi til tanlaganda ishga tushadi"""

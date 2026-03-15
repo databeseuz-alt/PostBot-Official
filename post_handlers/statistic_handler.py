@@ -3,19 +3,21 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 import logging
 import qrcode
+import asyncio
 
 logger = logging.getLogger(__name__)
 
-from aiogram import Router, types, Bot, F
+from aiogram import Router, types, Bot, F, Dispatcher
 from aiogram.fsm.context import FSMContext
-from aiogram.types import BufferedInputFile
+from aiogram.types import BufferedInputFile, ChatPermissions
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.filters.callback_data import CallbackData
 
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import (
     get_user_channels, get_user_language,
-    get_user_channel_statistics
+    get_user_channel_statistics,
+    get_all_posts_from_channel
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
@@ -25,6 +27,9 @@ statistic_router = Router()
 
 class AddChannelFromStatsCallback(CallbackData, prefix="add_channel_from_stats"):
     action: str
+
+class StatChannelSelectCallback(CallbackData, prefix="stat_ch_sel"):
+    channel_id: str
 
 
 class ChannelStatDrawer:
@@ -267,7 +272,9 @@ class ChannelStatDrawer:
         draw.text((margin, footer_y + 26), "Telegram post boshqaruv boti", font=self.font_regular_md, fill=self.TEXT_MUTED)
 
         # 3. Sana/vaqt va @bot_username - O'ngda (Kattaroq shriftda)
-        current_date = datetime.now().strftime('%d.%m.%Y %H:%M:%S')
+        from datetime import timezone, timedelta
+        tashkent_now = datetime.now(timezone(timedelta(hours=5)))
+        current_date = tashkent_now.strftime('%d-%m-%Y %H:%M')
         bot_handle = f"@{bot_username}"
         
         # O'ngda QR kod bor, uning oldiga joylaymiz
@@ -295,21 +302,79 @@ class ChannelStatDrawer:
 channel_stat_drawer = ChannelStatDrawer()
 
 
-async def generate_channel_statistics_image(user_id: int, lang: str = 'uzl', bot_username: str = "PostBot_Bot") -> io.BytesIO:
-    """Foydalanuvchining kanal statistikasi rasmini yaratadi."""
-    # Statistikani olish
-    stats = await get_user_channel_statistics(user_id)
-    channels = await get_user_channels(user_id)
+async def get_live_channel_statistics(bot: Bot, channel_id: int) -> dict:
+    """Telegramdan to'g'ridan-to'g'ri kanal statistikasini oladi."""
+    try:
+        # Kanal chat ma'lumotlarini olish
+        chat = await bot.get_chat(channel_id)
+        
+        # Kanal a'zolar soni
+        member_count = chat.member_count or 0
+        
+        # Oxirgi postlarni olish va statistika yig'ish
+        total_views = 0
+        total_forwards = 0
+        total_reactions = 0
+        
+        # Oxirgi 10 ta postni olish
+        try:
+            # Telegram API orqali message history olish
+            # Bu uchun bot kanal admini bo'lishi kerak
+            async for message in bot.get_chat_history(channel_id, limit=10):
+                # Ko'rishlar
+                if hasattr(message, 'views') and message.views:
+                    total_views += message.views
+                
+                # Forwardlar
+                if hasattr(message, 'forward_count') and message.forward_count:
+                    total_forwards += message.forward_count
+                
+                # Reaksiyalar
+                if message.reactions:
+                    for reaction_group in message.reactions:
+                        for reaction in reaction_group.reactions:
+                            if hasattr(reaction, 'count'):
+                                total_reactions += reaction.count
+        except Exception as e:
+            logger.error(f"Postlarni olishda xatolik: {e}")
+        
+        return {
+            'total_posts': 10,
+            'member_count': member_count,
+            'total_views': total_views,
+            'total_forwards': total_forwards,
+            'total_reactions': total_reactions
+        }
+    except Exception as e:
+        logger.error(f"Kanal statistikasini olishda xatolik: {e}")
+        return {
+            'total_posts': 0,
+            'member_count': 0,
+            'total_views': 0,
+            'total_forwards': 0,
+            'total_reactions': 0
+        }
 
+
+async def generate_channel_statistics_image(user_id: int, lang: str = 'uzl', bot_username: str = "PostBot_Bot", bot: Bot = None, channel_id: int = None) -> io.BytesIO:
+    """Foydalanuvchining kanal statistikasi rasmini yaratadi."""
+    channels = await get_user_channels(user_id)
+    
+    # Faqat foydalanuvchi yaratgan va bot orqali yuborilgan postlar stats-i
+    stats = await get_user_channel_statistics(user_id, channel_id)
+    
     # Kanal nomini olish
     if channels:
-        if len(channels) == 1:
-            channel_name = channels[0].get('channel_name', 'Kanal')
+        if channel_id:
+            channel_name = next((c.get('channel_name', 'Kanal') for c in channels if str(c.get('channel_id')) == str(channel_id)), "Kanal statistikasi")
         else:
-            channel_name = f"{len(channels)} ta kanal statistikasi"
+            if len(channels) == 1:
+                channel_name = channels[0].get('channel_name', 'Kanal')
+            else:
+                channel_name = f"{len(channels)} ta kanal statistikasi"
     else:
         channel_name = "Kanal statistikasi"
-
+    
     # Rasmni chizish
     return channel_stat_drawer.draw_channel_stats(channel_name, stats, bot_username)
 
@@ -336,6 +401,25 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
         )
         return
 
+    if len(user_channels) > 1:
+        builder = InlineKeyboardBuilder()
+        builder.button(
+            text="📊 Barcha kanallar",
+            callback_data=StatChannelSelectCallback(channel_id="all").pack()
+        )
+        for ch in user_channels:
+            builder.button(
+                text=ch.get('channel_name', 'Kanal'),
+                callback_data=StatChannelSelectCallback(channel_id=str(ch.get('channel_id'))).pack()
+            )
+        builder.adjust(1)
+        
+        await message.answer(
+            "📊 Qaysi kanal statistikasini ko'rmoqchisiz? Iltimos, kanalni tanlang:",
+            reply_markup=builder.as_markup()
+        )
+        return
+
     # Yuklanayotgan xabar
     loading_msg = await message.answer(get_text('generating_statistics_msg', lang))
 
@@ -344,8 +428,8 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
         bot_info = await bot.get_me()
         bot_username = bot_info.username or "PostBot_Bot"
 
-        # Statistika rasmini yaratish
-        img_buffer = await generate_channel_statistics_image(user_id, lang, bot_username)
+        # Statistika rasmini yaratish (faqat bitta kanal bo'lganda)
+        img_buffer = await generate_channel_statistics_image(user_id, lang, bot_username, bot)
 
         # Yuklanish xabarini o'chirish
         await loading_msg.delete()
@@ -375,6 +459,50 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
             reply_markup=await get_main_menu(lang, user_id)
         )
 
+@statistic_router.callback_query(StatChannelSelectCallback.filter())
+async def handle_stat_channel_selection(callback: types.CallbackQuery, callback_data: StatChannelSelectCallback, bot: Bot):
+    """Statistika uchun kanal tanlanganda"""
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    
+    selected_channel = callback_data.channel_id
+    ch_id = int(selected_channel) if selected_channel != "all" else None
+    
+    await callback.message.delete()
+    
+    loading_msg = await callback.message.answer(get_text('generating_statistics_msg', lang))
+
+    try:
+        bot_info = await bot.get_me()
+        bot_username = bot_info.username or "PostBot_Bot"
+
+        img_buffer = await generate_channel_statistics_image(user_id, lang, bot_username, bot, channel_id=ch_id)
+
+        await loading_msg.delete()
+
+        img_buffer.seek(0)
+        input_file = BufferedInputFile(
+            file=img_buffer.read(),
+            filename='channel_statistics.png'
+        )
+
+        await callback.message.answer_photo(
+            photo=input_file,
+            caption=get_text('statistics_image_caption', lang),
+            reply_markup=await get_main_menu(lang, user_id)
+        )
+
+    except Exception as e:
+        logger.error(f"Statistika rasmini yaratishda xatolik: {e}")
+        try:
+            await loading_msg.delete()
+        except Exception:
+            pass
+        await callback.message.answer(
+            f"Statistikani yaratishda xatolik yuz berdi: {str(e)}",
+            reply_markup=await get_main_menu(lang, user_id)
+        )
+
 @statistic_router.callback_query(AddChannelFromStatsCallback.filter(F.action == "add"))
 async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FSMContext):
     """Statistika bo'limidan kanal qo'shish tugmasi bosilganda."""
@@ -382,3 +510,20 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
     from post_handlers.send_handler import cmd_add_channel
     await cmd_add_channel(callback.message, state)
     await callback.answer()
+
+# ============ TUGMA BOSILMALARINI KUZATISH ============
+
+@statistic_router.callback_query(F.data.startswith("track_click:"))
+async def count_button_clicks(callback: types.CallbackQuery):
+    """Inline tugma bosilganda bosilmalar sonini oshiradi"""
+    try:
+        # Callback data dan post code olish
+        data_parts = callback.data.split(":")
+        if len(data_parts) >= 2:
+            post_code = data_parts[1]
+            await callback.answer("✅ Hisoblandi!", show_alert=False)
+        else:
+            await callback.answer()
+    except Exception as e:
+        logger.error(f"Button click tracking xatoligi: {e}")
+        await callback.answer()

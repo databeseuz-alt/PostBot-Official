@@ -22,9 +22,18 @@ from user_handlers.xinline_keyboard import (
     get_feedback_reply_to_admin_keyboard
 )
 from post_handlers.xreply_keyboard import get_main_menu, get_cancel_kb
-from xdata_handlers.translator import get_text
+from xdata_handlers.translator import get_text, get_all_translations
 
 feedback_router = Router()
+
+def is_cancel(message: types.Message) -> bool:
+    if not message.text:
+        return False
+    return message.text in get_all_translations('cancel_btn')
+
+def is_not_cancel(message: types.Message) -> bool:
+    return not is_cancel(message)
+
 
 @feedback_router.message(Command("feedback"), ~IsAdmin())
 async def cmd_feedback_user(message: types.Message, state: FSMContext):
@@ -52,10 +61,22 @@ async def cmd_feedback_admin(message: types.Message):
     await message.answer("Bu buyruq faqat oddiy foydalanuvchilar uchun mo'ljallangan.")
 
 @feedback_router.message(
+    StateFilter(FeedbackState.waiting_for_feedback, FeedbackState.chatting_with_admin),
+    is_cancel
+)
+async def cancel_feedback_process(message: types.Message, state: FSMContext):
+    lang = await get_user_language(message.from_user.id)
+    await state.clear()
+    await message.answer(
+        get_text('admin_reply_cancel_msg', lang),
+        reply_markup=await get_main_menu(lang, message.from_user.id)
+    )
+
+@feedback_router.message(
     StateFilter(FeedbackState.waiting_for_feedback),
     F.content_type.in_({'text', 'photo', 'video', 'document', 'audio', 'voice'}),
     ~F.text.startswith('/'),
-    ~F.text.in_({get_text('cancel_btn', 'uz'), get_text('cancel_btn', 'ru'), get_text('cancel_btn', 'en')}),
+    is_not_cancel,
     ~IsAdmin()
 )
 async def process_first_feedback(message: types.Message, state: FSMContext, bot: Bot):
@@ -154,7 +175,7 @@ async def reply_from_user_handler(callback: types.CallbackQuery, state: FSMConte
 @feedback_router.message(
     StateFilter(FeedbackState.chatting_with_admin),
     ~F.text.startswith('/'),
-    ~F.text.in_({get_text('cancel_btn', 'uz'), get_text('cancel_btn', 'ru'), get_text('cancel_btn', 'en')}),
+    is_not_cancel,
     ~IsAdmin()
 )
 async def send_message_from_user(message: types.Message, state: FSMContext, bot: Bot):
@@ -192,14 +213,4 @@ async def send_message_from_user(message: types.Message, state: FSMContext, bot:
     finally:
         await state.clear()
 
-@feedback_router.message(
-    StateFilter(FeedbackState.waiting_for_feedback, FeedbackState.chatting_with_admin),
-    F.text.in_({get_text('cancel_btn', 'uz'), get_text('cancel_btn', 'ru'), get_text('cancel_btn', 'en')})
-)
-async def cancel_feedback_process(message: types.Message, state: FSMContext):
-    lang = await get_user_language(message.from_user.id)
-    await state.clear()
-    await message.answer(
-        get_text('admin_reply_cancel_msg', lang),
-        reply_markup=await get_main_menu(lang, message.from_user.id)
-    )
+
