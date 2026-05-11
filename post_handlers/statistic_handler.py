@@ -512,21 +512,6 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
     await cmd_add_channel(callback.message, state)
     await callback.answer()
 
-# ============ TUGMA BOSILMALARINI KUZATISH ============
 
-@statistic_router.callback_query(F.data.startswith("track_click:"))
-async def count_button_clicks(callback: types.CallbackQuery):
-    """Inline tugma bosilganda bosilmalar sonini oshiradi"""
-    try:
-        # Callback data dan post code olish
-        data_parts = callback.data.split(":")
-        if len(data_parts) >= 2:
-            post_code = data_parts[1]
-            # Baza orqali clickni qayd etish
-            await track_button_click(post_code)
-            await callback.answer("✅ Hisoblandi!", show_alert=False)
-        else:
-            await callback.answer()
-    except Exception as e:
-        logger.error(f"Button click tracking xatoligi: {e}")
-        await callback.answer()
+# Button click tracking is now handled in button_handler.py to support text_btn and reaction logic.
+
