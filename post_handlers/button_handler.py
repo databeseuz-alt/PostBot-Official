@@ -146,87 +146,19 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
             sent_message = await message.bot.send_animation(chat_id, file_id, caption=caption, **media_kwargs)
         elif content_type == 'sticker':
             sent_message = await message.bot.send_sticker(chat_id, file_id, reply_markup=new_keyboard)
-        elif content_type == 'poll':
-            question = post_data.get('question') or post_data.get('poll_question', '')
-            options = post_data.get('options') or post_data.get('poll_options', [])
-            poll_type = post_data.get('type') or ('quiz' if post_data.get('poll_is_quiz') else 'regular')
-            is_anonymous = post_data.get('is_anonymous') if 'is_anonymous' in post_data else post_data.get('poll_is_anonymous', True)
-            allows_multiple_answers = post_data.get('allows_multiple_answers') if 'allows_multiple_answers' in post_data else post_data.get('poll_allows_multiple_answers', False)
-            correct_option_id = post_data.get('correct_option_id') or post_data.get('poll_correct_option_id')
-            explanation = post_data.get('explanation') or post_data.get('poll_explanation')
-            
-            logger.debug(f"Poll qayta yuborish: chat_id={chat_id}, question={question}, message_id={message_id}")
-            
-            try:
-                new_poll = await message.bot.send_poll(
-                    chat_id=chat_id,
-                    question=question,
-                    options=options,
-                    is_anonymous=is_anonymous,
-                    type=poll_type,
-                    allows_multiple_answers=allows_multiple_answers,
-                    correct_option_id=correct_option_id,
-                    explanation=explanation,
-                    open_period=post_data.get('open_period'),
-                    close_date=post_data.get('close_date'),
-                    is_closed=post_data.get('is_closed', False),
-                    reply_markup=new_keyboard
-                )
-                logger.debug(f"Yangi poll yuborildi: message_id={new_poll.message_id}")
-                # yangi ma'lumotlarni saqlash
-                post_data['message_id'] = new_poll.message_id
-                post_data['chat_id'] = new_poll.chat.id
-                await state.update_data(post_data=post_data)
-                # Settings keyboard yuborish - faqat return qilamiz, btn_added_msg avval yuborilgan
-                return
-            except Exception as e:
-                logger.error(f"Poll qayta yuborishda xatolik: {e}")
-                from xdata_handlers.database import log_user_error
-                user_id = message.from_user.id if message.from_user else post_data.get('user_id')
-                await log_user_error(user_id, f"Poll qayta yuborishda xatolik: {str(e)}")
-                return
-        elif content_type in ['dice', 'location']:
-            if content_type == 'dice':
-                # Handle correct_option_id - must be integer for quizzes, can be list for regular polls
-                # Support both 'poll_*' and standard keys from post_handler.py
-                correct_option_id = post_data.get('correct_option_id') or post_data.get('poll_correct_option_id')
-                poll_is_quiz = post_data.get('poll_is_quiz', False)
-                poll_type = 'quiz' if poll_is_quiz else 'regular'
-                
-                # For quizzes, correct_option_id must be an integer
-                if poll_is_quiz and correct_option_id is not None and isinstance(correct_option_id, list):
-                    correct_option_id = correct_option_id[0] if correct_option_id else None
-                
-                question = post_data.get('question') or post_data.get('poll_question', '')
-                options = post_data.get('options') or post_data.get('poll_options', [])
-                is_anonymous = post_data.get('is_anonymous') if 'is_anonymous' in post_data else post_data.get('poll_is_anonymous', True)
-                allows_multiple_answers = post_data.get('allows_multiple_answers') if 'allows_multiple_answers' in post_data else post_data.get('poll_allows_multiple_answers', False)
-                explanation = post_data.get('explanation') or post_data.get('poll_explanation')
-                
-                sent_message = await message.bot.send_poll(
-                    chat_id,
-                    question=question,
-                    options=options,
-                    is_anonymous=is_anonymous,
-                    allows_multiple_answers=allows_multiple_answers,
-                    correct_option_id=correct_option_id,
-                    type=poll_type,
-                    explanation=explanation,
-                    reply_markup=new_keyboard
-                )
-            elif content_type == 'dice':
-                sent_message = await message.bot.send_dice(
-                    chat_id,
-                    emoji=post_data.get('dice_emoji', '🎲'),
-                    reply_markup=new_keyboard
-                )
-            elif content_type == 'location':
-                sent_message = await message.bot.send_location(
-                    chat_id,
-                    latitude=post_data.get('latitude'),
-                    longitude=post_data.get('longitude'),
-                    reply_markup=new_keyboard
-                )
+        elif content_type == 'dice':
+            sent_message = await message.bot.send_dice(
+                chat_id,
+                emoji=post_data.get('dice_emoji', '🎲'),
+                reply_markup=new_keyboard
+            )
+        elif content_type == 'location':
+            sent_message = await message.bot.send_location(
+                chat_id,
+                latitude=post_data.get('latitude'),
+                longitude=post_data.get('longitude'),
+                reply_markup=new_keyboard
+            )
         elif content_type == 'paid_media':
             from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
             media_types = post_data.get('paid_media_types', [])
@@ -251,8 +183,8 @@ async def redraw_post(message: types.Message, state: FSMContext, answer_text: st
         if sent_message:
             post_data['message_id'] = sent_message.message_id
             await state.update_data(post_data=post_data)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"redraw_post xatolik: content_type={content_type}, error={e}")
 
 @button_router.callback_query(PostCreation.configuring_post, F.data.startswith("add:"))
 async def start_add_button(callback: types.CallbackQuery, state: FSMContext):

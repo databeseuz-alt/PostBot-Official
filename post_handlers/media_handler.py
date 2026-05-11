@@ -513,8 +513,8 @@ async def send_new_post_with_settings(message: types.Message, state: FSMContext,
             post_data['chat_id'] = sent_message.chat.id
             await state.update_data(post_data=post_data)
 
-    except Exception:
-        pass
+    except Exception as e:
+        logger.error(f"send_new_post_with_settings xatolik: content_type={content_type}, error={e}")
 
 
 @media_router.callback_query(PostCreation.waiting_for_media_settings, F.data == "media_set_price")

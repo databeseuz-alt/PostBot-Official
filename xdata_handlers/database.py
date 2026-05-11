@@ -1170,6 +1170,20 @@ async def update_post_in_db(post_code: str, post_data: dict, buttons_matrix: lis
 
 async def update_post_message_id(post_code: str, message_id: int) -> bool:
     """Post message_id sini yangilaydi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("UPDATE post_info SET message_id = %s WHERE post_code = %s", (message_id, post_code))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"update_post_message_id xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
 
 async def get_post_code_from_chat_message(chat_id: int, message_id: int) -> tuple:
     """Chat va message ID dan post_code va channel_id ni oladi."""
@@ -1187,20 +1201,6 @@ async def get_post_code_from_chat_message(chat_id: int, message_id: int) -> tupl
         except Exception as e:
             logger.error(f"get_post_code_from_chat_message xatolik: {e}")
             return (None, None)
-        finally:
-            if conn: release_connection(conn)
-    return await asyncio.to_thread(_sync)
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            cursor.execute("UPDATE post_info SET message_id = %s WHERE post_code = %s", (message_id, post_code))
-            conn.commit()
-            return True
-        except Exception:
-
-            return False
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
@@ -1807,14 +1807,14 @@ async def get_prompt_by_id(prompt_id: int, user_id: int) -> Dict | None:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def log_user_error(user_id: int, error_text: str) -> bool:
-    """Foydalanuvchi xatosini users jadvaliga yozadi."""
+async def get_language_stats(excluded_admin_ids: List[int] = None) -> dict:
+    """Foydalanuvchilarning til statistikasini qaytaradi."""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            excluded_ids = admin_ids or []
+            excluded_ids = excluded_admin_ids or []
             params: List[Any] = []
             where_parts = ["language IS NOT NULL"]
             if excluded_ids:
@@ -1824,8 +1824,8 @@ async def log_user_error(user_id: int, error_text: str) -> bool:
             cursor.execute(f"SELECT language, COUNT(*) FROM users {where_sql} GROUP BY language", params)
             rows = cursor.fetchall()
             return {row[0]: int(row[1]) for row in rows}
-        except Exception:
-
+        except Exception as e:
+            logger.error(f"get_language_stats xatolik: {e}")
             return {}
         finally:
             if conn: release_connection(conn)
@@ -2184,12 +2184,13 @@ async def get_all_user_posts_for_stat(user_id: int) -> List[Dict]:
         try:
             conn = get_connection()
             cursor = conn.cursor()
-            cursor.execute("""
+            admin_ids_placeholders = ','.join(['%s'] * len(config.ADMIN_IDS))
+            cursor.execute(f"""
                 SELECT p.post_code, p.post_name, p.message_id, p.error_message, u.user_id, u.nickname
                 FROM post_info p
                 INNER JOIN users u ON p.user_id = u.user_id
-                WHERE u.user_id NOT IN (%s)
-            """, (','.join(map(str, config.ADMIN_IDS)),))
+                WHERE u.user_id NOT IN ({admin_ids_placeholders})
+            """, list(config.ADMIN_IDS))
             rows = cursor.fetchall()
             return [
                 {
