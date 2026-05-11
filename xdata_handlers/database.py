@@ -2361,3 +2361,103 @@ async def track_button_click(post_code: str, channel_id: int = 0) -> bool:
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
+
+async def get_post_code_from_chat_message(chat_id: int, message_id: int) -> tuple[str | None, int | None]:
+    """Chat va xabar IDsi orqali post kodi va kanal IDisini topadi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT post_code, channel_id FROM send_posts 
+                WHERE (channel_id = %s AND message_id = %s)
+                OR (user_id = %s AND message_id = %s)
+                ORDER BY created_at DESC LIMIT 1
+            """, (chat_id, message_id, chat_id, message_id))
+            result = cursor.fetchone()
+            if result:
+                return result[0], result[1]
+            return None, None
+        except Exception:
+            return None, None
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+async def add_or_update_reaction_by_chat_message(chat_id: int, message_id: int, user_id: int, reaction_emoji: str) -> bool:
+    """Reaksiyani qo'shadi yoki yangilaydi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Post kodini topish
+            cursor.execute("""
+                SELECT post_code FROM send_posts 
+                WHERE (channel_id = %s AND message_id = %s)
+                OR (user_id = %s AND message_id = %s)
+                LIMIT 1
+            """, (chat_id, message_id, chat_id, message_id))
+            row = cursor.fetchone()
+            if not row:
+                return False
+            
+            post_code = row[0]
+            
+            # Avvalgi reaksiyani tekshirish
+            cursor.execute("""
+                SELECT reaction_emoji FROM reactions 
+                WHERE post_code = %s AND user_id = %s AND chat_id = %s AND message_id = %s
+            """, (post_code, user_id, chat_id, message_id))
+            prev_row = cursor.fetchone()
+            
+            if prev_row:
+                if prev_row[0] == reaction_emoji:
+                    # Agar bir xil reaksiya bo'lsa, o'chirish (toggle)
+                    cursor.execute("""
+                        DELETE FROM reactions 
+                        WHERE post_code = %s AND user_id = %s AND chat_id = %s AND message_id = %s
+                    """, (post_code, user_id, chat_id, message_id))
+                else:
+                    # Agar boshqa reaksiya bo'lsa, yangilash
+                    cursor.execute("""
+                        UPDATE reactions SET reaction_emoji = %s 
+                        WHERE post_code = %s AND user_id = %s AND chat_id = %s AND message_id = %s
+                    """, (reaction_emoji, post_code, user_id, chat_id, message_id))
+            else:
+                # Yangi reaksiya qo'shish
+                cursor.execute("""
+                    INSERT INTO reactions (post_code, user_id, chat_id, message_id, reaction_emoji, button_index)
+                    VALUES (%s, %s, %s, %s, %s, 0)
+                """, (post_code, user_id, chat_id, message_id, reaction_emoji))
+            
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error in add_or_update_reaction: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reaction_emoji: str) -> int:
+    """Xabar uchun ma'lum bir reaksiya sonini qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT COUNT(*) FROM reactions r
+                JOIN send_posts sp ON r.post_code = sp.post_code
+                WHERE (sp.channel_id = %s AND sp.message_id = %s AND r.reaction_emoji = %s)
+                OR (sp.user_id = %s AND sp.message_id = %s AND r.reaction_emoji = %s)
+            """, (chat_id, message_id, reaction_emoji, chat_id, message_id, reaction_emoji))
+            return cursor.fetchone()[0] or 0
+        except Exception:
+            return 0
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)

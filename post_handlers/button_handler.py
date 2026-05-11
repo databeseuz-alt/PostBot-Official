@@ -11,7 +11,11 @@ from post_handlers.post_handler import PostCreation
 from post_handlers.xreply_keyboard import get_post_settings_kb, get_button_creation_cancel_kb, get_reactions_selection_kb
 from post_handlers.xinline_keyboard import generate_post_keyboard, get_button_type_reply_kb, ButtonTypeCallbackFactory
 from admin_handlers.channel_handler import check_user_membership
-from xdata_handlers.database import get_user_language, get_text_button_content
+from xdata_handlers.database import (
+    get_user_language, get_text_button_content, track_button_click,
+    get_post_code_from_chat_message, add_or_update_reaction_by_chat_message,
+    get_reaction_count_by_chat_message
+)
 from xdata_handlers.translator import get_text
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
@@ -537,11 +541,17 @@ async def process_editing_button_text(message: types.Message, state: FSMContext)
         await state.set_state(PostCreation.waiting_for_button_url)
         await message.answer(get_text('ask_edit_btn_url_msg', lang), reply_markup=get_button_creation_cancel_kb(lang))
 
-@button_router.callback_query(F.data.startswith("text_btn:"))
+@button_router.callback_query(F.data.contains("text_btn:"))
 async def handle_text_button_click(callback: types.CallbackQuery, bot: Bot):
     try:
         parts = callback.data.split(":")
-        btn_id = int(parts[1]) if len(parts) > 1 else None
+        # Formatlar: "text_btn:ID" yoki "track_click:CODE:text_btn:ID"
+        if parts[0] == "track_click":
+            post_code = parts[1]
+            btn_id = int(parts[3])
+            await track_button_click(post_code)
+        else:
+            btn_id = int(parts[1])
     except (ValueError, IndexError):
         lang = await get_user_language(callback.from_user.id)
         await callback.answer(get_text('btn_id_error_msg', lang), show_alert=True)
@@ -775,12 +785,18 @@ async def process_reaction_color(callback: types.CallbackQuery, state: FSMContex
     await callback.answer()
     await redraw_post(callback.message, state, get_text("btn_added_msg", lang))
 
-@button_router.callback_query(F.data.startswith("reaction:"))
-async def handle_reaction_click(callback: types.CallbackQuery):
+@button_router.callback_query(F.data.contains("reaction:"))
+async def handle_reaction_click(callback: types.CallbackQuery, bot: Bot):
     try:
         parts = callback.data.split(":")
-        reaction = parts[1] if len(parts) > 1 else ""
-    except IndexError:
+        # Formatlar: "reaction:EMOJI" yoki "track_click:CODE:reaction:EMOJI"
+        if parts[0] == "track_click":
+            post_code = parts[1]
+            reaction = parts[3]
+            await track_button_click(post_code)
+        else:
+            reaction = parts[1]
+    except (IndexError, ValueError):
         await callback.answer()
         return
 
@@ -793,10 +809,55 @@ async def handle_reaction_click(callback: types.CallbackQuery):
     message_id = callback.message.message_id
     
     # Reaksiya bosilganda tugma bosilishlarini hisoblash
-    from xdata_handlers.database import get_post_code_from_chat_message
+    # Post kodini topishga urinish
     post_code, channel_id = await get_post_code_from_chat_message(chat_id, message_id)
     
-    from xdata_handlers.database import add_or_update_reaction_by_chat_message, get_user_language, get_reaction_count_by_chat_message
+    # Agar callback data da post_code bo'lsa (inline), shuni ishlatamiz
+    if callback.data.startswith("track_click:"):
+        post_code = callback.data.split(":")[1]
+
+    # Reaksiyani bazada yangilash
+    success = await add_or_update_reaction_by_chat_message(chat_id, message_id, user_id, reaction)
+    
+    if not success:
+        await callback.answer("Reaksiya saqlanmadi", show_alert=True)
+        return
+
+    # Yangi klaviaturani hisoblash
+    data = await callback.message.edit_reply_markup()
+    if not data or not data.inline_keyboard:
+        await callback.answer()
+        return
+
+    new_rows = []
+    for row in data.inline_keyboard:
+        new_row = []
+        for btn in row:
+            if btn.callback_data and ("reaction:" in btn.callback_data):
+                btn_parts = btn.callback_data.split(":")
+                btn_reaction = btn_parts[-1]
+                count = await get_reaction_count_by_chat_message(chat_id, message_id, btn_reaction)
+                
+                # Matnni tozalash (emoji + raqam)
+                # btn.text odatda "👍 5" ko'rinishida
+                btn_text_parts = btn.text.split(" ")
+                emoji_only = btn_text_parts[0]
+                new_row.append(types.InlineKeyboardButton(
+                    text=f"{emoji_only} {count}",
+                    callback_data=btn.callback_data
+                ))
+            else:
+                new_row.append(btn)
+        new_rows.append(new_row)
+
+    try:
+        await callback.message.edit_reply_markup(
+            reply_markup=types.InlineKeyboardMarkup(inline_keyboard=new_rows)
+        )
+    except Exception:
+        pass
+    
+    await callback.answer()
 
     lang = await get_user_language(user_id)
 

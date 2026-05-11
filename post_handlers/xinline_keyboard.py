@@ -152,7 +152,7 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
 
     return builder.as_markup()
 
-def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] = None):
+def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]] = None, post_code: str = 'none'):
     """Inline rejim uchun yakuniy klaviatura (tahrirlash tugmalarisiz)"""
     builder = InlineKeyboardBuilder()
     if not buttons_matrix:
@@ -168,11 +168,11 @@ def generate_final_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]]]
 
                 if btn.get('type') == 'text_btn':
                     db_id = btn.get('db_id', '0')
-                    kwargs['callback_data'] = f"text_btn:{db_id}"
+                    kwargs['callback_data'] = f"track_click:{post_code}:text_btn:{db_id}"
                 elif btn.get('type') == 'reaction':
                     kwargs['text'] = f"{btn_text} 0"
                     reaction_text = btn.get('text', '👍')
-                    kwargs['callback_data'] = f"reaction:{reaction_text}"
+                    kwargs['callback_data'] = f"track_click:{post_code}:reaction:{reaction_text}"
                 else:
                     kwargs['url'] = btn.get('url', 'https://t.me')
 

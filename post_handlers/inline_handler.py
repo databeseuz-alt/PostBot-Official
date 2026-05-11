@@ -76,7 +76,7 @@ async def inline_query_handler(query: types.InlineQuery, bot: Bot):
             })
             return await bot.answer_inline_query(inline_query_id=query.id, results=results, cache_time=0, is_personal=True)
 
-        keyboard_markup = generate_final_keyboard(buttons_matrix)
+        keyboard_markup = generate_final_keyboard(buttons_matrix, post_code)
         keyboard_dict = get_keyboard_as_dict(keyboard_markup)
 
         content_type = content.get('content_type')
