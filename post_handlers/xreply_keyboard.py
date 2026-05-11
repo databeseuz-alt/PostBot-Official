@@ -21,7 +21,7 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     builder.add(KeyboardButton(text=get_text('get_buttons_btn', lang)))  # Tugma
     builder.add(KeyboardButton(text=get_text('edit_content_btn', lang)))  # Tahrirlash
 
-    # 2-qator: auto_signature, media, watermark
+    # 2-qator: auto_signature, media, watermark, aqlli sozlamalar
     row2_buttons = 0
     
     # auto_signature - text, photo, video, document, audio, voice (agar caption mavjud)
@@ -39,6 +39,9 @@ def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str
     if content_type == 'photo':
         builder.add(KeyboardButton(text=get_text('watermark_btn', lang)))
         row2_buttons += 1
+        
+    builder.add(KeyboardButton(text="⚙️ Aqlli sozlamalar"))
+    row2_buttons += 1
     
     # 3-qator: bekor qilish va tayyor (2 ta)
     builder.add(KeyboardButton(text=get_text('cancel_btn', lang)))

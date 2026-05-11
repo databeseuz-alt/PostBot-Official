@@ -1905,9 +1905,74 @@ async def init_db():
                 ON bot_stats(stat_date)
             """)
 
+            # --- YANGI FUNKSIYALAR UCHUN JADVALLAR ---
+            
+            # Loyihalar (Projects)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS projects (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    name TEXT NOT NULL,
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
+                )
+            """)
+
+            # Tahrirchilar (Editors)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS project_editors (
+                    id SERIAL PRIMARY KEY,
+                    project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
+                    user_id BIGINT NOT NULL,
+                    permissions JSONB DEFAULT '{"can_post": true, "can_edit": false}',
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
+                )
+            """)
+
+            # Shablonlar (Templates)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS post_templates (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    name TEXT NOT NULL,
+                    signature TEXT,
+                    buttons JSONB,
+                    watermark_settings JSONB,
+                    delete_timer INTEGER,
+                    pin_timer INTEGER,
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
+                )
+            """)
+
+            # Avto-takrorlash (Recurring Posts)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS recurring_posts (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    post_code TEXT NOT NULL,
+                    schedule_type TEXT, -- 'interval' or 'specific_times'
+                    interval_str TEXT,  -- e.g. '90m', '3h', '7d'
+                    times JSONB,        -- e.g. '["09:00", "12:30", "16:00"]'
+                    end_date TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
+                )
+            """)
+
+            # Jadval uyalari (Schedule Slots)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS schedule_slots (
+                    id SERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    channel_id BIGINT NOT NULL,
+                    time_slot TIME NOT NULL,
+                    slot_type TEXT DEFAULT 'regular', -- 'regular', 'sponsored'
+                    created_at TIMESTAMP DEFAULT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tashkent')
+                )
+            """)
+
             conn.commit()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"init_db xatolik: {e}")
         finally:
             if conn: release_connection(conn)
     await asyncio.to_thread(_sync)
