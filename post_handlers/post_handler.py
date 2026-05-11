@@ -340,13 +340,9 @@ def get_html_text(text: str, entities: list) -> str:
                 continue
 
             elif entity_type == "custom_emoji":
-                emoji_id = getattr(entity, 'custom_emoji_id', '')
-                if emoji_id:
-                    # Emoji ID ni to'g'ri formatlash
-                    tag_start, tag_end = f'<tg-emoji emoji-id="{emoji_id}">', "</tg-emoji>"
-                else:
-                    # Agar emoji_id bo'lmasa, oddiy emoji sifatida qoldirish
-                    tag_start, tag_end = "", ""
+                # Premium emojilarni shunchaki oddiy emoji sifatida qoldiramiz
+                # Shunday qilib o'rtada xato yozuvlar chiqib qolmaydi
+                tag_start, tag_end = "", ""
 
             elif entity_type == "blockquote":
                 tag_start, tag_end = "<blockquote>", "</blockquote>"

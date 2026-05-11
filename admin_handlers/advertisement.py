@@ -241,8 +241,8 @@ async def ad_delete_button(message: types.Message, state: FSMContext, bot: Bot):
     await state.set_state(AdminStates.configuring_ad_post)
     await redraw_ad_post(bot, message.chat.id, state, "Tugma o'chirildi.")
 
-@ad_router.message(AdminStates.configuring_ad_post, F.text.in_({"👁️ Ko'rish", "🔢 Tugmalar", "✏️ Postni tahrirlash"}), IsAdmin())
-async def ad_settings_handler(message: types.Message, state: FSMContext):
+@ad_router.message(AdminStates.configuring_ad_post, F.text.in_({"👁️ Ko'rish", "🔢 Tugmalar", "✏️ Postni tahrirlash", "📊 So'rovnoma (Ha/Yo'q)"}), IsAdmin())
+async def ad_settings_handler(message: types.Message, state: FSMContext, bot: Bot):
     data = await state.get_data()
     text = message.text
     post_data = data.get("ad_post_data", {})
@@ -273,6 +273,26 @@ async def ad_settings_handler(message: types.Message, state: FSMContext):
                     response_text += f"{count}. {btn_text} = {btn_url}\n"
                     count += 1
         await message.answer(response_text if count > 1 else "Siz hali tugma qo'shmadingiz.")
+
+    elif text == "📊 So'rovnoma (Ha/Yo'q)":
+        new_row = [
+            {'text': '✅ Ha', 'type': 'ad_poll', 'action': 'yes'},
+            {'text': "❌ Yo'q", 'type': 'ad_poll', 'action': 'no'}
+        ]
+        
+        clean_matrix = [list(filter(None, row)) for row in buttons_matrix]
+        clean_matrix = [row for row in clean_matrix if row]
+        final_matrix = []
+        for row in clean_matrix:
+            cleaned_row = [btn for btn in row if not btn.get('is_placeholder')]
+            if cleaned_row:
+                final_matrix.append(cleaned_row)
+        
+        final_matrix.append(new_row)
+        final_matrix.append([{'is_placeholder': True}])
+        
+        await state.update_data(ad_buttons_matrix=final_matrix)
+        await redraw_ad_post(bot, message.chat.id, state, "📊 So'rovnoma tugmalari (Ha/Yo'q) qo'shildi!")
 
     elif text == "✏️ Postni tahrirlash":
         has_media = content_type != 'text' and post_data.get('file_id')

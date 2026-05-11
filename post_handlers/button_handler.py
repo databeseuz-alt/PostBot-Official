@@ -851,3 +851,11 @@ async def handle_reaction_click(callback: types.CallbackQuery):
             await callback.answer()
     else:
         await callback.answer()
+
+@button_router.callback_query(F.data.startswith("ad_poll:"))
+async def process_ad_poll_callback(callback: types.CallbackQuery):
+    """Reklama so'rovnomasiga javob (Ha/Yo'q) bosilganda ishlaydi."""
+    action = callback.data.split(":")[1] if len(callback.data.split(":")) > 1 else "none"
+    lang = "uzl" # Default til
+    
+    await callback.answer("Javobingiz qabul qilindi. Rahmat!", show_alert=True)

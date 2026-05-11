@@ -130,6 +130,9 @@ def generate_preview_keyboard(buttons_matrix: Optional[List[List[Optional[Dict]]
                 elif btn.get('type') == 'reaction':
                     kwargs['text'] = f"{btn_text} 0"
                     kwargs['callback_data'] = "reaction_preview"
+                elif btn.get('type') == 'ad_poll':
+                    action = btn.get('action', 'none')
+                    kwargs['callback_data'] = f"ad_poll:{action}"
                 else:
                     kwargs['url'] = btn.get('url', 'https://t.me')
 

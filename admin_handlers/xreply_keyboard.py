@@ -9,10 +9,11 @@ def get_ad_post_settings_kb():
     builder.add(KeyboardButton(text="👁️ Ko'rish"))
     builder.add(KeyboardButton(text="🔢 Tugmalar"))
     builder.add(KeyboardButton(text="✏️ Postni tahrirlash"))
+    builder.add(KeyboardButton(text="📊 So'rovnoma (Ha/Yo'q)"))
     builder.add(KeyboardButton(text="❌ Bekor qilish"))
     builder.add(KeyboardButton(text="✅ Tayyor"))
 
-    builder.adjust(3, 2)
+    builder.adjust(3, 1, 2)
     return builder.as_markup(resize_keyboard=True)
 
 def get_admin_back_kb():
