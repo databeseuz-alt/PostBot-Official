@@ -661,3 +661,19 @@ async def handle_send_action(callback: types.CallbackQuery, callback_data: EditS
         await callback.answer()
         return
     await start_sending_handler(callback, callback_data, state)
+
+@edit_post_router.callback_query(F.data.startswith("edit_select:"))
+async def handle_edit_select(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    """Ro'yxatdan post tanlanganda uni tahrirlash uchun yuklaydi."""
+    post_code = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    
+    await callback.answer()
+    await load_post_for_editing(
+        post_code=post_code,
+        user_id=user_id,
+        chat_id=callback.message.chat.id,
+        state=state,
+        bot=bot,
+        message_to_delete=callback.message
+    )

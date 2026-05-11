@@ -509,10 +509,32 @@ async def get_user_channel_statistics(user_id: int, channel_id: int = None) -> D
             except Exception:
                 top_reactions = []
             
+            # Ko'rishlar sonini olish
+            try:
+                cursor.execute("""
+                    SELECT COALESCE(SUM(total_views), 0) FROM post_stats 
+                    WHERE channel_id = ANY(%s)
+                """, (channel_ids,))
+                total_views = cursor.fetchone()[0] or 0
+            except Exception:
+                total_views = 0
+            
+            # Tugma bosishlar sonini olish
+            try:
+                cursor.execute("""
+                    SELECT COALESCE(SUM(total_clicks), 0) FROM post_stats 
+                    WHERE channel_id = ANY(%s)
+                """, (channel_ids,))
+                total_button_clicks = cursor.fetchone()[0] or 0
+            except Exception:
+                total_button_clicks = 0
+
             result = {
                 'total_posts': total_posts,
+                'total_views': total_views,
                 'total_reactions': total_reactions,
                 'total_shares': total_shares,
+                'total_button_clicks': total_button_clicks,
                 'top_reactions': top_reactions
             }
             # logger.info(f"[STATS] get_user_channel_statistics result: user_id={user_id}, stats={result}")
@@ -2284,18 +2306,18 @@ async def update_post_statistics(post_code: str, views: int = None, forwards: in
 
 
 async def get_post_statistics(post_code: str) -> Dict | None:
-    """Post statistikasini oladi."""
+    """Post statistikasini oladi (post_stats jadvalidan)."""
     def _sync():
         conn = None
         try:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT views, forward_count, button_clicks 
-                FROM send_posts WHERE post_code = %s
+                SELECT SUM(total_views), SUM(total_shares), SUM(total_clicks)
+                FROM post_stats WHERE post_code = %s
             """, (post_code,))
             result = cursor.fetchone()
-            if result:
+            if result and (result[0] is not None or result[1] is not None or result[2] is not None):
                 return {
                     'views': result[0] or 0,
                     'forward_count': result[1] or 0,
@@ -2304,6 +2326,38 @@ async def get_post_statistics(post_code: str) -> Dict | None:
             return None
         except Exception:
             return None
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+async def track_button_click(post_code: str, channel_id: int = 0) -> bool:
+    """Tugma bosilganini qayd etadi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            
+            # Agar channel_id 0 bo'lsa, oxirgi yuborilgan kanalni topishga urinish
+            if not channel_id:
+                cursor.execute("SELECT channel_id FROM send_posts WHERE post_code = %s AND status = 'sent' ORDER BY sent_at DESC LIMIT 1", (post_code,))
+                row = cursor.fetchone()
+                if row:
+                    channel_id = row[0]
+            
+            if channel_id:
+                cursor.execute("""
+                    INSERT INTO post_stats (post_code, channel_id, total_clicks)
+                    VALUES (%s, %s, 1)
+                    ON CONFLICT (post_code, channel_id) 
+                    DO UPDATE SET total_clicks = post_stats.total_clicks + 1
+                """, (post_code, channel_id))
+                conn.commit()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error tracking button click: {e}")
+            return False
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)

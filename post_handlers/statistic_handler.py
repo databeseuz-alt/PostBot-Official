@@ -17,7 +17,8 @@ from xdata_handlers.translator import get_text
 from xdata_handlers.database import (
     get_user_channels, get_user_language,
     get_user_channel_statistics,
-    get_all_posts_from_channel
+    get_all_posts_from_channel,
+    track_button_click
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
@@ -521,6 +522,8 @@ async def count_button_clicks(callback: types.CallbackQuery):
         data_parts = callback.data.split(":")
         if len(data_parts) >= 2:
             post_code = data_parts[1]
+            # Baza orqali clickni qayd etish
+            await track_button_click(post_code)
             await callback.answer("✅ Hisoblandi!", show_alert=False)
         else:
             await callback.answer()

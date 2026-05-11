@@ -205,13 +205,31 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
     await state.clear()
     await state.set_state(PostCreation.waiting_for_edit_code)
 
+    # Foydalanuvchining postlarini olish
+    user_posts = await get_posts_by_user(user.id)
+    
     prompt_text = get_text('edit_section_prompt', lang)
+    
+    # Inline klaviatura yaratish
+    builder = InlineKeyboardBuilder()
+    
+    if user_posts:
+        prompt_text += f"\n\n{get_text('mycodes_header', lang)}"
+        for post in user_posts[:10]:  # Maksimal 10 ta postni ko'rsatish
+            post_name = post.get('name') or post.get('post_name') or f"Post {post.get('code')}"
+            builder.button(
+                text=f"📝 {post_name}",
+                callback_data=f"edit_select:{post.get('code')}"
+            )
+        
+    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+    builder.adjust(1)
 
     if isinstance(event, types.CallbackQuery):
         await event.answer()
-        await event.message.answer(prompt_text, parse_mode="HTML", reply_markup=get_cancel_reply_kb(lang))
+        await event.message.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
     else:
-        await event.answer(prompt_text, parse_mode="HTML", reply_markup=get_cancel_reply_kb(lang))
+        await event.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
 
 @start_router.message(LocalizedText('statistic_btn'))
 async def handle_statistics_button(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
