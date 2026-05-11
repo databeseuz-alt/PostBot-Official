@@ -47,6 +47,7 @@ from admin_handlers.statistic_handler import statistics_router
 
 from user_handlers.feedback_handler import feedback_router
 from user_handlers.settings_handler import settings_router
+from user_handlers.donate_handler import donate_router
 
 from admin_handlers.block_handler import BlockUserMiddleware
 
@@ -98,6 +99,7 @@ async def main():
     dp.include_router(ai_assistant_router)
 
     dp.include_router(feedback_router)
+    dp.include_router(donate_router)
     dp.include_router(lang_router)
     dp.include_router(post_router)
     dp.include_router(button_router)
