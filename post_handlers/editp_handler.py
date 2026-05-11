@@ -11,10 +11,10 @@ from aiogram.types import ReplyKeyboardRemove
 
 from xdata_handlers import config
 from post_handlers.post_handler import PostCreation, clean_text_for_default_mode
-from post_handlers.xreply_keyboard import get_post_settings_kb, get_main_menu
+from post_handlers.xreply_keyboard import get_post_settings_kb, get_main_menu, get_cancel_reply_kb
 from post_handlers.xinline_keyboard import generate_post_keyboard, get_edit_send_keyboard, EditSendCallbackFactory, generate_preview_keyboard
 from xdata_handlers.database import get_post_from_db, check_post_owner, get_user_language, unsave_post_name
-from xdata_handlers.translator import get_text
+from xdata_handlers.translator import get_text, get_text_formatted
 from post_handlers.send_handler import start_sending_handler
 from post_handlers.start_handler import start_post_editing_process
 
@@ -569,14 +569,14 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
             bot_member = await bot.get_chat_member(channel_id, bot.id)
             if bot_member.status not in ["administrator", "creator"]:
                 await message.answer(
-                    "❌ Bot bu kanalda admin emas. Faqat bot admin bo'lgan kanallardan forward qilingan xabarlarni tahrirlash mumkin.",
-                    parse_mode="HTML"
+                    get_text('bot_not_admin_in_channel', lang),
+                    reply_markup=get_cancel_reply_kb(lang)
                 )
                 return
         except Exception:
             await message.answer(
-                "❌ Kanalga kirish imkoni yo'q. Bot kanalda admin ekanligiga ishonch hosil qiling.",
-                parse_mode="HTML"
+                get_text('channel_access_error', lang),
+                reply_markup=get_cancel_reply_kb(lang)
             )
             return
 
@@ -598,30 +598,26 @@ async def receive_forwarded_message(message: types.Message, state: FSMContext, b
                     full_post = await get_post_from_db(potential_code)
                     if full_post:
                         await message.answer(
-                            f"✅ Post topildi! Kod: <code>{potential_code}</code>\n\n"
-                            f"Tahrirlash rejimiga o'tilmoqda...",
+                            get_text_formatted('post_found_success', lang, post_code=potential_code),
                             parse_mode="HTML"
                         )
                         await load_post_for_editing(potential_code, user_id, message.chat.id, state, bot)
                         return
 
-            await message.answer(
-                "❌ Forward qilingan xabarda post kodi topilmadi.\n\n"
-                "Iltimos, post kodini qo'lda kiriting yoki post kodi bo'lgan xabarni forward qiling.",
-                parse_mode="HTML"
-            )
+                await message.answer(
+                    get_text('post_code_not_found_in_forward', lang),
+                    reply_markup=get_cancel_reply_kb(lang)
+                )
 
         except Exception:
             await message.answer(
-                "❌ Xabarni qayta ishlashda xatolik yuz berdi.\n\n"
-                "Iltimos, post kodini qo'lda kiriting.",
+                get_text('process_error', lang),
                 parse_mode="HTML"
             )
     else:
         await message.answer(
-            "❌ Faqat kanaldan forward qilingan xabarlar qabul qilinadi.\n\n"
-            "Iltimos, bot admin bo'lgan kanaldan xabar forward qiling yoki post kodini kiriting.",
-            parse_mode="HTML"
+            get_text('only_channel_forward_supported', lang),
+            reply_markup=get_cancel_reply_kb(lang)
         )
 
 @edit_post_router.callback_query(EditSendCallbackFactory.filter(F.action == "edit"))

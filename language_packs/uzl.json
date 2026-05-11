@@ -232,5 +232,12 @@
     "statistics_empty_msg": "📊 <b>Statistika mavjud emas</b>\n\nSiz hali bot orqali hech qanday post yubormagansiz.",
     "generating_statistics_msg": "📊 <b>bir oz kuting ...</b>",
     "statistics_image_caption": "📊 <b>Kanal statistikasi</b>",
-    "statistics_no_channel_msg": "<b>❌ Ulangan kanallar yo'q</b>\n\nKanalga yuborilgan postlar statistikasini ko'rish uchun kamida bitta kanal qo'shing."
+    "statistics_no_channel_msg": "<b>❌ Ulangan kanallar yo'q</b>\n\nKanalga yuborilgan postlar statistikasini ko'rish uchun kamida bitta kanal qo'shing.",
+    "edit_section_prompt": "<b>✏️ Tahrirlash bo'limi</b>\n\nIltimos, tahrirlamoqchi bo'lgan postingizning <b>5 xonali kodini</b> yuboring yoki bot admin bo'lgan kanaldan postni <b>forward</b> qiling.",
+    "bot_not_admin_in_channel": "❌ Bot bu kanalda admin emas. Faqat bot admin bo'lgan kanallardan forward qilingan xabarlarni tahrirlash mumkin.",
+    "channel_access_error": "❌ Kanalga kirish imkoni yo'q. Bot kanalda admin ekanligiga ishonch hosil qiling.",
+    "post_found_success": "✅ Post topildi! Kod: <code>{post_code}</code>\n\nTahrirlash rejimiga o'tilmoqda...",
+    "post_code_not_found_in_forward": "❌ Forward qilingan xabarda post kodi topilmadi.\n\nIltimos, post kodini qo'lda kiriting yoki post kodi bo'lgan xabarni forward qiling.",
+    "only_channel_forward_supported": "❌ Faqat kanaldan forward qilingan xabarlar qabul qilinadi.\n\nIltimos, bot admin bo'lgan kanaldan xabar forward qiling yoki post kodini kiriting.",
+    "process_error": "<b>❌ Xabarni qayta ishlashda xatolik yuz berdi.</b>\n\nIltimos, post kodini qo'lda kiriting."
 }

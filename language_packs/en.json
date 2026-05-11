@@ -232,5 +232,12 @@
     "statistics_empty_msg": "📊 <b>No Statistics Available</b>\n\nYou haven't sent any posts via the bot yet.",
     "generating_statistics_msg": "📊 <b>Please wait ...</b>",
     "statistics_image_caption": "📊 <b>Channel Statistics</b>",
-    "statistics_no_channel_msg": "<b>❌ No channels connected</b>\n\nAdd at least one channel to view post sending statistics."
+    "statistics_no_channel_msg": "<b>❌ No connected channels</b>\n\nAdd at least one channel to see post sending statistics.",
+    "edit_section_prompt": "<b>✏️ Editing Section</b>\n\nPlease send the <b>5-digit code</b> of the post you want to edit or <b>forward</b> a post from a channel where the bot is an admin.",
+    "bot_not_admin_in_channel": "❌ Bot is not an admin in this channel. Only posts forwarded from channels where the bot is an admin can be edited.",
+    "channel_access_error": "❌ Cannot access the channel. Make sure the bot is an admin in the channel.",
+    "post_found_success": "✅ Post found! Code: <code>{post_code}</code>\n\nEntering editing mode...",
+    "post_code_not_found_in_forward": "❌ Post code not found in the forwarded message.\n\nPlease enter the post code manually or forward a message containing the post code.",
+    "only_channel_forward_supported": "❌ Only messages forwarded from channels are accepted.\n\nPlease forward a message from a channel where the bot is an admin or enter the post code.",
+    "process_error": "<b>❌ An error occurred while processing the message.</b>\n\nPlease enter the post code manually."
 }

@@ -201,13 +201,17 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
     user = event.from_user
     lang = await get_user_language(user.id)
 
-    disabled_text = "⏳ <b>Tahrirlash bo'limi vaqtinchalik o'chirilgan</b>\n\nKuting, tez orada qayta ishga tushadi!"
+    # State ni tozalash va tahrirlash kodi kutilayotgan holatga o'tkazish
+    await state.clear()
+    await state.set_state(PostCreation.waiting_for_edit_code)
+
+    prompt_text = get_text('edit_section_prompt', lang)
 
     if isinstance(event, types.CallbackQuery):
         await event.answer()
-        await event.message.answer(disabled_text, parse_mode="HTML")
+        await event.message.answer(prompt_text, parse_mode="HTML", reply_markup=get_cancel_reply_kb(lang))
     else:
-        await event.answer(disabled_text, parse_mode="HTML")
+        await event.answer(prompt_text, parse_mode="HTML", reply_markup=get_cancel_reply_kb(lang))
 
 @start_router.message(LocalizedText('statistic_btn'))
 async def handle_statistics_button(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
