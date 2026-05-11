@@ -226,38 +226,42 @@ async def _add_or_update_user_impl(user_id: int, nickname: str, username: str, l
             if language is None:
                 if is_new_user:
                     cursor.execute("""
-                        INSERT INTO users (user_id, nickname, username, language)
-                        VALUES (%s, %s, %s, NULL)
+                        INSERT INTO users (user_id, nickname, username, language, last_activity)
+                        VALUES (%s, %s, %s, NULL, CURRENT_TIMESTAMP)
                         ON CONFLICT (user_id) DO UPDATE SET
                             nickname = EXCLUDED.nickname,
-                            username = EXCLUDED.username;
+                            username = EXCLUDED.username,
+                            last_activity = CURRENT_TIMESTAMP;
                     """, (user_id, nickname, username))
                 else:
                     cursor.execute("""
-                        INSERT INTO users (user_id, nickname, username, language)
-                        VALUES (%s, %s, %s, NULL)
+                        INSERT INTO users (user_id, nickname, username, language, last_activity)
+                        VALUES (%s, %s, %s, NULL, CURRENT_TIMESTAMP)
                         ON CONFLICT (user_id) DO UPDATE SET
                             nickname = EXCLUDED.nickname,
-                            username = EXCLUDED.username;
+                            username = EXCLUDED.username,
+                            last_activity = CURRENT_TIMESTAMP;
                     """, (user_id, nickname, username))
             else:
                 if is_new_user:
                     cursor.execute("""
-                        INSERT INTO users (user_id, nickname, username, language)
-                        VALUES (%s, %s, %s, %s)
+                        INSERT INTO users (user_id, nickname, username, language, last_activity)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
                         ON CONFLICT (user_id) DO UPDATE SET
                             nickname = EXCLUDED.nickname,
                             username = EXCLUDED.username,
-                            language = EXCLUDED.language;
+                            language = EXCLUDED.language,
+                            last_activity = CURRENT_TIMESTAMP;
                     """, (user_id, nickname, username, language))
                 else:
                     cursor.execute("""
-                        INSERT INTO users (user_id, nickname, username, language)
-                        VALUES (%s, %s, %s, %s)
+                        INSERT INTO users (user_id, nickname, username, language, last_activity)
+                        VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
                         ON CONFLICT (user_id) DO UPDATE SET
                             nickname = EXCLUDED.nickname,
                             username = EXCLUDED.username,
-                            language = EXCLUDED.language;
+                            language = EXCLUDED.language,
+                            last_activity = CURRENT_TIMESTAMP;
                     """, (user_id, nickname, username, language))
             
             conn.commit()
