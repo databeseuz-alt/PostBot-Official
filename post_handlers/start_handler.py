@@ -109,28 +109,6 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
 async def cmd_newpost(message: types.Message, state: FSMContext, bot: Bot):
     await start_post_creation(message, state, bot)
 
-@start_router.message(Command("features"))
-async def cmd_features(message: types.Message):
-    """Barcha ilg'or xususiyatlar ro'yxatini ko'rsatadi."""
-    text = (
-        "⚙️ <b>Murakkab Sozlamalar va Imkoniyatlar</b>\n\n"
-        "PostBot tizimi orqali siz quyidagi imkoniyatlardan foydalanishingiz mumkin:\n\n"
-        "⚡️ <b>Turbo rejim</b> - Postlarni noldan boshlamasdan, birdaniga draftlarni tashlang.\n"
-        "🎨 <b>Boy tahrirchi</b> - Matnni qalin, qiya va havolali qilib tahrirlang.\n"
-        "🤖 <b>AI Assistant</b> - Matnlarni avtomatik tarjima qilish va xatolarni to'g'rilash.\n"
-        "©️ <b>Suv belgisi</b> - Rasmlaringizga o'z logotipingizni avtomatik qo'ying.\n"
-        "📝 <b>Avto-imzo</b> - Har bir post oxiriga kanal linkini qo'shish.\n"
-        "⏱ <b>Avto-o'chirish</b> - Postni ma'lum vaqtdan so'ng avtomatik o'chirish.\n"
-        "📌 <b>Avto-qadash (Pin)</b> - Postni kanalga qadab qo'yish.\n"
-        "🔐 <b>Yashirin davom etish</b> - Obuna bo'lmaganlarga postni yashirish.\n"
-        "🔄 <b>Takroriy postlar</b> - Har kuni yoki haftada avtomatik tashlash.\n"
-        "📊 <b>Statistika</b> - Postlarning ko'rishlar va reaksiyalar sonini kuzatish.\n"
-        "🗂 <b>Loyihalar</b> - Kanallaringizni guruhlash va tahrirchilar qo'shish.\n\n"
-        "<i>Kerakli bo'limni tanlash uchun asosiy menyudagi tugmalardan foydalaning.</i>"
-    )
-    await message.answer(text, parse_mode="HTML")
-
-
 @start_router.message(Command("mycodes"))
 async def cmd_mycodes(message: types.Message, state: FSMContext, bot: Bot):
     """Foydalanuvchining post kodlarini ko'rsatadi."""
