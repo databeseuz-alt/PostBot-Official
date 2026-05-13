@@ -44,10 +44,51 @@ async def settings_back_to_main(callback: types.CallbackQuery):
 
 @settings_router.callback_query(F.data == "settings_interface")
 async def settings_interface_menu(callback: types.CallbackQuery):
-    lang = await get_user_language(callback.from_user.id)
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    settings = await get_user_bot_settings(user_id)
     await callback.message.edit_text(
         get_text('settings_interface_msg', lang),
-        reply_markup=create_settings_interface_keyboard(lang=lang)
+        reply_markup=create_settings_interface_keyboard(settings, lang=lang, expanded=False)
+    )
+    await callback.answer()
+
+@settings_router.callback_query(F.data == "settings_interface_expand")
+async def settings_interface_expand(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    settings = await get_user_bot_settings(user_id)
+    await callback.message.edit_reply_markup(
+        reply_markup=create_settings_interface_keyboard(settings, lang=lang, expanded=True)
+    )
+    await callback.answer()
+
+@settings_router.callback_query(F.data == "settings_interface_collapse")
+async def settings_interface_collapse(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    settings = await get_user_bot_settings(user_id)
+    await callback.message.edit_reply_markup(
+        reply_markup=create_settings_interface_keyboard(settings, lang=lang, expanded=False)
+    )
+    await callback.answer()
+
+@settings_router.callback_query(F.data.startswith("set_iface:"))
+async def settings_toggle_interface_option(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    option_key = callback.data.split(":")[1]
+    
+    settings = await get_user_bot_settings(user_id)
+    current_val = settings.get(option_key, False)
+    new_val = not current_val
+    
+    await update_user_bot_settings(user_id, **{option_key: new_val})
+    
+    # Refresh keyboard (staying in expanded mode)
+    updated_settings = await get_user_bot_settings(user_id)
+    await callback.message.edit_reply_markup(
+        reply_markup=create_settings_interface_keyboard(updated_settings, lang=lang, expanded=True)
     )
     await callback.answer()
 

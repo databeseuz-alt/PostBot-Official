@@ -354,19 +354,32 @@ def create_settings_main_keyboard(lang: str = 'uzl', timezone_str: str = "Tashke
     
     return builder.as_markup()
 
-def create_settings_interface_keyboard(lang: str = 'uzl'):
+def create_settings_interface_keyboard(settings: dict, lang: str = 'uzl', expanded: bool = False):
     """Interfeys sozlamalari menyusi."""
     builder = InlineKeyboardBuilder()
     builder.row(InlineKeyboardButton(text="📂 Papkalar", callback_data="settings_folders"))
     builder.row(InlineKeyboardButton(text="📢 Kanallar", callback_data="settings_channel_list_conf"))
     builder.row(InlineKeyboardButton(text="📝 Post Tahrirlash", callback_data="settings_post_edit"))
-    builder.row(InlineKeyboardButton(text="✅ Nashrni tasdiqlash", callback_data="settings_confirm_publish"))
     
-    builder.row(
-        InlineKeyboardButton(text="← Orqaga", callback_data="back_to_settings_main"),
-        InlineKeyboardButton(text="Ko'proq ↓", callback_data="settings_interface_more")
-    )
-    builder.adjust(1, 1, 1, 1, 2)
+    if expanded:
+        def get_cb(key):
+            return "✅" if settings.get(key) else "⬜️"
+            
+        builder.row(InlineKeyboardButton(text=f"{get_cb('conf_publish')} Nashrni tasdiqlash", callback_data="set_iface:conf_publish"))
+        builder.row(InlineKeyboardButton(text=f"{get_cb('auto_select_chan')} Kanalni avtomatik tanlash", callback_data="set_iface:auto_select_chan"))
+        builder.row(InlineKeyboardButton(text=f"{get_cb('hide_bottom_menu')} Pastki menyuni yashirish", callback_data="set_iface:hide_bottom_menu"))
+        builder.row(InlineKeyboardButton(text=f"{get_cb('markdown_mode')} Markdown", callback_data="set_iface:markdown_mode"))
+        
+        builder.row(
+            InlineKeyboardButton(text="← Orqaga", callback_data="back_to_settings_main"),
+            InlineKeyboardButton(text="Yopish ↑", callback_data="settings_interface_collapse")
+        )
+    else:
+        builder.row(
+            InlineKeyboardButton(text="← Orqaga", callback_data="back_to_settings_main"),
+            InlineKeyboardButton(text="Ko'proq ↓", callback_data="settings_interface_expand")
+        )
+    
     return builder.as_markup()
 
 def create_settings_channel_list_conf_keyboard(lang: str = 'uzl'):
