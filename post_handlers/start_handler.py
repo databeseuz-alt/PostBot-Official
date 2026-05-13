@@ -79,14 +79,17 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
 async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
 
-    has_language = await check_user_has_language(user.id)
-
-    if not has_language:
-        if isinstance(event, types.Message):
-            await show_language_selection(event)
-        elif isinstance(event, types.CallbackQuery):
-            await show_language_selection(event.message)
-        return
+    # Tilni avtomatik ravishda uzl (O'zbek Lotin) qilib belgilaymiz
+    from xdata_handlers.database import set_user_language, get_user_language
+    
+    current_lang = await get_user_language(user.id)
+    if not current_lang:
+        await set_user_language(
+            user_id=user.id,
+            nickname=user.full_name,
+            username=user.username,
+            language="uzl"
+        )
 
     is_member, text, keyboard = await check_user_membership(event.from_user, bot)
 
@@ -104,6 +107,11 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
         return
 
     await show_main_menu(event, state, bot)
+
+@start_router.message(Command("features"))
+async def cmd_features(message: types.Message, state: FSMContext):
+    from post_handlers.features_handler import show_features_menu
+    await show_features_menu(message)
 
 @start_router.message(Command("newpost"))
 async def cmd_newpost(message: types.Message, state: FSMContext, bot: Bot):
