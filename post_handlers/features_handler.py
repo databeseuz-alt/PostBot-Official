@@ -5,7 +5,10 @@ from xdata_handlers.translator import get_text
 
 features_router = Router()
 
-IMPLEMENTED_FEATURES = ["smart_settings", "rich_editor", "first_reaction", "test_posts"]
+IMPLEMENTED_FEATURES = [
+    "smart_settings", "rich_editor", "first_reaction", "test_posts", 
+    "auto_sig", "watermark", "composite", "publish_settings", "interesting"
+]
 
 def get_features_keyboard():
     builder = InlineKeyboardBuilder()
@@ -69,7 +72,6 @@ def get_navigation_keyboard(current_feature: str):
             InlineKeyboardButton(text="Keyingi →", callback_data=f"feat:{next_feat}")
         )
     except ValueError:
-        # If not in implemented list, just show static buttons or back
         builder.row(
             InlineKeyboardButton(text="← Oldingi", callback_data="show_features"),
             InlineKeyboardButton(text="Keyingi →", callback_data="show_features")
@@ -128,6 +130,64 @@ async def handle_feature_details(callback: types.CallbackQuery):
             "Obuna yoki ko'tarilishsiz, bularning barchasi yashirin bo'lib qoladi.\n\n"
             "Ba'zilar uchun bu o'yin va hayajon. Boshqalar uchun — qiziqish. Siz uchun — kanal o'sishi!\n\n"
             f"👉 {guide_url}"
+        )
+    elif feature == "interesting":
+        content = (
+            "<b>Qiziqarli postlar</b>\n\n"
+            "Posto sizga postlaringizni ajralib turishi uchun zamonaviy Telegram xususiyatlaridan foydalanish imkonini beradi:\n\n"
+            "✅ Premium emojilar\n"
+            "✅ URL tugmalar (uzun havolalarni almashtirish uchun)\n"
+            "✅ Reaksiya tugmalari\n"
+            "✅ Yashirin davom\n"
+            "✅ Test uslubidagi postlar (javob statistikasi bilan) 🆕\n"
+            "✅ Matn ustida yoki ostida havola oldindan ko'rish\n"
+            "✅ Maxsus izoh tugmasi\n"
+            "✅ Kanallar uchun avtomatik imzo\n"
+            "✅ Rasmlar, videolar, GIFlarda suv belgilari 🆕\n"
+            "✅ Slayd-shoular 🆕\n"
+            "✅ Pullik media 🆕"
+        )
+    elif feature == "publish_settings":
+        content = (
+            "<b>Nashr sozlamalari</b>\n\n"
+            "✅ Avtomatik qayta joylash\n"
+            "✅ Avto o'chirish\n"
+            "✅ Taymer bo'yicha mahkamlash yoki yechish 🆕\n"
+            "✅ Mahkamlangan postda ko'k tugma\n"
+            "✅ Jim rejim\n"
+            "✅ Kontentni nusxalashdan himoya qilish\n"
+            "✅ Javob postlar\n"
+            "✅ Izohlarni o'chirish 🆕\n"
+            "✅ Reklama uchun \"Yuqoridagi vaqt\" 🆕"
+        )
+    elif feature == "watermark":
+        content = (
+            "💧 <b>Suv belgilari</b>\n\n"
+            "Postlar o'g'irlanadi — lekin siznikilar emas. Suv belgisi bilan ismingiz har bir rasm, video yoki GIFda qoladi.\n\n"
+            "✅ Matn yoki logotip suv belgisi\n"
+            "✅ Opaqlik, o'lcham, joylashuv va boshqalarni sozlash\n"
+            "✅ Turli shriftlar\n"
+            "✅ Rang tanlash\n"
+            "✅ Bir marta bosish shablonlari\n"
+            "✅ Videoda animatsiyali harakat\n"
+            "✅ Postlarga avtomatik qo'shilish"
+        )
+    elif feature == "composite":
+        content = (
+            "<b>Kompozit postlar</b>\n\n"
+            "Botda siz postni butun xabarlar zanjiridan — ketma-ket 10 tagacha xabar — yaratishingiz mumkin.\n"
+            "Shu tariqa, Telegram cheklovlarini chetlab o'tasiz va kontentingizni xohlagan uslubda formatlaysiz.\n\n"
+            "🔥 <b>Uzun matn qismlarga bo'lingan</b> — matn devorini o'qishni osonlashtirish uchun bir nechta xabarga bo'ling.\n\n"
+            "📊 <b>Asosiy post + qo'shimcha</b> — asosiy postingizni nashr qiling va darhol so'rovnoma yoki izohlar bo'limini qo'shing.\n\n"
+            "🖼 <b>Albom + tugmalar</b> — Telegram albomlar ostida tugmalar qo'yishga ruxsat bermaydi.\n"
+            "Yechim: avval albom, keyin tugmalar bilan alohida xabar. Birgalikda ular bitta nashr sifatida ishlaydi."
+        )
+    elif feature == "auto_sig":
+        content = (
+            "<b>Kanal imzosi</b>\n\n"
+            "Postlaringizga imzolar qo'shing, shunda ular qayta joylashtirilganda muallifligingiz ko'rinib turadi.\n"
+            "Posto bilan bu o'son — bot sizning imzongizni avtomatik ravishda qo'shadi.\n\n"
+            "🆕 Siz bir nechta imzo variantlarini yaratishingiz va har bir post turi uchun mosini tanlashingiz mumkin."
         )
     else:
         content = f"<b>{feature.replace('_', ' ').title()}</b> xususiyati haqida ma'lumot tez orada qo'shiladi."
