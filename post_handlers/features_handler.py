@@ -7,7 +7,8 @@ features_router = Router()
 
 IMPLEMENTED_FEATURES = [
     "smart_settings", "rich_editor", "first_reaction", "test_posts", 
-    "auto_sig", "watermark", "composite", "publish_settings", "interesting"
+    "auto_sig", "watermark", "composite", "publish_settings", "interesting",
+    "templates", "group_publish", "schedule", "turbo", "multi_post"
 ]
 
 def get_features_keyboard():
@@ -137,7 +138,7 @@ async def handle_feature_details(callback: types.CallbackQuery):
             "Posto sizga postlaringizni ajralib turishi uchun zamonaviy Telegram xususiyatlaridan foydalanish imkonini beradi:\n\n"
             "✅ Premium emojilar\n"
             "✅ URL tugmalar (uzun havolalarni almashtirish uchun)\n"
-            "✅ Reaksiya tugmalari\n"
+            "✅ Reaksiya tugmalar\n"
             "✅ Yashirin davom\n"
             "✅ Test uslubidagi postlar (javob statistikasi bilan) 🆕\n"
             "✅ Matn ustida yoki ostida havola oldindan ko'rish\n"
@@ -188,6 +189,73 @@ async def handle_feature_details(callback: types.CallbackQuery):
             "Postlaringizga imzolar qo'shing, shunda ular qayta joylashtirilganda muallifligingiz ko'rinib turadi.\n"
             "Posto bilan bu o'son — bot sizning imzongizni avtomatik ravishda qo'shadi.\n\n"
             "🆕 Siz bir nechta imzo variantlarini yaratishingiz va har bir post turi uchun mosini tanlashingiz mumkin."
+        )
+    elif feature == "turbo":
+        content = (
+            "🚀 <b>Turbo rejim — postlarni nol bosish bilan yarating</b>\n\n"
+            "Buni boshqa joyda topa olmaysiz. Botga bir nechta draftlarni tashlang — va tamom.\n"
+            "Bot ularni shabloningizdan foydalangan holda to'liq postlarga aylantiradi: tugmalar, imzo, suv belgisi qo'shadi, matnni qayta yozadi.\n\n"
+            "Uchta rejim mavjud:\n"
+            "1️⃣ Tezkor nashr qilish\n"
+            "2️⃣ Jadval bo'yicha\n"
+            "3️⃣ Aralash jadval\n\n"
+            "Birinchi partiyadan so'ng, ikkinchi yoki uchinchi sini yuboring. Hech narsa bosishga hojat yo'q.\n\n"
+            f"👉 {guide_url}"
+        )
+    elif feature == "multi_post":
+        content = (
+            "🔥 <b>Ko'p-post qilish</b>\n\n"
+            "Ko'p-post qilish degani, bitta post bir vaqtning o'zida bir nechta kanallarda nashr qilinadi.\n\n"
+            "🔥 Posto mo'jizasi: har bir kanal bir xil postni oladi, lekin o'z uslubida — noyob tugmalar, suv belgisi va havolalar bilan.\n\n"
+            "Shuningdek, AI matnni qayta ishlash mavjud.\n"
+            "Masalan, agar siz 10 ta tilda kanallar tarmog'ini boshqarsangiz, faqat bitta post yuklaysiz — va u avtomatik ravishda har bir kanal uchun 🌐 tarjima qilinadi.\n\n"
+            "Yoki boshqa holat: siz oshpazlik kanallari tarmog'ini boshqarasiz. Botga bitta retsept yuborasiz va u barcha kanallarda nashr qilinadi — turli jadval va matn variantlari bilan.\n\n"
+            "<b>Qo'llanmalar:</b>\n"
+            "🗒 Imzo va tugmalarni o'zgartirish\n"
+            "🗒 Qayta yozish yoki tarjima qilish\n"
+            "🗒 Turli nashr vaqtlari"
+        )
+    elif feature == "schedule":
+        content = (
+            "<b>Jadval</b>\n\n"
+            "Jadvalingizni bir marta sozlang — va bot avtomatik ravishda vaqt bo'shliqlarini to'ldiradi.\n\n"
+            "Siz istalgan jadval uslubini tanlashingiz mumkin:\n"
+            "✅ Har kuni yoki haftaning kunlariga bo'lingan jadval\n"
+            "✅ Oddiy va homiylik postlari uchun alohida vaqtlar\n\n"
+            "Jadval sizni rutindan ozod qiladi: kanal faqat siz oflayn bo'lsangiz ham faol qoladi.\n\n"
+            "<b>Qo'llanmalar:</b>\n"
+            "🗒 Post jadvali\n"
+            "🗒 Kategoriya bo'yicha nashr qilish"
+        )
+    elif feature == "group_publish":
+        content = (
+            "<b>Guruhli nashr</b>\n\n"
+            "Eski kanalingiz bormi? Postlarni yangi kanalingizga osonlik bilan ko'chiring.\n"
+            "Ularni botga yo'naltiring — va bir necha kun yoki hafta uchun kontent rejangizni darhol to'ldirasiz.\n\n"
+            "Nimalarni qilishingiz mumkin:\n"
+            "✅ butun guruhni birgalikda tahrirlash\n"
+            "✅ aralash tartibda nashr qilish\n"
+            "✅ jadval bo'yicha taqsimlash\n\n"
+            "Soatlab rutindan qutuling — hammasi bir zumda tayyor.\n\n"
+            "👉 Guruhli nashr\n"
+            "👉 Shablonlar"
+        )
+    elif feature == "templates":
+        content = (
+            "<b>Post shablonlari</b>\n\n"
+            "🗒 Shablon sizning sevimli sozlamalaringiz va uslubingizni saqlaydi — va har safar post yaratganingizda ulardan foydalaniladi.\n\n"
+            "Siz unda hamma narsani belgilashingiz mumkin:\n"
+            "✅ tugmalar\n"
+            "✅ kanal imzosi\n"
+            "✅ suv belgisi\n"
+            "✅ jadval\n"
+            "✅ matn tarjimasi yoki qayta yozish\n"
+            "✅ rasm yaratish\n"
+            "✅ so'z almashtirish qoidalari\n"
+            "✅ nashr sozlamalari\n\n"
+            "Va eng muhimi — shablon o'zining nashr vaqti bilan kategoriya sifatida ishlashi mumkin.\n"
+            "Ertalabki postlar, haftalik to'plamlar yoki yarim tunda uzun maqolalar — har birini alohida boshqaring.\n\n"
+            f"👉 {guide_url}"
         )
     else:
         content = f"<b>{feature.replace('_', ' ').title()}</b> xususiyati haqida ma'lumot tez orada qo'shiladi."
