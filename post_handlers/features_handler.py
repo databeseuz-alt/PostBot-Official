@@ -8,7 +8,9 @@ features_router = Router()
 IMPLEMENTED_FEATURES = [
     "smart_settings", "rich_editor", "first_reaction", "test_posts", 
     "auto_sig", "watermark", "composite", "publish_settings", "interesting",
-    "templates", "group_publish", "schedule", "turbo", "multi_post"
+    "templates", "group_publish", "schedule", "turbo", "multi_post",
+    "recurring", "groups_topics", "service_msgs", "ai_assistant", 
+    "sponsor_posts", "edit_post"
 ]
 
 def get_features_keyboard():
@@ -34,7 +36,7 @@ def get_features_keyboard():
         ("Xizmat xabarlari", "feat:service_msgs"),
         ("AI Yordamchisi", "feat:ai_assistant"),
         ("Homiylik postlari", "feat:sponsor_posts"),
-        ("Post tahrirlash", "feat:edit_post")
+        ("🔥 Post tahrirlash", "feat:edit_post")
     ]
     
     for text, callback_data in buttons:
@@ -256,6 +258,83 @@ async def handle_feature_details(callback: types.CallbackQuery):
             "Va eng muhimi — shablon o'zining nashr vaqti bilan kategoriya sifatida ishlashi mumkin.\n"
             "Ertalabki postlar, haftalik to'plamlar yoki yarim tunda uzun maqolalar — har birini alohida boshqaring.\n\n"
             f"👉 {guide_url}"
+        )
+    elif feature == "recurring":
+        content = (
+            "<b>Takroriy postlar</b>\n\n"
+            "Aqlli takrorlashlarni sozlang — postlaringiz jadval bo'yicha qayta paydo bo'ladi va auditoriyangizni zeriktirmaydi:\n\n"
+            "✅ Har kuni belgilangan vaqtda\n"
+            "✅ Muayyan sanalar va vaqtlarda\n"
+            "✅ Belgilangan oraliqlarda\n\n"
+            "Takroriy postning faqat bitta nusxasi kanalda qolishi uchun avtomatik o'chirish taymeridan foydalaning.\n\n"
+            "Avtomatik repostlar bilan takroriy e'lonlar, eslatmalar yoki promo aksiyalarni oson va qulay tarzda amalga oshiring.\n\n"
+            f"👉 {guide_url}"
+        )
+    elif feature == "groups_topics":
+        content = (
+            "<b>Guruhlar va mavzularga post qilish</b>\n\n"
+            "Posto Telegram forum mavzulariga bevosita post qiladigan yagona bot.\n\n"
+            "✅ Rejalashtirilgan takroriy e'lonlar\n"
+            "✅ Har bir mavzu uchun alohida sozlamalar, shablonlar va jadval\n"
+            "✅ Bir vaqtning o'zida bir nechta mavzularda chop etish\n"
+            "✅ Guruh postlari uchun klon yaratish\n\n"
+            "@posto_robot orqali o'zingizning brendlangan bot kloningizni yaratishingiz mumkin — ismingiz va avatar bilan.\n"
+            "Guruh a'zolari faqat sizning brendingizni ko'radi!"
+        )
+    elif feature == "service_msgs":
+        content = (
+            "<b>Xizmat xabarlarini avtomatik o'chirish</b>\n\n"
+            "Telegram kanalingizda texnik xabarlar qoldiradi — masalan, pinlar yoki nom o'zgarishlari. O'quvchilar uchun ular shovqin kabi ko'rinadi.\n\n"
+            "Bot avtomatik ravishda ularni tozalaydi.\n"
+            "Natijada, kanalingiz ozoda ko'rinadi va obunachilar postlaringizga e'tibor qaratadi."
+        )
+    elif feature == "ai_assistant":
+        content = (
+            "🤖 <b>AI Yordamchisi postlaringizni yozadi</b>\n\n"
+            "Posto — ChatGPT sizning postingizni nashr qilishdan oldin qayta yozadigan yagona bot — darhol, Telegram ichida.\n"
+            "Draft yuboring — va AI uni qayta yozadi, qisqartiradi va emoji qo'shadi.\n\n"
+            "AI Yordamchisi quyidagilarni qila oladi:\n"
+            "✅ xatolarni tuzatish\n"
+            "✅ kanalingiz uslubiga moslashtirish\n"
+            "✅ matnni qayta yozish\n"
+            "✅ boshqa tillarga tarjima qilish\n"
+            "✅ post uchun illyustratsiyalar yaratish\n"
+            "✅ postlarni noldan yozish\n\n"
+            "AI bilan rutinni avtomatlashtiring ⚙️"
+        )
+    elif feature == "sponsor_posts":
+        content = (
+            "<b>Reklama postlari</b>\n\n"
+            "Reklama joylashtirmoqchimisiz? Maxsus reklama rejimidan foydalaning — imzo va suv belgisi yo'q, barchasi bir marta bosish bilan tayyor.\n\n"
+            "Siz bir marta bosish bilan sozlashingiz mumkin:\n"
+            "✔️ Joylashtirish formati — 1/24, 2/48 yoki 3/72\n"
+            "✔️ \"Yuqorida qolish vaqti\" — pullik ko'rinish davrida yangi postlar chiqishini oldini olish\n"
+            "✔️ Avtomatik ustma-ustlik — reklama yuqori vaqti tugagandan keyin keyingi postni avtomatik ravishda nashr qilish\n\n"
+            "<b>Qo'shimcha imkoniyatlar:</b>\n"
+            "Mijoz hisobotlari — reklamachilar postning aniq vaqtini va o'chirish vaqtini ko'rishlari mumkin\n"
+            "Slot rezervatsiyasi — to'lovni qabul qilishdan oldin reklama joyini zaxiralash\n\n"
+            "<b>Qo'llanmalar:</b>\n"
+            "🗒 Reklama postini qanday yaratish kerak\n"
+            "🗒 Reklama jadvali\n"
+            "🗒 Slot rezervatsiyasi\n"
+            "🗒 Yuqorida qolish vaqti\n"
+            "🗒 Avtomatik ustma-ustlik"
+        )
+    elif feature == "edit_post":
+        content = (
+            "🔥 <b>Post tahrirlash</b>\n\n"
+            "Tasavvur qiling: siz 10 ta kanalda postni nusxaladingiz va xatoni sezdingiz.\n"
+            "Boshqa botlarda har birini qo'lda tahrirlashingiz kerak bo'lardi — lekin Postoda, siz faqat bir marta tuzatishni kiritasiz va ommaviy yangilash tugmasini bosasiz.\n\n"
+            "<b>Nimalarni qilishingiz mumkin:</b>\n"
+            "✔️ eskirgan havolalarni almashtirish\n"
+            "✔️ avtomatik imzoni yangilash\n"
+            "✔️ media fayllarni almashtirish\n"
+            "✔️ tugmalarni tahrirlash\n"
+            "✔️ barcha postlardagi xatolarni bir martada tuzatish\n"
+            "✔️ rejalashtirilgan chop etish vaqtini o'zgartirish\n"
+            "✔️ takroriy postlarni tahrirlash\n\n"
+            "Rejalashtirilgan yoki chop etilgan postlarni istalgan vaqtda tahrirlash — bir yoki barcha kanallarda bir vaqtning o'zida.\n\n"
+            "👉 <a href='https://t.me/PostoDocs/10'>Qo'llanmalar</a>"
         )
     else:
         content = f"<b>{feature.replace('_', ' ').title()}</b> xususiyati haqida ma'lumot tez orada qo'shiladi."
