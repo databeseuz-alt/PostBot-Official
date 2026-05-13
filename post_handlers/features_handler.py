@@ -116,7 +116,7 @@ async def handle_feature_details(callback: types.CallbackQuery):
     await callback.answer()
 
 @features_router.callback_query(F.data == "start_bot")
-async def callback_start_bot(callback: types.CallbackQuery, state: types.FSMContext):
+async def callback_start_bot(callback: types.CallbackQuery, state: FSMContext):
     from post_handlers.start_handler import cmd_start
     await callback.message.delete()
     await cmd_start(callback, state, callback.bot)
