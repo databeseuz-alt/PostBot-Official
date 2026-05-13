@@ -100,6 +100,7 @@ async def main():
     dp.include_router(ai_assistant_router)
 
     dp.include_router(feedback_router)
+    dp.include_router(settings_router)
     dp.include_router(donate_router)
     dp.include_router(lang_router)
     dp.include_router(post_router)
