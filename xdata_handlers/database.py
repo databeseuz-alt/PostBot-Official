@@ -620,19 +620,26 @@ async def get_user_bot_settings(user_id: int) -> Dict:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT ai_assistant_enabled
+                SELECT ai_assistant_enabled, interface_settings
                 FROM bot_settings WHERE user_id = %s
             """, (user_id,))
             result = cursor.fetchone()
             if result:
-                return {
-                    'ai_assistant_enabled': result[0] or False
-                }
+                settings = result[1] or {}
+                settings['ai_assistant_enabled'] = result[0] or False
+                return settings
             return {
                 'ai_assistant_enabled': False
             }
-        except Exception:
-
+        except Exception as e:
+            # Column might not exist yet, try to add it
+            try:
+                conn = get_connection()
+                cursor = conn.cursor()
+                cursor.execute("ALTER TABLE bot_settings ADD COLUMN IF NOT EXISTS interface_settings JSONB DEFAULT '{}'")
+                conn.commit()
+            except Exception:
+                pass
             return {
                 'ai_assistant_enabled': False
             }
@@ -640,7 +647,7 @@ async def get_user_bot_settings(user_id: int) -> Dict:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = None) -> bool:
+async def update_user_bot_settings(user_id: int, **kwargs) -> bool:
     """Foydalanuvchi bot sozlamalarini yangilaydi."""
     def _sync():
         conn = None
@@ -648,18 +655,33 @@ async def update_user_bot_settings(user_id: int, ai_assistant_enabled: bool = No
             conn = get_connection()
             cursor = conn.cursor()
 
-            if ai_assistant_enabled is None:
-                return False
+            # Separate ai_assistant_enabled from other interface settings
+            ai_enabled = kwargs.pop('ai_assistant_enabled', None)
+            
+            if ai_enabled is not None:
+                cursor.execute("""
+                    INSERT INTO bot_settings (user_id, ai_assistant_enabled)
+                    VALUES (%s, %s)
+                    ON CONFLICT (user_id) DO UPDATE SET ai_assistant_enabled = EXCLUDED.ai_assistant_enabled;
+                """, (user_id, ai_enabled))
 
-            cursor.execute("""
-                INSERT INTO bot_settings (user_id, ai_assistant_enabled)
-                VALUES (%s, %s)
-                ON CONFLICT (user_id) DO UPDATE SET ai_assistant_enabled = EXCLUDED.ai_assistant_enabled;
-            """, (user_id, ai_assistant_enabled))
+            if kwargs:
+                # Get existing settings first
+                cursor.execute("SELECT interface_settings FROM bot_settings WHERE user_id = %s", (user_id,))
+                result = cursor.fetchone()
+                current_settings = result[0] if result and result[0] else {}
+                current_settings.update(kwargs)
+                
+                cursor.execute("""
+                    INSERT INTO bot_settings (user_id, interface_settings)
+                    VALUES (%s, %s)
+                    ON CONFLICT (user_id) DO UPDATE SET interface_settings = EXCLUDED.interface_settings;
+                """, (user_id, json.dumps(current_settings)))
+            
             conn.commit()
             return True
-        except Exception:
-
+        except Exception as e:
+            logger.error(f"update_user_bot_settings error: {e}")
             return False
         finally:
             if conn: release_connection(conn)
