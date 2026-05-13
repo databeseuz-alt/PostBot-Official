@@ -5,6 +5,8 @@ from xdata_handlers.translator import get_text
 
 features_router = Router()
 
+IMPLEMENTED_FEATURES = ["smart_settings", "rich_editor", "first_reaction", "test_posts"]
+
 def get_features_keyboard():
     builder = InlineKeyboardBuilder()
     
@@ -51,12 +53,28 @@ async def callback_show_features(callback: types.CallbackQuery):
     await callback.message.edit_text(text, reply_markup=get_features_keyboard())
     await callback.answer()
 
-def get_navigation_keyboard():
+def get_navigation_keyboard(current_feature: str):
     builder = InlineKeyboardBuilder()
-    builder.row(
-        InlineKeyboardButton(text="← Oldingi", callback_data="feat_nav:prev"),
-        InlineKeyboardButton(text="Keyingi →", callback_data="feat_nav:next")
-    )
+    
+    try:
+        idx = IMPLEMENTED_FEATURES.index(current_feature)
+        prev_idx = (idx - 1) % len(IMPLEMENTED_FEATURES)
+        next_idx = (idx + 1) % len(IMPLEMENTED_FEATURES)
+        
+        prev_feat = IMPLEMENTED_FEATURES[prev_idx]
+        next_feat = IMPLEMENTED_FEATURES[next_idx]
+        
+        builder.row(
+            InlineKeyboardButton(text="← Oldingi", callback_data=f"feat:{prev_feat}"),
+            InlineKeyboardButton(text="Keyingi →", callback_data=f"feat:{next_feat}")
+        )
+    except ValueError:
+        # If not in implemented list, just show static buttons or back
+        builder.row(
+            InlineKeyboardButton(text="← Oldingi", callback_data="show_features"),
+            InlineKeyboardButton(text="Keyingi →", callback_data="show_features")
+        )
+
     builder.row(InlineKeyboardButton(text="Barcha xususiyatlar ↓", callback_data="show_features"))
     builder.row(InlineKeyboardButton(text="Boshlash 🚀", callback_data="start_bot"))
     return builder.as_markup()
@@ -64,6 +82,8 @@ def get_navigation_keyboard():
 @features_router.callback_query(F.data.startswith("feat:"))
 async def handle_feature_details(callback: types.CallbackQuery):
     feature = callback.data.split(":")[1]
+    bot_user = await callback.bot.get_me()
+    guide_url = f"https://t.me/{bot_user.username}"
     
     content = ""
     if feature == "smart_settings":
@@ -79,7 +99,7 @@ async def handle_feature_details(callback: types.CallbackQuery):
             "✅ birinchi reaksiya\n"
             "✅ barcha nashr sozlamalari\n\n"
             "🔥 Hatto postni bir nechta kanallarga nusxa ko'chirsangiz ham, har biri o'z sozlamalarini saqlab qoladi.\n\n"
-            "👉 <a href='https://t.me/posto_uz'>Qo'llanma</a>"
+            f"👉 {guide_url}"
         )
     elif feature == "rich_editor":
         content = (
@@ -107,12 +127,12 @@ async def handle_feature_details(callback: types.CallbackQuery):
             "Hikoyaning oxirini yoki ichidagi bonusni yashiring — yoki postingizni rasm bilan qiziqarli testga aylantiring. Obunachi darhol to'g'ri yoki noto'g'ri ekanligini, boshqalar qanchalik bir xil variantni tanlaganini ko'radi va to'liq 📊 statistikani ochishi mumkin.\n\n"
             "Obuna yoki ko'tarilishsiz, bularning barchasi yashirin bo'lib qoladi.\n\n"
             "Ba'zilar uchun bu o'yin va hayajon. Boshqalar uchun — qiziqish. Siz uchun — kanal o'sishi!\n\n"
-            "👉 <a href='https://t.me/posto_uz'>Qo'llanma</a>"
+            f"👉 {guide_url}"
         )
     else:
         content = f"<b>{feature.replace('_', ' ').title()}</b> xususiyati haqida ma'lumot tez orada qo'shiladi."
 
-    await callback.message.edit_text(content, reply_markup=get_navigation_keyboard(), disable_web_page_preview=True)
+    await callback.message.edit_text(content, reply_markup=get_navigation_keyboard(feature), disable_web_page_preview=True)
     await callback.answer()
 
 @features_router.callback_query(F.data == "start_bot")
