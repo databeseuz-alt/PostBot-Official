@@ -7,15 +7,31 @@ logger = logging.getLogger(__name__)
 
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import (
-    get_user_language, get_user_bot_settings, update_user_bot_settings
+    get_user_language, get_user_bot_settings, update_user_bot_settings,
+    set_user_timezone
 )
 from post_handlers.xinline_keyboard import (
     create_settings_main_keyboard, 
     create_settings_interface_keyboard,
     create_settings_channel_list_conf_keyboard,
     create_settings_folders_keyboard,
-    create_settings_post_edit_keyboard
+    create_settings_post_edit_keyboard,
+    create_timezone_alphabet_keyboard,
+    create_country_selection_keyboard,
+    create_city_selection_keyboard
 )
+
+import datetime
+import pytz
+
+def get_tz_display(tz_name: str):
+    try:
+        tz = pytz.timezone(tz_name)
+        now = datetime.datetime.now(tz)
+        city = tz_name.split('/')[-1].replace('_', ' ')
+        return f"{city} ({now.strftime('%H:%M')})"
+    except:
+        return f"{tz_name} (00:00)"
 
 settings_router = Router()
 
@@ -24,8 +40,9 @@ async def command_settings_handler(message: types.Message):
     """Asosiy sozlamalar menyusini ko'rsatadi."""
     user_id = message.from_user.id
     lang = await get_user_language(user_id)
-    # Mock timezone for now
-    timezone_str = "Tashkent (23:37)" 
+    settings = await get_user_bot_settings(user_id)
+    tz_name = settings.get('timezone', 'Asia/Tashkent')
+    timezone_str = get_tz_display(tz_name)
 
     await message.answer(
         get_text('settings_menu_msg', lang),
@@ -34,8 +51,12 @@ async def command_settings_handler(message: types.Message):
 
 @settings_router.callback_query(F.data == "back_to_settings_main")
 async def settings_back_to_main(callback: types.CallbackQuery):
-    lang = await get_user_language(callback.from_user.id)
-    timezone_str = "Tashkent (23:37)"
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    settings = await get_user_bot_settings(user_id)
+    tz_name = settings.get('timezone', 'Asia/Tashkent')
+    timezone_str = get_tz_display(tz_name)
+    
     await callback.message.edit_text(
         get_text('settings_menu_msg', lang),
         reply_markup=create_settings_main_keyboard(lang=lang, timezone_str=timezone_str)
@@ -167,8 +188,12 @@ async def settings_add_channel_menu(callback: types.CallbackQuery):
 
 @settings_router.callback_query(F.data == "settings_timezone")
 async def settings_timezone_menu(callback: types.CallbackQuery):
-    lang = await get_user_language(callback.from_user.id)
-    text = "🌎 <b>Vaqt mintaqasi</b>\n\nHozirgi vaqt mintaqasi <code>Asia/Tashkent</code> qilib o'rnatilgan."
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    settings = await get_user_bot_settings(user_id)
+    tz_name = settings.get('timezone', 'Asia/Tashkent')
+    
+    text = f"🌎 <b>Vaqt mintaqasi</b>\n\nHozirgi vaqt mintaqasi <code>{tz_name}</code> qilib o'rnatilgan."
 
     from post_handlers.xinline_keyboard import create_timezone_keyboard
     await callback.message.edit_text(text, reply_markup=create_timezone_keyboard(lang=lang), parse_mode="HTML")
@@ -179,6 +204,39 @@ async def settings_change_timezone_alphabet(callback: types.CallbackQuery):
     lang = await get_user_language(callback.from_user.id)
     text = "Mamlakat nomi qaysi harf bilan boshlanishini tanlang:"
 
-    from post_handlers.xinline_keyboard import create_timezone_alphabet_keyboard
     await callback.message.edit_text(text, reply_markup=create_timezone_alphabet_keyboard(lang=lang))
+    await callback.answer()
+
+@settings_router.callback_query(F.data.startswith("tz_letter:"))
+async def settings_timezone_letter_selected(callback: types.CallbackQuery):
+    lang = await get_user_language(callback.from_user.id)
+    letter = callback.data.split(":")[1]
+    text = f"<b>{letter}</b> harfiga mos mamlakatni tanlang:"
+    
+    await callback.message.edit_text(text, reply_markup=create_country_selection_keyboard(letter, lang=lang))
+    await callback.answer()
+
+@settings_router.callback_query(F.data.startswith("tz_country:"))
+async def settings_timezone_country_selected(callback: types.CallbackQuery):
+    lang = await get_user_language(callback.from_user.id)
+    country_code = callback.data.split(":")[1]
+    import pytz
+    country_name = pytz.country_names.get(country_code, country_code)
+    text = f"<b>{country_name}</b> uchun vaqt mintaqasini tanlang:"
+    
+    await callback.message.edit_text(text, reply_markup=create_city_selection_keyboard(country_code, lang=lang))
+    await callback.answer()
+
+@settings_router.callback_query(F.data.startswith("tz_set:"))
+async def settings_timezone_set(callback: types.CallbackQuery):
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    tz_name = callback.data.split(":")[1]
+    
+    await set_user_timezone(user_id, tz_name)
+    
+    await callback.message.edit_text(
+        f"✅ Vaqt mintaqasi <code>{tz_name}</code> ga o'zgartirildi!",
+        reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="← Orqaga", callback_data="settings_timezone")]])
+    )
     await callback.answer()

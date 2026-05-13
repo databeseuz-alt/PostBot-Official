@@ -488,14 +488,50 @@ def create_timezone_keyboard(lang: str = 'uzl'):
     return builder.as_markup()
 
 def create_timezone_alphabet_keyboard(lang: str = 'uzl'):
-    """Mamlakatni tanlash uchun harflar ro'yxati."""
+    """Mamlakatni tanlash uchun harflar ro'yxati (X harfisiz)."""
     import string
     builder = InlineKeyboardBuilder()
-    for letter in string.ascii_uppercase:
+    alphabet = [l for l in string.ascii_uppercase if l != 'X']
+    for letter in alphabet:
         builder.button(text=letter, callback_data=f"tz_letter:{letter}")
 
     builder.button(text="🔙 Orqaga", callback_data="settings_timezone")
-    builder.adjust(5, 5, 5, 5, 5, 1, 1)
+    builder.adjust(5, 5, 5, 5, 5, 1)
+    return builder.as_markup()
+
+def create_country_selection_keyboard(letter: str, lang: str = 'uzl'):
+    """Harfga mos davlatlar ro'yxati."""
+    import pytz
+    builder = InlineKeyboardBuilder()
+    
+    countries = []
+    for code, name in pytz.country_names.items():
+        if name.startswith(letter):
+            countries.append((code, name))
+    
+    countries.sort(key=lambda x: x[1])
+    
+    for code, name in countries:
+        builder.button(text=name, callback_data=f"tz_country:{code}")
+    
+    builder.button(text="← Orqaga", callback_data="change_timezone_alphabet")
+    builder.adjust(2)
+    return builder.as_markup()
+
+def create_city_selection_keyboard(country_code: str, lang: str = 'uzl'):
+    """Davlatdagi shaharlar (vaqt mintaqalari) ro'yxati."""
+    import pytz
+    builder = InlineKeyboardBuilder()
+    
+    timezones = pytz.country_timezones.get(country_code, [])
+    
+    for tz in timezones:
+        # Display name usually Asia/Tashkent -> Tashkent
+        display_name = tz.split('/')[-1].replace('_', ' ')
+        builder.button(text=tz, callback_data=f"tz_set:{tz}")
+    
+    builder.button(text="← Orqaga", callback_data=f"tz_letter:{pytz.country_names[country_code][0]}")
+    builder.adjust(2)
     return builder.as_markup()
 
 def get_done_inline_keyboard(lang: str = 'uzl'):

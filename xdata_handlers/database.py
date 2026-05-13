@@ -620,16 +620,18 @@ async def get_user_bot_settings(user_id: int) -> Dict:
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT ai_assistant_enabled, interface_settings
+                SELECT ai_assistant_enabled, interface_settings, timezone
                 FROM bot_settings WHERE user_id = %s
             """, (user_id,))
             result = cursor.fetchone()
             if result:
                 settings = result[1] or {}
                 settings['ai_assistant_enabled'] = result[0] or False
+                settings['timezone'] = result[2] or 'Asia/Tashkent'
                 return settings
             return {
-                'ai_assistant_enabled': False
+                'ai_assistant_enabled': False,
+                'timezone': 'Asia/Tashkent'
             }
         except Exception as e:
             # Column might not exist yet, try to add it
@@ -637,6 +639,7 @@ async def get_user_bot_settings(user_id: int) -> Dict:
                 conn = get_connection()
                 cursor = conn.cursor()
                 cursor.execute("ALTER TABLE bot_settings ADD COLUMN IF NOT EXISTS interface_settings JSONB DEFAULT '{}'")
+                cursor.execute("ALTER TABLE bot_settings ADD COLUMN IF NOT EXISTS timezone VARCHAR(50) DEFAULT 'Asia/Tashkent'")
                 conn.commit()
             except Exception:
                 pass
@@ -781,6 +784,27 @@ async def mark_scheduled_post_as_sent(post_id: int) -> bool:
             return True
         except Exception:
 
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+async def set_user_timezone(user_id: int, timezone_str: str) -> bool:
+    """Foydalanuvchi vaqt mintaqasini o'rnatadi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO bot_settings (user_id, timezone)
+                VALUES (%s, %s)
+                ON CONFLICT (user_id) DO UPDATE SET timezone = EXCLUDED.timezone;
+            """, (user_id, timezone_str))
+            conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"set_user_timezone error: {e}")
             return False
         finally:
             if conn: release_connection(conn)
