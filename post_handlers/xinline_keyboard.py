@@ -335,12 +335,104 @@ def get_button_type_reply_kb(lang: str):
     builder.adjust(3, 1)
     return builder.as_markup(resize_keyboard=True)
 
-def create_settings_main_keyboard(lang: str = 'uzl'):
+def create_settings_main_keyboard(lang: str = 'uzl', timezone_str: str = "Tashkent (00:00)"):
     """Asosiy sozlamalar menyusi."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="vaqt mintaqasi: Toshkent (00:00)", callback_data="settings_timezone")
-    builder.button(text=get_text('ai_assistant_btn', lang), callback_data="settings_ai_assistant")
-    builder.adjust(1)
+    # Row 1: Interfeys & Taxrirchilar
+    builder.row(
+        InlineKeyboardButton(text="⌨️ Interfeys", callback_data="settings_interface"),
+        InlineKeyboardButton(text="👥 Taxrirchilar", callback_data="settings_editors")
+    )
+    # Row 2: Vaqt mintaqasi
+    builder.row(InlineKeyboardButton(text=f"🕒 Vaqt mintaqasi: {timezone_str}", callback_data="settings_timezone"))
+    # Row 3: mybots
+    builder.row(InlineKeyboardButton(text="📢 mybots", callback_data="settings_mybots"))
+    # Row 4: Post Shablonlari
+    builder.row(InlineKeyboardButton(text="📂 Post Shablonlari", callback_data="settings_templates"))
+    # Row 5: Yangi kanal / guruh
+    builder.row(InlineKeyboardButton(text="➕ Yangi kanal / guruh", callback_data="settings_add_channel"))
+    
+    return builder.as_markup()
+
+def create_settings_interface_keyboard(lang: str = 'uzl'):
+    """Interfeys sozlamalari menyusi."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="📂 Papkalar", callback_data="settings_folders"))
+    builder.row(InlineKeyboardButton(text="📢 Kanallar", callback_data="settings_channel_list_conf"))
+    builder.row(InlineKeyboardButton(text="📝 Post Tahrirlash", callback_data="settings_post_edit"))
+    builder.row(InlineKeyboardButton(text="✅ Nashrni tasdiqlash", callback_data="settings_confirm_publish"))
+    
+    builder.row(
+        InlineKeyboardButton(text="← Orqaga", callback_data="back_to_settings_main"),
+        InlineKeyboardButton(text="Ko'proq ↓", callback_data="settings_interface_more")
+    )
+    builder.adjust(1, 1, 1, 1, 2)
+    return builder.as_markup()
+
+def create_settings_channel_list_conf_keyboard(lang: str = 'uzl'):
+    """Kanal ro'yxati sozlamalari."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="⇅ Kanal tartibi", callback_data="settings_channel_sort"))
+    builder.row(InlineKeyboardButton(text="Sahifadagi kanallar soni: 20", callback_data="settings_channels_per_page"))
+    builder.row(InlineKeyboardButton(text="← Orqaga", callback_data="settings_interface"))
+    return builder.as_markup()
+
+def create_settings_folders_keyboard(lang: str = 'uzl'):
+    """Papkalar sozlamalari."""
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="← Orqaga", callback_data="settings_interface"))
+    return builder.as_markup()
+
+def create_settings_post_edit_keyboard(settings: dict, lang: str = 'uzl'):
+    """Post tahrirlash sozlamalari (Checkboxes)."""
+    builder = InlineKeyboardBuilder()
+    
+    # Checkbox logic
+    def get_cb(key):
+        return "✅" if settings.get(key) else "⬜️"
+
+    options = [
+        ("Guruhli tahrirlash", "edit_bulk", "edit_bulk_timer"),
+        ("Avto-o'chirish taymeri", "edit_auto_del", "edit_auto_del"),
+        ("Mahkamlash", "edit_pin", "edit_silent"),
+        ("Ovozni o'chirish", "edit_silent", "edit_silent"),
+        ("Himoya qilish", "edit_protect", "edit_reply"),
+        ("Javob berish", "edit_reply", "edit_reply"),
+        ("Izohlarni o'chirish", "edit_no_comments", "edit_ai"),
+        ("AI yordamchisi", "edit_ai", "edit_ai"),
+        ("Qayta joylash", "edit_repost", "edit_replace_url"),
+        ("Havolani almashtirish", "edit_replace_url", "edit_replace_url"),
+        ("Manba krediti", "edit_credit", "edit_restore_tpl"),
+        ("Shablonni tiklash", "edit_restore_tpl", "edit_restore_tpl")
+    ]
+    
+    # The image shows 2 columns
+    # image_20 shows:
+    # Guruhli tahrirlash | Avto-o'chirish taymeri
+    # Mahkamlash         | Ovozni o'chirish
+    # Himoya qilish      | Javob berish
+    # Izohlarni o'chirish| AI yordamchisi
+    # Qayta joylash      | Havolani almashtirish
+    # Manba krediti      | Shablonni tiklash
+
+    # Let's map them properly
+    rows = [
+        [("Guruhli tahrirlash", "edit_bulk"), ("Avto-o'chirish taymeri", "edit_auto_del")],
+        [("Mahkamlash", "edit_pin"), ("Ovozni o'chirish", "edit_silent")],
+        [("Himoya qilish", "edit_protect"), ("Javob berish", "edit_reply")],
+        [("Izohlarni o'chirish", "edit_no_comments"), ("AI yordamchisi", "edit_ai")],
+        [("Qayta joylash", "edit_repost"), ("Havolani almashtirish", "edit_replace_url")],
+        [("Manba krediti", "edit_credit"), ("Shablonni tiklash", "edit_restore_tpl")]
+    ]
+
+    for row in rows:
+        btn_row = []
+        for text, key in row:
+            cb = get_cb(key)
+            btn_row.append(InlineKeyboardButton(text=f"{cb} {text}", callback_data=f"set_edit:{key}"))
+        builder.row(*btn_row)
+
+    builder.row(InlineKeyboardButton(text="← Orqaga", callback_data="settings_interface"))
     return builder.as_markup()
 
 def get_media_settings_inline_kb(lang: str, has_spoiler: bool = False, is_paid: bool = False, show_caption_above: bool = False, has_caption: bool = True, content_type: str = 'photo', paid_price: int = 1):
