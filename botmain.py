@@ -62,6 +62,11 @@ def home():
     bot_username = getattr(config, 'BOT_USERNAME', 'posto_robot')
     return render_template('index.html', bot_username=bot_username)
 
+@app.route('/simulator')
+def simulator():
+    bot_username = getattr(config, 'BOT_USERNAME', 'posto_robot')
+    return render_template('simulator.html', bot_username=bot_username)
+
 @app.route('/api/stats')
 def get_stats():
     try:
