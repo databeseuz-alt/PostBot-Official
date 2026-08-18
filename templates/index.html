@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PostBot — Telegram Kanallar Uchun #1 Boshqaruv & Avtomatlashtirish Boti</title>
+  <meta name="description" content="PostBot — Telegram kanallarni boshqarish, postlarni rejalashtirish, AI yordamchi, suv belgilari, avto imzo va turbo rejim bilan avtomatlashtirishning eng kuchli yechimi.">
+  <meta name="keywords" content="PostBot, Telegram Bot, Telegram Kanal Boshqaruvi, AI Post Yozish, Avto Imzo, Suv Belgisi, Telegram Post Scheduler">
+  
+  <!-- OpenGraph / Social Meta Tags -->
+  <meta property="og:title" content="PostBot — Professional Telegram Channel Management">
+  <meta property="og:description" content="Kanal postlarini rejalashtiring, AI yordamida sayqallang, suv belgilari qo'ying va turbo rejimda nashr qiling.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="/static/images/og-preview.png">
+
+  <!-- Favicon & Fonts -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚀</text></svg>">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+  <!-- Ambient Grid Background -->
+  <div class="bg-grid"></div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Navigation Bar -->
+  <header class="navbar">
+    <div class="container nav-container">
+      <a href="#" class="logo">
+        <div class="logo-icon">
+          <i class="fab fa-telegram-plane"></i>
+        </div>
+        <div class="logo-text">Post<span>Bot</span></div>
+      </a>
+
+      <ul class="nav-links" id="nav-links">
+        <li><a href="#features" data-i18n="nav_features">Imkoniyatlar</a></li>
+        <li><a href="#simulator" data-i18n="nav_simulator">Jonli Simulyator</a></li>
+        <li><a href="#steps" data-i18n="nav_guide">Qo'llanma</a></li>
+        <li><a href="#stats" data-i18n="nav_stats">Statistika</a></li>
+        <li><a href="#faq" data-i18n="nav_faq">FAQ</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <!-- Language Switcher -->
+        <div class="lang-selector">
+          <button class="lang-btn" id="lang-btn">
+            <span id="current-lang-label">🇺🇿 O'zbekcha</span>
+            <i class="fas fa-chevron-down" style="font-size: 0.75rem;"></i>
+          </button>
+          <div class="lang-dropdown" id="lang-dropdown">
+            <div class="lang-option selected" data-lang="uz">🇺🇿 O'zbekcha</div>
+            <div class="lang-option" data-lang="ru">🇷🇺 Русский</div>
+            <div class="lang-option" data-lang="en">🇬🇧 English</div>
+          </div>
+        </div>
+
+        <a href="https://t.me/{{ bot_username or 'posto_robot' }}" target="_blank" class="btn btn-primary btn-sm">
+          <i class="fab fa-telegram-plane"></i>
+          <span data-i18n="nav_open_bot">Botga o'tish 🚀</span>
+        </a>
+
+        <button class="mobile-toggle" id="mobile-toggle" aria-label="Toggle Menu">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container">
+      <div class="hero-badge">
+        <i class="fas fa-bolt"></i>
+        <span data-i18n="hero_badge">⚡ Telegram Kanallar Uchun #1 Boshqaruv & Avtomatlashtirish Boti</span>
+      </div>
+
+      <h1 class="hero-title">
+        <span data-i18n="hero_title_1">Telegram Kanallaringizni </span>
+        <span class="gradient-text" data-i18n="hero_title_accent">Professional Darajada</span>
+        <span data-i18n="hero_title_2"> Boshqaring</span>
+      </h1>
+
+      <p class="hero-desc" data-i18n="hero_desc">
+        Rich postlar, ChatGPT/Gemini AI tahrirchisi, avto imzo, suv belgilari, rejalashtirilgan nashr, turbo rejim va ko'p kanalli boshqaruv — barchasi bitta qulay botda.
+      </p>
+
+      <div class="hero-cta">
+        <a href="https://t.me/{{ bot_username or 'posto_robot' }}" target="_blank" class="btn btn-primary">
+          <i class="fab fa-telegram-plane"></i>
+          <span data-i18n="hero_btn_start">Botni ishga tushirish (Bepul)</span>
+        </a>
+        <a href="#simulator" class="btn btn-secondary">
+          <i class="fas fa-play-circle"></i>
+          <span data-i18n="hero_btn_demo">Jonli Post Simulyatori 🎮</span>
+        </a>
+      </div>
+
+      <div class="hero-pills">
+        <div class="pill-item">
+          <i class="fas fa-brain"></i>
+          <span data-i18n="hero_pill_ai">ChatGPT & Gemini AI Integratsiyasi</span>
+        </div>
+        <div class="pill-item">
+          <i class="fas fa-cubes"></i>
+          <span data-i18n="hero_pill_features">20+ Kuchli Professional Funksiyalar</span>
+        </div>
+        <div class="pill-item">
+          <i class="fas fa-shield-alt"></i>
+          <span data-i18n="hero_pill_speed">Tezkor, Ishonchli va Xavfsiz</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Post Builder & Live Simulator Section -->
+  <section class="section" id="simulator">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="sim_tag">INTERAKTIV NAMOYISH</span>
+        <h2 class="section-title" data-i18n="sim_title">Post Tayyorlash Simulyatori</h2>
+        <p class="section-subtitle" data-i18n="sim_subtitle">
+          Post yarating, tugmalar qo'shing, AI bilan sayqallang va Telegramda qanday ko'rinishini jonli ko'ring.
+        </p>
+      </div>
+
+      <div class="simulator-container">
+        <!-- Editor Controls Pane -->
+        <div class="editor-pane">
+          <div class="editor-header">
+            <h3><i class="fas fa-sliders-h" style="color: var(--accent-cyan);"></i> Post Sozlamalari</h3>
+            <div class="tab-group">
+              <button class="tab-btn active" data-i18n="sim_tab_standard">Oddiy Post</button>
+              <button class="tab-btn" data-i18n="sim_tab_media">Rasm & Media</button>
+              <button class="tab-btn" data-i18n="sim_tab_poll">Viktorina</button>
+            </div>
+          </div>
+
+          <!-- Formatting Toolbar -->
+          <div class="format-toolbar">
+            <button class="tool-btn" data-tag="b"><i class="fas fa-bold"></i> <span data-i18n="sim_btn_bold">Qalin (B)</span></button>
+            <button class="tool-btn" data-tag="i"><i class="fas fa-italic"></i> <span data-i18n="sim_btn_italic">Kursiv (I)</span></button>
+            <button class="tool-btn" data-tag="a"><i class="fas fa-link"></i> <span data-i18n="sim_btn_link">Havola</span></button>
+            <button class="tool-btn" data-tag="tg-spoiler"><i class="fas fa-eye-slash"></i> <span data-i18n="sim_btn_spoiler">Spoiler</span></button>
+          </div>
+
+          <!-- Post Content Area -->
+          <div class="form-group">
+            <label class="form-label" for="sim-post-text">
+              <span data-i18n="sim_label_text">Post Matni (HTML/Emoji)</span>
+              <span style="font-size: 0.75rem; color: var(--accent-cyan);"><i class="fas fa-code"></i> HTML qo'llab-quvvatlanadi</span>
+            </label>
+            <textarea id="sim-post-text" class="form-textarea" rows="4" data-i18n="sim_placeholder_text" placeholder="Post matnini shu yerga yozing...&#10;&#10;🔥 PostBot bilan kanalingizni rivojlantiring!&#10;👉 Batafsil quyidagi tugmada:">🔥 <b>PostBot</b> — Telegram kanallarni boshqarish bo'yicha eng kuchli platforma!
+
+✅ <b>Asosiy afzalliklari:</b>
+• Avtomatik imzo va suv belgilari
+• ChatGPT & Gemini AI integratsiyasi
+• 10+ kanallarga bir vaqtda nashr qilish
+• Aqlli jadval va takroriy postlar
+
+👇 <i>Batafsil ma'lumot olish uchun quyidagi tugmani bosing:</i></textarea>
+          </div>
+
+          <!-- AI Magic Button -->
+          <div class="ai-actions">
+            <button class="btn-ai" id="btn-ai-enhance">
+              <i class="fas fa-magic"></i>
+              <span data-i18n="sim_ai_btn">✨ AI bilan mukammallashtirish</span>
+            </button>
+          </div>
+
+          <!-- Inline Button Field -->
+          <div class="form-group">
+            <label class="form-label" for="sim-btn-text" data-i18n="sim_label_button">Inline Tugma (Nomi | Havola)</label>
+            <input type="text" id="sim-btn-text" class="form-input" value="Batafsil ma'lumot 🔗" placeholder="Masalan: Kanalga a'zo bo'lish ➡️">
+          </div>
+
+          <!-- Toggles (Signature, Watermark, Media) -->
+          <div class="toggle-grid">
+            <div class="toggle-item">
+              <span data-i18n="sim_label_sig">Avtomatik Imzo</span>
+              <label class="switch">
+                <input type="checkbox" id="toggle-sig" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="toggle-item">
+              <span data-i18n="sim_label_wm">Suv Belgisi (Watermark)</span>
+              <label class="switch">
+                <input type="checkbox" id="toggle-wm" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="toggle-item">
+              <span>Rasm / Media Ko'rsatish</span>
+              <label class="switch">
+                <input type="checkbox" id="toggle-media" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <input type="text" id="sim-sig-text" class="form-input" value="👉 @Posto_News | Barcha huquqlar himoyalangan" placeholder="Kanal imzosi">
+          </div>
+
+          <div class="form-group">
+            <input type="text" id="sim-wm-text" class="form-input" value="@Posto_News" placeholder="Suv belgisi matni">
+          </div>
+        </div>
+
+        <!-- Live Telegram Channel Preview Pane -->
+        <div class="preview-pane">
+          <div class="tg-header">
+            <div class="tg-channel-info">
+              <div class="tg-avatar">PB</div>
+              <div>
+                <div class="tg-channel-name" data-i18n="tg_channel_title">Mening Telegram Kanalim</div>
+                <div class="tg-channel-sub" data-i18n="tg_subscribers">12,450 obunachi</div>
+              </div>
+            </div>
+            <div style="color: #708499; cursor: pointer;"><i class="fas fa-ellipsis-v"></i></div>
+          </div>
+
+          <div class="tg-body">
+            <div class="tg-message-bubble">
+              <!-- Media Preview -->
+              <div class="tg-media-preview" id="tg-media-preview">
+                <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=80" alt="Telegram Post Media">
+                <div class="tg-watermark-overlay" id="tg-watermark">
+                  <i class="fas fa-shield-alt"></i> @Posto_News
+                </div>
+              </div>
+
+              <!-- Message Body -->
+              <div class="tg-msg-text" id="tg-msg-text"></div>
+
+              <!-- Signature -->
+              <div class="tg-signature" id="tg-signature">
+                👉 @Posto_News | Barcha huquqlar himoyalangan
+              </div>
+
+              <!-- Meta Time & Views -->
+              <div class="tg-meta">
+                <span>1,240 <i class="fas fa-eye"></i></span>
+                <span>01:45</span>
+              </div>
+            </div>
+
+            <!-- Inline Buttons -->
+            <div class="tg-inline-buttons" id="tg-buttons-container">
+              <div class="tg-btn-row">
+                <div class="tg-inline-btn" id="tg-inline-btn">
+                  Batafsil ma'lumot 🔗
+                </div>
+              </div>
+            </div>
+
+            <!-- Reaction Chips -->
+            <div class="tg-reactions-row">
+              <div class="tg-reaction-chip active">
+                <span>❤️</span> <span class="count">48</span>
+              </div>
+              <div class="tg-reaction-chip">
+                <span>🔥</span> <span class="count">92</span>
+              </div>
+              <div class="tg-reaction-chip">
+                <span>👍</span> <span class="count">31</span>
+              </div>
+              <div class="tg-reaction-chip">
+                <span>🚀</span> <span class="count">64</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Core Features Section -->
+  <section class="section" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="feat_tag">IMKONIYATLAR</span>
+        <h2 class="section-title" data-i18n="feat_title">Telegramdagi Eng Boy Funksiyalar To'plami</h2>
+        <p class="section-subtitle" data-i18n="feat_subtitle">
+          Kanal administratorlari, marketologlar va kontent mualliflari uchun barcha qulayliklar bitta joyda.
+        </p>
+      </div>
+
+      <!-- Category Filter Tabs -->
+      <div class="features-filters">
+        <button class="filter-btn active" data-filter="all" data-i18n="filter_all">Barchasi (20+)</button>
+        <button class="filter-btn" data-filter="content" data-i18n="filter_content">Kontent & Media</button>
+        <button class="filter-btn" data-filter="ai" data-i18n="filter_ai">AI & Avtomatlashtirish</button>
+        <button class="filter-btn" data-filter="ads" data-i18n="filter_ads">Reklama & Kanallar</button>
+      </div>
+
+      <!-- Feature Cards Grid -->
+      <div class="features-grid" id="features-grid">
+        <!-- 1. Rich Editor -->
+        <div class="feature-card" data-category="content">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-feather-alt"></i></div>
+            <span class="feature-badge">Yangi</span>
+          </div>
+          <h3 class="feature-title">Boy Tahrirchi (Rich Editor)</h3>
+          <p class="feature-desc">Postlaringizni to'liq erkinlik bilan loyihalang: ko'p xabarlar, albomlar tartibini o'zgartirish, spoilerlar va media sozlamalari.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Albomlarda mediani almashtirish va saralash</li>
+            <li><i class="fas fa-check"></i> Tugmalarni to'liq boshqarish va qayta tartiblash</li>
+            <li><i class="fas fa-check"></i> Spoiler va pullik ko'rinish imkoniyati</li>
+          </ul>
+        </div>
+
+        <!-- 2. AI Assistant -->
+        <div class="feature-card" data-category="ai">
+          <div class="feature-top">
+            <div class="feature-icon" style="color: #ff007a; background: rgba(255, 0, 122, 0.1); border-color: rgba(255, 0, 122, 0.2);"><i class="fas fa-robot"></i></div>
+            <span class="feature-badge" style="color: #ff007a; border-color: rgba(255, 0, 122, 0.3);">AI Powered</span>
+          </div>
+          <h3 class="feature-title">AI Yordamchisi (Gemini & ChatGPT)</h3>
+          <p class="feature-desc">Matnni yuboring — AI uni qayta yozadi, xatolarni to'g'rilaydi, emojilar bilan boyitadi va bir necha tilga tarjima qiladi.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Grammatik xatolarni bir zumda tuzatish</li>
+            <li><i class="fas fa-check"></i> 10+ tillarga professional avtomatik tarjima</li>
+            <li><i class="fas fa-check"></i> Post uchun jalb qiluvchi sarlavha va emojilar</li>
+          </ul>
+        </div>
+
+        <!-- 3. Watermark -->
+        <div class="feature-card" data-category="content">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-water"></i></div>
+            <span class="feature-badge">Himoya</span>
+          </div>
+          <h3 class="feature-title">Suv Belgilari (Watermarks)</h3>
+          <p class="feature-desc">Postlaringiz o'g'irlanishining oldini oling. Rasm, video va GIF fayllarga avtomatik matnli yoki logotipli suv belgilari qo'ying.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Shaffoflik, o'lcham va joylashuvni tanlash</li>
+            <li><i class="fas fa-check"></i> Turli xil shriftlar va ranglar palitrasi</li>
+            <li><i class="fas fa-check"></i> Videolarda harakatlanuvchi animatsiyali belgi</li>
+          </ul>
+        </div>
+
+        <!-- 4. Turbo Mode -->
+        <div class="feature-card" data-category="ai">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-rocket"></i></div>
+            <span class="feature-badge">Eksklyuziv</span>
+          </div>
+          <h3 class="feature-title">Turbo Rejim (Zero-Click)</h3>
+          <p class="feature-desc">Botga qoralama matnlarni tashlang — bot shabloningiz bo'yicha ularni tugmalar, imzo va suv belgisi bilan tayyor postga aylantiradi.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Hech qanday ortiqcha bosishlarsiz tayyor post</li>
+            <li><i class="fas fa-check"></i> Bir zumda yoki jadval bo'yicha ketma-ket chiqarish</li>
+            <li><i class="fas fa-check"></i> Qoralamalarni ommaviy qayta ishlash</li>
+          </ul>
+        </div>
+
+        <!-- 5. Multi-Post -->
+        <div class="feature-card" data-category="ads">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-layer-group"></i></div>
+            <span class="feature-badge">Tarmoq</span>
+          </div>
+          <h3 class="feature-title">Ko'p-Post Qilish (Multi-Posting)</h3>
+          <p class="feature-desc">Bitta postni bir vaqtning o'zida 10+ kanallarga yuboring. Har bir kanal o'zining individual imzosi, tili va suv belgisini oladi.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Har bir kanal uchun alohida tugmalar & havolalar</li>
+            <li><i class="fas fa-check"></i> Avtomatik til bo'yicha moslashtirish</li>
+            <li><i class="fas fa-check"></i> Turli kanallarga turli vaqtlarda taqsimlash</li>
+          </ul>
+        </div>
+
+        <!-- 6. Smart Scheduler -->
+        <div class="feature-card" data-category="content">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-calendar-alt"></i></div>
+            <span class="feature-badge">Avtomat</span>
+          </div>
+          <h3 class="feature-title">Aqlli Jadval & Rejalashtirish</h3>
+          <p class="feature-desc">Jadvalingizni bir marta sozlang — bot bo'sh vaqtlarni avtomatik to'ldiradi. Siz oflayn bo'lsangiz ham kanalingiz faol ishlaydi.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Hafta kunlari va soatlar bo'yicha avto-joylash</li>
+            <li><i class="fas fa-check"></i> Reklama va oddiy postlar uchun alohida slotlar</li>
+            <li><i class="fas fa-check"></i> Belgilangan vaqtda avtomatik o'chirish taymeri</li>
+          </ul>
+        </div>
+
+        <!-- 7. Sponsor & Ad Management -->
+        <div class="feature-card" data-category="ads">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-bullhorn"></i></div>
+            <span class="feature-badge">Biznes</span>
+          </div>
+          <h3 class="feature-title">Reklama & Homiy Postlari</h3>
+          <p class="feature-desc">Reklamalarni professional boshqaring: 1/24, 2/48 formatlar, "Yuqorida qolish vaqti" va mijozlar uchun ochiq hisobotlar.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Reklama yuqorida turganda yangi post chiqishini cheklash</li>
+            <li><i class="fas fa-check"></i> Slotlarni oldindan zaxiralash</li>
+            <li><i class="fas fa-check"></i> Reklama muddati tugashi bilan avto-o'chirish</li>
+          </ul>
+        </div>
+
+        <!-- 8. First Reaction & Polls -->
+        <div class="feature-card" data-category="content">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-heart"></i></div>
+            <span class="feature-badge">Interaktiv</span>
+          </div>
+          <h3 class="feature-title">Birinchi Reaksiya & Test Postlar</h3>
+          <p class="feature-desc">Post ostida darhol reaksiya qoldiring yoki o'quvchilarni jalb qiluvchi test-uslubidagi intriga postlarni yarating.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Post chiqqan soniyada avto-reaksiya bosish</li>
+            <li><i class="fas fa-check"></i> Yashirin davom va qiziqarli testlar</li>
+            <li><i class="fas fa-check"></i> Auditoriya qamrovi va ishtirokini 2 baravar oshirish</li>
+          </ul>
+        </div>
+
+        <!-- 9. Groups & Topics -->
+        <div class="feature-card" data-category="ads">
+          <div class="feature-top">
+            <div class="feature-icon"><i class="fas fa-comments"></i></div>
+            <span class="feature-badge">Guruhlar</span>
+          </div>
+          <h3 class="feature-title">Guruhlar va Mavzular (Topics)</h3>
+          <p class="feature-desc">Telegram forum guruhlarining har bir alohida mavzusi (topic) ga bevosita rejalashtirilgan postlar yuborish imkoniyati.</p>
+          <ul class="feature-list">
+            <li><i class="fas fa-check"></i> Har bir mavzu uchun alohida shablonlar</li>
+            <li><i class="fas fa-check"></i> Rejalashtirilgan takroriy e'lonlar</li>
+            <li><i class="fas fa-check"></i> Texnik xizmat xabarlarini avtomatik tozalash</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Step-by-Step Onboarding Section -->
+  <section class="section" id="steps">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="steps_tag">QADAM-BA-QADAM</span>
+        <h2 class="section-title" data-i18n="steps_title">Qanday Ishga Tushiriladi?</h2>
+        <p class="section-subtitle">Faqat 3 ta oddiy qadam orqali kanalingizni professional darajaga ko'taring.</p>
+      </div>
+
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3 class="step-title" data-i18n="step_1_title">1. Botni ishga tushiring</h3>
+          <p class="step-desc" data-i18n="step_1_desc">@PostBot ga kiring va /start buyrug'ini yuboring. O'zingizga qulay tilni tanlang.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3 class="step-title" data-i18n="step_2_title">2. Kanalga admin qiling</h3>
+          <p class="step-desc" data-i18n="step_2_desc">Botni Telegram kanalingizga qo'shing va post chiqarish huquqini bering.</p>
+        </div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3 class="step-title" data-i18n="step_3_title">3. Postlarni yarating</h3>
+          <p class="step-desc" data-i18n="step_3_desc">Shablonlar, AI yordamchi, jadval yoki turbo rejim bilan postlaringizni nashr qiling.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Statistics Dashboard Banner -->
+  <section class="section" id="stats" style="padding-top: 20px;">
+    <div class="container">
+      <div class="stats-banner">
+        <div class="stat-item">
+          <div class="stat-number" id="stat-users">15,000+</div>
+          <div class="stat-label" data-i18n="stats_users">Foydalanuvchilar</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="stat-posts">450,000+</div>
+          <div class="stat-label" data-i18n="stats_posts">Nashr etilgan postlar</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="stat-channels">8,200+</div>
+          <div class="stat-label" data-i18n="stats_channels">Ulangan kanallar</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number" id="stat-uptime">99.9%</div>
+          <div class="stat-label" data-i18n="stats_uptime">Uptime & Ishonchlilik</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ Section -->
+  <section class="section" id="faq">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag" data-i18n="faq_tag">SAVOLLARINGIZ BORMI?</span>
+        <h2 class="section-title" data-i18n="faq_title">Tez-tez Beriladigan Savollar</h2>
+      </div>
+
+      <div class="faq-grid">
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Botdan foydalanish bepulmi?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            Ha, botning barcha asosiy funksiyalari (post yaratish, rejalashtirish, suv belgilari, imzo) mutlaqo bepul. Loyihani qo'llab-quvvatlash uchun Telegram Stars donat tizimi mavjud.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Botga kanalda qanday huquqlar kerak?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            Botga faqat "Xabarlarni nashr qilish" (Post messages) va agar xizmat xabarlarini tozalashni xohlasangiz "Xabarlarni o'chirish" huquqi kifoya qiladi.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>AI Yordamchisi qaysi tillarni biladi?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            AI Yordamchisi O'zbek, Rus, Ingliz, Qozoq, Turk va boshqa 15+ jahon tillarini mukammal biladi va erkin tarjima qila oladi.
+          </div>
+        </div>
+
+        <div class="faq-item">
+          <div class="faq-question">
+            <span>Bir vaqtning o'zida nechta kanal ulash mumkin?</span>
+            <i class="fas fa-chevron-down faq-icon"></i>
+          </div>
+          <div class="faq-answer">
+            Hech qanday cheklov yo'q! Siz xohlagancha kanallarni ulab, ularni alohida yoki ko'p-post (multi-posting) tarmog'i sifatida boshqarishingiz mumkin.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Box -->
+  <section class="container">
+    <div class="cta-box">
+      <h2 data-i18n="cta_title">Kanal boshqaruvini bugunoq avtomatlashtiring</h2>
+      <p data-i18n="cta_desc">Minglab muvaffaqiyatli kanal adminlari safiga qo'shiling va vaqtingizni tejang.</p>
+      <a href="https://t.me/{{ bot_username or 'posto_robot' }}" target="_blank" class="btn btn-primary">
+        <i class="fab fa-telegram-plane"></i>
+        <span data-i18n="cta_btn">Botni Bepul Ishga Tushirish 🚀</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">
+            <div class="logo-icon"><i class="fab fa-telegram-plane"></i></div>
+            <div class="logo-text">Post<span>Bot</span></div>
+          </div>
+          <p>Telegram kanallari va guruhlarini boshqarish bo'yicha zamonaviy va professional ekotizim.</p>
+        </div>
+
+        <div class="footer-col">
+          <h4>Navigatsiya</h4>
+          <ul class="footer-links">
+            <li><a href="#features">Imkoniyatlar</a></li>
+            <li><a href="#simulator">Simulyator</a></li>
+            <li><a href="#steps">Qo'llanma</a></li>
+            <li><a href="#stats">Statistika</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Funksiyalar</h4>
+          <ul class="footer-links">
+            <li><a href="#features">AI Yordamchi</a></li>
+            <li><a href="#features">Turbo Rejim</a></li>
+            <li><a href="#features">Suv Belgilari</a></li>
+            <li><a href="#features">Aqlli Jadval</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Aloqa & Qo'llab-quvvatlash</h4>
+          <ul class="footer-links">
+            <li><a href="https://t.me/{{ bot_username or 'posto_robot' }}" target="_blank">Telegram Bot</a></li>
+            <li><a href="https://t.me/{{ bot_username or 'posto_robot' }}?start=donate" target="_blank">⭐ Telegram Stars Donat</a></li>
+            <li><a href="https://t.me/{{ bot_username or 'posto_robot' }}?start=feedback" target="_blank">Fikr-mulohaza</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>&copy; 2026 PostBot. Barcha huquqlar himoyalangan.</div>
+        <div style="display: flex; gap: 16px;">
+          <span>⚡ High-Performance Flask & Aiogram Engine</span>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
