@@ -1,9 +1,7 @@
 aiogram
 python-dotenv
-flask
 aiohttp
 psycopg2-binary
-gunicorn
 apscheduler
 pytz
 Pillow

@@ -1,8 +1,6 @@
 import asyncio
-import threading
 import os
 import logging
-from flask import Flask, render_template, jsonify, request
 
 logging.basicConfig(
     level=logging.INFO,
@@ -53,105 +51,6 @@ from user_handlers.donate_handler import donate_router
 from admin_handlers.block_handler import BlockUserMiddleware
 
 from admin_handlers.statsmiddleware import StatsMiddleware
-
-
-app = Flask(__name__, template_folder='templates', static_folder='static')
-
-@app.route('/')
-def home():
-    bot_username = getattr(config, 'BOT_USERNAME', 'posto_robot')
-    return render_template('index.html', bot_username=bot_username)
-
-@app.route('/simulator')
-def simulator():
-    bot_username = getattr(config, 'BOT_USERNAME', 'posto_robot')
-    return render_template('simulator.html', bot_username=bot_username)
-
-@app.route('/api/stats')
-def get_stats():
-    try:
-        from xdata_handlers.database import get_connection, release_connection
-        conn = get_connection()
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM users")
-        total_users = cursor.fetchone()[0] or 15200
-
-        cursor.execute("SELECT COUNT(*) FROM channels")
-        active_channels = cursor.fetchone()[0] or 8400
-
-        cursor.execute("SELECT COUNT(*) FROM posts")
-        total_posts = cursor.fetchone()[0] or 480000
-
-        release_connection(conn)
-        return jsonify({
-            'total_users': total_users,
-            'active_channels': active_channels,
-            'total_posts': total_posts,
-            'status': 'online'
-        })
-    except Exception as e:
-        logger.warning(f"/api/stats: bazadan o'qish muvaffaqiyatsiz, standart qiymatlar qaytarilmoqda: {e}")
-        return jsonify({
-            'total_users': 15200,
-            'active_channels': 8400,
-            'total_posts': 480000,
-            'status': 'online'
-        })
-
-@app.route('/api/ai-preview', methods=['POST'])
-def ai_preview():
-    data = request.get_json() or {}
-    text = data.get('text', '').strip()
-    lang = data.get('lang', 'uz')
-
-    if not text:
-        return jsonify({'error': 'Matn kiritilmadi'}), 400
-
-    # If Gemini API is available, try generating enhanced version
-    if config.GEMINI_API_KEY:
-        try:
-            from google import genai
-            client = genai.Client(api_key=config.GEMINI_API_KEY)
-            prompt = (
-                f"You are a professional Telegram channel content editor. Polish, format, and enhance this post for Telegram in {lang} language.\n"
-                f"Use Telegram-compatible HTML tags (<b>, <i>, <code>, <a>, <s>, <tg-spoiler>), include modern emojis, "
-                f"create an engaging header, structured bullet points, and a strong call-to-action.\n\n"
-                f"Input text:\n{text}\n\n"
-                f"Output ONLY the final polished HTML text without markdown fences or additional explanation."
-            )
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=prompt
-            )
-            if response and response.text:
-                return jsonify({'enhanced_text': response.text.strip()})
-        except Exception as e:
-            logger.warning(f"Gemini API preview error: {e}")
-
-    # Fallback smart formatting if no Gemini key or on error
-    lines = [l.strip() for l in text.split('\n') if l.strip()]
-    first_line = lines[0] if lines else "Eksklyuziv Yangilik"
-    
-    enhanced = (
-        f"✨ <b>{first_line}</b>\n\n"
-        f"📌 Kanalingiz auditoriyasini qamrab oluvchi professional kontent.\n\n"
-        f"✅ <b>Asosiy afzalliklari:</b>\n"
-        f"• Yuqori qiziqish va tezkor o'sish\n"
-        f"• Chiroyli formatlash va zamonaviy Telegram uslubi\n"
-        f"• Har bir detalda professional yondashuv\n\n"
-        f"💡 <i>PostBot bilan kanalingizni yangi bosqichga olib chiqing!</i>"
-    )
-    return jsonify({'enhanced_text': enhanced})
-
-@app.route('/health')
-@app.route('/ping')
-def health():
-    return jsonify({'status': 'healthy', 'timestamp': '2026-08-19T01:21:00+05:00'})
-
-def run_web_server():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
 
 async def main():
 
@@ -214,10 +113,6 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-
-    t = threading.Thread(target=run_web_server, daemon=True)
-    t.start()
-
     try:
         asyncio.run(main())
     except (KeyboardInterrupt, SystemExit):
