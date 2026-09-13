@@ -245,6 +245,12 @@ async def handle_statistics_button(event: types.Message | types.CallbackQuery, s
     from post_handlers.statistic_handler import handle_generate_statistics
     await handle_generate_statistics(event, state, bot)
 
+@start_router.message(LocalizedText('schedule_list_btn'))
+async def handle_schedule_list_button(event: types.Message, state: FSMContext, bot: Bot):
+    """Jadval tugmasi: rejalashtirilgan postlar ro'yxatini ko'rsatadi"""
+    from post_handlers.schedule_handler import show_scheduled_posts_for_message
+    await show_scheduled_posts_for_message(event, state, bot)
+
 @start_router.callback_query(F.data.startswith("lang:"))
 async def set_language_from_start(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
     """Yangi foydalanuvchi til tanlaganda ishga tushadi"""

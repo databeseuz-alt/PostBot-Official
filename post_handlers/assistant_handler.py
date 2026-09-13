@@ -11,13 +11,59 @@ from aiogram.filters import StateFilter
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from post_handlers.post_handler import PostCreation
-from post_handlers.xreply_keyboard import get_main_menu
+from post_handlers.xreply_keyboard import get_main_menu, get_post_settings_kb
 from post_handlers.localize_filter import LocalizedText
 from xdata_handlers.database import get_user_language, save_prompt, get_user_prompts, delete_prompt, get_prompt_by_id
 from xdata_handlers.translator import get_text
 from xdata_handlers import config
 
 ai_assistant_router = Router()
+
+
+def get_ai_action_keyboard(lang: str = 'uzl'):
+    """AI javobi ostidagi harakatlar klaviaturasi: postga aylantirish, qayta yozish, qisqartirish, tarjima."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('ai_make_post_btn', lang), callback_data="ai_make_post")
+    builder.button(text=get_text('ai_rewrite_btn', lang), callback_data="ai_action:rewrite")
+    builder.button(text=get_text('ai_shorten_btn', lang), callback_data="ai_action:shorten")
+    builder.button(text=get_text('ai_hashtags_btn', lang), callback_data="ai_action:hashtags")
+    builder.button(text="🌐 EN", callback_data="ai_action:translate:en")
+    builder.button(text="🌐 RU", callback_data="ai_action:translate:ru")
+    builder.button(text="🌐 UZ", callback_data="ai_action:translate:uz")
+    builder.adjust(1, 2, 2, 3)
+    return builder.as_markup()
+
+
+AI_ACTION_INSTRUCTIONS = {
+    'rewrite': (
+        "Rewrite the same post text with fresh wording: keep the meaning and key facts, "
+        "but change sentence structure and phrasing. Keep Telegram-friendly formatting "
+        "(short paragraphs, emojis) and return ONLY the rewritten post text."
+    ),
+    'shorten': (
+        "Shorten the same post text to roughly half its length while keeping the main message, "
+        "key details and a call-to-action. Keep Telegram-friendly formatting and emojis. "
+        "Return ONLY the shortened post text."
+    ),
+    'hashtags': (
+        "Take the same post text and add 5-7 relevant hashtags at the end. "
+        "Do not change the original text otherwise. Return ONLY the post text with hashtags appended."
+    ),
+}
+
+TRANSLATE_LANG_NAMES = {
+    'en': 'English',
+    'ru': 'Russian',
+    'uz': 'Uzbek (Latin script)',
+}
+
+
+def get_last_model_response(history: list) -> str | None:
+    """Chat tarixidan oxirgi AI javobini qaytaradi."""
+    for msg in reversed(history):
+        if msg.get('role') == 'model':
+            return msg.get('text')
+    return None
 
 def markdown_to_html(text: str) -> str:
     """Markdown matnni HTML formatiga o'girish."""
@@ -280,7 +326,7 @@ async def ai_assistant_process_message(message: types.Message, state: FSMContext
 
     ai_response_html = markdown_to_html(ai_response)
 
-    await message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_assistant_reply_keyboard(lang))
+    await message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_action_keyboard(lang))
 
 @ai_assistant_router.message(AIAssistant.waiting_for_user_message, ~F.text)
 async def ai_assistant_non_text(message: types.Message, state: FSMContext):
@@ -290,6 +336,105 @@ async def ai_assistant_non_text(message: types.Message, state: FSMContext):
         "⚠️ Hozircha faqat matnli xabarlar qabul qilinadi. Iltimos, matn yuboring.",
         reply_markup=get_ai_assistant_reply_keyboard(lang)
     )
+
+
+@ai_assistant_router.callback_query(F.data.startswith("ai_action:"))
+async def ai_action_handler(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    """AI javobi ustida amallar: qayta yozish, qisqartirish, hashtag, tarjima."""
+    parts = callback.data.split(":")
+    action = parts[1] if len(parts) > 1 else None
+    lang = await get_user_language(callback.from_user.id)
+
+    data = await state.get_data()
+    history = data.get('ai_history', [])
+
+    last_response = get_last_model_response(history)
+    if not last_response:
+        await callback.answer(get_text('ai_no_response_alert', lang), show_alert=True)
+        return
+
+    instruction = None
+    if action in AI_ACTION_INSTRUCTIONS:
+        instruction = AI_ACTION_INSTRUCTIONS[action]
+    elif action == 'translate':
+        target_lang = parts[2] if len(parts) > 2 else 'en'
+        lang_name = TRANSLATE_LANG_NAMES.get(target_lang, 'English')
+        instruction = (
+            f"Translate the following post text into {lang_name}. "
+            f"Keep Telegram-friendly formatting (emojis, structure) and the tone. "
+            f"Return ONLY the translated post text."
+        )
+
+    if not instruction:
+        await callback.answer(get_text('unknown_error', lang), show_alert=True)
+        return
+
+    await callback.answer("🤖 ...")
+    await bot.send_chat_action(callback.message.chat.id, "typing")
+
+    history.append({'role': 'user', 'text': instruction})
+
+    ai_response = await call_gemini_api(history)
+
+    if ai_response:
+        history.append({'role': 'model', 'text': ai_response})
+        await state.update_data(ai_history=history)
+
+    ai_response_html = markdown_to_html(ai_response)
+
+    try:
+        await callback.message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_action_keyboard(lang))
+    except Exception:
+        await callback.message.answer(ai_response, reply_markup=get_ai_action_keyboard(lang))
+
+
+@ai_assistant_router.callback_query(F.data == "ai_make_post")
+async def ai_make_post(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    """Oxirgi AI javobini post kontenti sifatida saqlaydi va oddiy post oqimiga o'tkazadi."""
+    lang = await get_user_language(callback.from_user.id)
+
+    data = await state.get_data()
+    history = data.get('ai_history', [])
+
+    last_response = get_last_model_response(history)
+    if not last_response:
+        await callback.answer(get_text('ai_no_response_alert', lang), show_alert=True)
+        return
+
+    from post_handlers.post_handler import validate_and_fix_html
+
+    try:
+        ai_text_html = markdown_to_html(last_response)
+        ai_text_html = validate_and_fix_html(ai_text_html)
+    except Exception:
+        ai_text_html = last_response
+
+    post_data = {
+        'content_type': 'text',
+        'text': ai_text_html,
+        'parse_mode': 'HTML'
+    }
+    buttons_matrix = [[{'is_placeholder': True}]]
+
+    try:
+        preview_message = await bot.send_message(
+            callback.message.chat.id,
+            ai_text_html,
+            parse_mode='HTML'
+        )
+        post_data['message_id'] = preview_message.message_id
+        post_data['chat_id'] = preview_message.chat.id
+    except Exception:
+        pass
+
+    await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+    await state.set_state(PostCreation.configuring_post)
+
+    await callback.message.answer(
+        get_text('content_received', lang),
+        reply_markup=get_post_settings_kb(content_type='text', has_caption=False, lang=lang, is_paid=False)
+    )
+    await callback.answer(get_text('ai_post_created_alert', lang))
 
 
 @ai_assistant_router.callback_query(F.data == "ai_assistant_back")
@@ -530,7 +675,7 @@ async def use_saved_prompt(callback: types.CallbackQuery, state: FSMContext, bot
 
         ai_response_html = markdown_to_html(ai_response)
 
-        await callback.message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_assistant_reply_keyboard(lang))
+        await callback.message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_action_keyboard(lang))
     else:
         await callback.answer("❌ Prompt topilmadi.")
 
@@ -568,7 +713,7 @@ async def use_saved_prompt_reply(message: types.Message, state: FSMContext, bot:
 
         ai_response_html = markdown_to_html(ai_response)
 
-        await message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_assistant_reply_keyboard(lang))
+        await message.answer(ai_response_html, parse_mode="HTML", reply_markup=get_ai_action_keyboard(lang))
 
         await state.set_state(AIAssistant.waiting_for_user_message)
     else:

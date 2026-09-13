@@ -91,6 +91,7 @@ def get_stats():
             'status': 'online'
         })
     except Exception as e:
+        logger.warning(f"/api/stats: bazadan o'qish muvaffaqiyatsiz, standart qiymatlar qaytarilmoqda: {e}")
         return jsonify({
             'total_users': 15200,
             'active_channels': 8400,
@@ -222,4 +223,6 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         pass
     except Exception:
-        pass
+        # Bot to'xtashiga sabab bo'lgan xatolikni loglaymiz
+        import traceback
+        logger.error("Bot ishdan chiqdi:\n" + traceback.format_exc())

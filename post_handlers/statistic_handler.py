@@ -18,10 +18,13 @@ from xdata_handlers.database import (
     get_user_channels, get_user_language,
     get_user_channel_statistics,
     get_all_posts_from_channel,
-    track_button_click
+    track_button_click,
+    get_user_sent_posts, get_post_detailed_stats, get_best_posting_hours
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
+
+import html as _html
 
 statistic_router = Router()
 
@@ -31,6 +34,192 @@ class AddChannelFromStatsCallback(CallbackData, prefix="add_channel_from_stats")
 
 class StatChannelSelectCallback(CallbackData, prefix="stat_ch_sel"):
     channel_id: str
+
+
+def get_stats_actions_keyboard() -> types.InlineKeyboardMarkup:
+    """Statistika rasmi ostidagi qo'shimcha tahlil tugmalari."""
+    builder = InlineKeyboardBuilder()
+    builder.button(text="📋 Postlar hisoboti", callback_data="stats_posts_report")
+    builder.button(text="⏰ Eng yaxshi vaqt", callback_data="stats_best_time")
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+def _fmt_num(n) -> str:
+    """Raqamni o'qishga qulay ko'rinishda formatlaydi."""
+    try:
+        n = int(n or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if n >= 1_000_000:
+        return f"{n / 1_000_000:.1f}M"
+    if n >= 1000:
+        return f"{n / 1000:.1f}K"
+    return str(n)
+
+
+@statistic_router.callback_query(F.data == "stats_posts_report")
+async def handle_stats_posts_report(callback: types.CallbackQuery, callback_data=None, bot: Bot = None):
+    """Foydalanuvchining yuborilgan postlari ro'yxati — batafsil hisobot uchun."""
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+
+    try:
+        sent_posts = await get_user_sent_posts(user_id)
+    except Exception as e:
+        logger.error(f"stats_posts_report xatolik: {e}")
+        sent_posts = []
+
+    if not sent_posts:
+        builder = InlineKeyboardBuilder()
+        builder.button(text=get_text('back_btn', lang), callback_data="stats_report_close")
+        builder.adjust(1)
+        await callback.message.answer(
+            get_text('stats_no_posts_msg', lang),
+            reply_markup=builder.as_markup()
+        )
+        await callback.answer()
+        return
+
+    seen_codes = set()
+    builder = InlineKeyboardBuilder()
+    shown = 0
+    for post in sent_posts:
+        code = post.get('post_code')
+        if not code or code in seen_codes:
+            continue
+        seen_codes.add(code)
+
+        channel_name = post.get('channel_name') or 'Kanal'
+        sent_at = post.get('sent_at')
+        date_str = sent_at.strftime("%d.%m") if sent_at else ""
+
+        builder.button(
+            text=f"📋 #{code} · {_html.escape(str(channel_name)[:20])} {date_str}",
+            callback_data=f"stats_post_detail:{code}"
+        )
+        shown += 1
+        if shown >= 10:
+            break
+
+    builder.button(text=get_text('back_btn', lang), callback_data="stats_report_close")
+    builder.adjust(1)
+
+    await callback.message.answer(
+        get_text('stats_posts_report_title', lang).format(count=len(seen_codes)),
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@statistic_router.callback_query(F.data.startswith("stats_post_detail:"))
+async def handle_stats_post_detail(callback: types.CallbackQuery, bot: Bot = None):
+    """Bitta post bo'yicha batafsil hisobot."""
+    post_code = callback.data.split(":")[1]
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+
+    try:
+        stats = await get_post_detailed_stats(post_code)
+    except Exception as e:
+        logger.error(f"stats_post_detail xatolik: {e}")
+        stats = {'views': 0, 'shares': 0, 'clicks': 0, 'channels_count': 0, 'reactions': [], 'published_channels': []}
+
+    lines = [
+        f"📊 <b>#{_html.escape(post_code)}</b> — {get_text('stats_post_detail_title', lang)}",
+        "",
+        f"👁 {get_text('stats_views_label', lang)}: <b>{_fmt_num(stats['views'])}</b>",
+        f"🔗 {get_text('stats_clicks_label', lang)}: <b>{_fmt_num(stats['clicks'])}</b>",
+        f"📤 {get_text('stats_shares_label', lang)}: <b>{_fmt_num(stats['shares'])}</b>",
+    ]
+
+    if stats.get('reactions'):
+        reaction_parts = [f"{r['emoji']} {r['count']}" for r in stats['reactions'][:8]]
+        lines.append("")
+        lines.append(f"❤️ {get_text('stats_reactions_label', lang)}: {' · '.join(reaction_parts)}")
+
+    if stats.get('published_channels'):
+        lines.append("")
+        lines.append(f"📍 {get_text('stats_published_label', lang)}:")
+        for ch in stats['published_channels'][:6]:
+            sent_at = ch.get('sent_at')
+            when = sent_at.strftime("%d.%m.%Y %H:%M") if sent_at else "—"
+            lines.append(f"  • {_html.escape(str(ch.get('name') or 'Kanal')[:28])} — {when}")
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('back_btn', lang), callback_data="stats_posts_report")
+    builder.adjust(1)
+
+    await callback.message.answer(
+        "\n".join(lines),
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@statistic_router.callback_query(F.data == "stats_best_time")
+async def handle_stats_best_time(callback: types.CallbackQuery, bot: Bot = None):
+    """Postlarning eng yaxshi joylashash vaqtlari tahlili."""
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+
+    try:
+        hours = await get_best_posting_hours(user_id)
+    except Exception as e:
+        logger.error(f"stats_best_time xatolik: {e}")
+        hours = []
+
+    if not hours:
+        builder = InlineKeyboardBuilder()
+        builder.button(text=get_text('back_btn', lang), callback_data="stats_report_close")
+        builder.adjust(1)
+        await callback.message.answer(
+            get_text('stats_best_time_empty', lang),
+            reply_markup=builder.as_markup()
+        )
+        await callback.answer()
+        return
+
+    lines = [
+        f"⏰ <b>{get_text('stats_best_time_title', lang)}</b>",
+        "",
+        get_text('stats_best_time_intro', lang),
+        "",
+    ]
+    medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣"]
+    for i, (hour, avg_views, posts_count) in enumerate(hours[:5]):
+        lines.append(
+            f"{medals[i]} <b>{hour:02d}:00</b> — "
+            f"{get_text('stats_avg_views_label', lang)}: <b>{_fmt_num(avg_views)}</b> "
+            f"({posts_count} {get_text('stats_posts_word', lang)})"
+        )
+
+    best_hour = hours[0][0]
+    lines.append("")
+    lines.append(get_text('stats_best_time_advice', lang).format(hour=f"{best_hour:02d}:00"))
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('back_btn', lang), callback_data="stats_report_close")
+    builder.adjust(1)
+
+    await callback.message.answer(
+        "\n".join(lines),
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@statistic_router.callback_query(F.data == "stats_report_close")
+async def handle_stats_report_close(callback: types.CallbackQuery, bot: Bot = None):
+    """Hisobot menyuni yopish."""
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await callback.answer()
 
 
 class ChannelStatDrawer:
@@ -445,7 +634,7 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
         await message.answer_photo(
             photo=input_file,
             caption=get_text('statistics_image_caption', lang),
-            reply_markup=await get_main_menu(lang, user_id)
+            reply_markup=get_stats_actions_keyboard()
         )
 
     except Exception as e:
@@ -490,7 +679,7 @@ async def handle_stat_channel_selection(callback: types.CallbackQuery, callback_
         await callback.message.answer_photo(
             photo=input_file,
             caption=get_text('statistics_image_caption', lang),
-            reply_markup=await get_main_menu(lang, user_id)
+            reply_markup=get_stats_actions_keyboard()
         )
 
     except Exception as e:

@@ -8,8 +8,9 @@ async def get_main_menu(lang: str, user_id: int):
     builder.add(KeyboardButton(text=get_text('new_post_btn', lang)))
     builder.add(KeyboardButton(text=get_text('edit_post_btn', lang)))
     builder.add(KeyboardButton(text=get_text('statistic_btn', lang)))
+    builder.add(KeyboardButton(text=get_text('schedule_list_btn', lang)))
 
-    builder.adjust(2, 1)
+    builder.adjust(2, 2)
     return builder.as_markup(resize_keyboard=True)
 
 def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):

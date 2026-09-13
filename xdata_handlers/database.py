@@ -690,7 +690,7 @@ async def update_user_bot_settings(user_id: int, **kwargs) -> bool:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)
 
-async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int = None, channel_name: str = None) -> int | None:
+async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int = None, channel_name: str = None, repeat_interval: str = None) -> int | None:
     """Rejalashtirilgan post qo'shadi va post_id qaytaradi."""
     def _sync():
         conn = None
@@ -698,15 +698,14 @@ async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datet
             conn = get_connection()
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO send_posts (post_code, user_id, channel_id, channel_name, schedule_time, status)
-                VALUES (%s, %s, %s, %s, %s, 'pending')
+                INSERT INTO send_posts (post_code, user_id, channel_id, channel_name, schedule_time, status, repeat_interval)
+                VALUES (%s, %s, %s, %s, %s, 'pending', %s)
                 RETURNING id
-            """, (post_code, user_id, channel_id, channel_name, scheduled_time))
+            """, (post_code, user_id, channel_id, channel_name, scheduled_time, repeat_interval))
             post_id = cursor.fetchone()[0]
             conn.commit()
             return post_id
         except Exception:
-
             return None
         finally:
             if conn: release_connection(conn)
@@ -1968,6 +1967,15 @@ async def init_db():
                 )
             """)
 
+            # Takroriy postlar uchun ustun (send_posts jadvali mavjud bo'lsa)
+            try:
+                cursor.execute("""
+                    ALTER TABLE send_posts
+                    ADD COLUMN IF NOT EXISTS repeat_interval TEXT
+                """)
+            except Exception as e:
+                logger.warning(f"repeat_interval ustuni qo'shilmadi: {e}")
+
             cursor.execute("""
                 CREATE INDEX IF NOT EXISTS idx_bot_stats_date
                 ON bot_stats(stat_date)
@@ -2504,6 +2512,269 @@ async def get_reaction_count_by_chat_message(chat_id: int, message_id: int, reac
             return cursor.fetchone()[0] or 0
         except Exception:
             return 0
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+# ==================== REJALASHTIRILGAN POSTLARNI BOSHQARISH ====================
+
+async def get_all_pending_scheduled_posts() -> List[Dict]:
+    """Barcha kutilayotgan rejalashtirilgan postlarni qaytaradi (vaqt filtri yo'q).
+
+    load_pending_jobs uchun ishlatiladi: bot qayta ishga tushganda kelajakdagi
+    postlar ham scheduler'ga yuklanishi shart (eski versiyada faqat o'tib ketgan
+    postlar olgani uchun ular yo'qolardi).
+    """
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, post_code, user_id, channel_id, schedule_time, repeat_interval
+                FROM send_posts
+                WHERE status = 'pending'
+                ORDER BY schedule_time ASC
+            """)
+            rows = cursor.fetchall()
+            return [
+                {
+                    'id': row[0],
+                    'post_code': row[1],
+                    'user_id': row[2],
+                    'channel_id': row[3],
+                    'schedule_time': row[4],
+                    'repeat_interval': row[5]
+                }
+                for row in rows
+            ]
+        except Exception as e:
+            logger.error(f"get_all_pending_scheduled_posts xatolik: {e}")
+            return []
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_user_scheduled_posts(user_id: int) -> List[Dict]:
+    """Foydalanuvchining kutilayotgan rejalashtirilgan postlari ro'yxati."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, post_code, channel_id, channel_name, schedule_time, repeat_interval
+                FROM send_posts
+                WHERE user_id = %s AND status = 'pending'
+                ORDER BY schedule_time ASC
+            """, (user_id,))
+            rows = cursor.fetchall()
+            return [
+                {
+                    'id': row[0],
+                    'post_code': row[1],
+                    'channel_id': row[2],
+                    'channel_name': row[3],
+                    'schedule_time': row[4],
+                    'repeat_interval': row[5]
+                }
+                for row in rows
+            ]
+        except Exception as e:
+            logger.error(f"get_user_scheduled_posts xatolik: {e}")
+            return []
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_scheduled_post_by_id(post_id: int, user_id: int) -> Dict | None:
+    """ID bo'yicha bitta rejalashtirilgan postni oladi (faqat egasi uchun)."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT id, post_code, channel_id, channel_name, schedule_time, repeat_interval, status
+                FROM send_posts
+                WHERE id = %s AND user_id = %s
+            """, (post_id, user_id))
+            row = cursor.fetchone()
+            if not row:
+                return None
+            return {
+                'id': row[0],
+                'post_code': row[1],
+                'channel_id': row[2],
+                'channel_name': row[3],
+                'schedule_time': row[4],
+                'repeat_interval': row[5],
+                'status': row[6]
+            }
+        except Exception as e:
+            logger.error(f"get_scheduled_post_by_id xatolik: {e}")
+            return None
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def cancel_scheduled_post(post_id: int, user_id: int) -> bool:
+    """Rejalashtirilgan postni bekor qiladi (faqat egasi bekor qilishi mumkin)."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE send_posts SET status = 'cancelled' WHERE id = %s AND user_id = %s AND status = 'pending'",
+                (post_id, user_id)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"cancel_scheduled_post xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def reschedule_scheduled_post(post_id: int, user_id: int, new_time: datetime) -> bool:
+    """Rejalashtirilgan post vaqtini o'zgartiradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE send_posts SET schedule_time = %s WHERE id = %s AND user_id = %s AND status = 'pending'",
+                (new_time, post_id, user_id)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"reschedule_scheduled_post xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def set_post_repeat_interval(post_id: int, user_id: int, repeat_interval: str | None) -> bool:
+    """Postning takrorlash oraliqini o'rnatadi ('daily', 'weekly' yoki None)."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute(
+                "UPDATE send_posts SET repeat_interval = %s WHERE id = %s AND user_id = %s AND status = 'pending'",
+                (repeat_interval, post_id, user_id)
+            )
+            conn.commit()
+            return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"set_post_repeat_interval xatolik: {e}")
+            return False
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def add_next_recurring_post(post_code: str, user_id: int, channel_id: int, channel_name: str, next_time: datetime, repeat_interval: str) -> int | None:
+    """Takroriy postning keyingi nusxasini bazaga qo'shadi va id qaytaradi."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO send_posts (post_code, user_id, channel_id, channel_name, schedule_time, status, repeat_interval)
+                VALUES (%s, %s, %s, %s, %s, 'pending', %s)
+                RETURNING id
+            """, (post_code, user_id, channel_id, channel_name, next_time, repeat_interval))
+            post_id = cursor.fetchone()[0]
+            conn.commit()
+            return post_id
+        except Exception as e:
+            logger.error(f"add_next_recurring_post xatolik: {e}")
+            return None
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_post_detailed_stats(post_code: str) -> Dict:
+    """Post bo'yicha batafsil statistika: ko'rishlar, ulashishlar, tugma bosilishlari, reaksiyalar."""
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT SUM(total_views), SUM(total_shares), SUM(total_clicks), COUNT(DISTINCT channel_id)
+                FROM post_stats WHERE post_code = %s
+            """, (post_code,))
+            result = cursor.fetchone()
+
+            cursor.execute("""
+                SELECT reaction_emoji, COUNT(*) FROM reactions
+                WHERE post_code = %s
+                GROUP BY reaction_emoji ORDER BY COUNT(*) DESC
+            """, (post_code,))
+            reactions = [{'emoji': r[0], 'count': r[1]} for r in cursor.fetchall()]
+
+            cursor.execute(
+                "SELECT channel_name, sent_at FROM send_posts WHERE post_code = %s AND status = 'sent' ORDER BY sent_at DESC",
+                (post_code,)
+            )
+            channels = [{'name': r[0], 'sent_at': r[1]} for r in cursor.fetchall()]
+
+            return {
+                'views': result[0] or 0,
+                'shares': result[1] or 0,
+                'clicks': result[2] or 0,
+                'channels_count': result[3] or 0,
+                'reactions': reactions,
+                'published_channels': channels
+            }
+        except Exception as e:
+            logger.error(f"get_post_detailed_stats xatolik: {e}")
+            return {'views': 0, 'shares': 0, 'clicks': 0, 'channels_count': 0, 'reactions': [], 'published_channels': []}
+        finally:
+            if conn: release_connection(conn)
+    return await asyncio.to_thread(_sync)
+
+
+async def get_best_posting_hours(user_id: int) -> list:
+    """Foydalanuvchi postlari eng ko'p ko'rilgan soatlarni qaytaradi [(soat, o'rtacha_ko'rishlar), ...].
+
+    Eng yaxshi joylashash vaqtini tavsiya qilish uchun.
+    """
+    def _sync():
+        conn = None
+        try:
+            conn = get_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT EXTRACT(HOUR FROM sp.sent_at AT TIME ZONE 'Asia/Tashkent') AS hour,
+                       AVG(ps.total_views) AS avg_views,
+                       COUNT(*) AS posts_count
+                FROM send_posts sp
+                JOIN post_stats ps ON sp.post_code = ps.post_code AND sp.channel_id = ps.channel_id
+                WHERE sp.user_id = %s AND sp.status = 'sent' AND sp.sent_at IS NOT NULL
+                GROUP BY hour HAVING COUNT(*) >= 1
+                ORDER BY avg_views DESC
+                LIMIT 5
+            """, (user_id,))
+            return [(int(r[0]), float(r[1] or 0), int(r[2])) for r in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"get_best_posting_hours xatolik: {e}")
+            return []
         finally:
             if conn: release_connection(conn)
     return await asyncio.to_thread(_sync)

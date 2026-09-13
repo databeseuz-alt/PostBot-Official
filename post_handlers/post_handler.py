@@ -1150,8 +1150,8 @@ async def handle_forwarded_message(message: types.Message, state: FSMContext, bo
                         parse_mode="HTML",
                         reply_to_message_id=sent.message_id
                     )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Storage kanalga saqlashda xatolik: {e}")
                 
     elif forward_origin.type == "user":
         await message.answer(
