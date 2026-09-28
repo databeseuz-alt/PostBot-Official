@@ -37,7 +37,7 @@
     "reactions_prompt_msg": "<b>👍 reaksiyali tugmalar</b>\n\nReaksiyali tugmalar yaratish uchun quyidagi pastki tugmalardan birortasini tanlang yoki matn shaklida yozib yuboring:\n\n<b>Masalan:</b> <code>🔥/🖖/😍</code>\n<code>bo'ladi/ajoyib</code>",
     "delete_media_btn": "🗑️ Mediani o'chirish",
     "delete_text_btn": "🗑️ Matnni o'chirish",
-    "post_saved_msg": "<b>✅ Post saqlandi!</b> sizning post kodingiz: <code>{post_code}</code>\n\nendi istalgan chatda : <code>@{bot_username} {post_code}</code> deb yozing yoki 🚀 yuborish tugmasi orqali kanalingizga yuboring",
+    "post_saved_msg": "<b>✅ Post saqlandi!</b> Post kodi: <code>{post_code}</code>\n\nUni kanalingizga yuborish uchun pastdagi <b>🚀 Yuborish</b> tugmasini bosing yoki uni jadval asosida rejalashtiring.",
     "add_inline_btn": "➕ Tugma qo'shish",
     "url_type_btn": "🔗 URL tugma",
     "text_type_btn": "🙈 popup tugma",

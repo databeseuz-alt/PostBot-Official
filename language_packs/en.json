@@ -37,7 +37,7 @@
     "reactions_prompt_msg": "<b>👍 Reaction Buttons</b>\n\nTo create reaction buttons, choose one of the buttons below or write in text format:\n\n<b>Example:</b> <code>🔥/🖖/😍</code>\n<code>good/amazing</code>",
     "delete_media_btn": "🗑️ Delete Media",
     "delete_text_btn": "🗑️ Delete Text",
-    "post_saved_msg": "<b>✅ Post saved!</b> Your post code: <code>{post_code}</code>\n\nNow in any chat: <code>@{bot_username} {post_code}</code> or send to your channel via the 🚀 Send button",
+    "post_saved_msg": "<b>✅ Post saved!</b> Post code: <code>{post_code}</code>\n\nTo publish to your channel, click <b>🚀 Send</b> or schedule it.",
     "add_inline_btn": "➕ Add Button",
     "url_type_btn": "🔗 URL Button",
     "text_type_btn": "🙈 Popup Button",

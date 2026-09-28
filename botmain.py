@@ -33,7 +33,6 @@ from post_handlers.reply_handler import reply_router, callback_router
 from post_handlers.media_handler import media_router
 from post_handlers.done_handler import done_router
 from post_handlers.editp_handler import edit_post_router
-from post_handlers.inline_handler import inline_router
 from post_handlers.send_handler import send_router
 from post_handlers.mychannels_handler import mychannels_router
 from post_handlers.schedule_handler import schedule_router
@@ -96,7 +95,6 @@ async def main():
     dp.include_router(media_router)
     dp.include_router(done_router)
     dp.include_router(edit_post_router)
-    dp.include_router(inline_router)
     dp.include_router(send_router)
     dp.include_router(mychannels_router)
     dp.include_router(schedule_router)
