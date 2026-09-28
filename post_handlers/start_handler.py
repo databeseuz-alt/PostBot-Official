@@ -159,6 +159,60 @@ async def check_subscription_again(callback: types.CallbackQuery, state: FSMCont
     else:
         await callback.answer(get_text('join_alert_msg', lang), show_alert=True)
 
+def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action: str = 'now'):
+    """
+    Turbo rejim inline klaviaturasi.
+    O'chiq holatda:
+    [ ⚡ Turbo rejim ]
+    
+    Yoqilgan holatda:
+    [ ✅ Ha, turbo rejim yoqildi ]
+    [ 🚀 Hozir chop etish ✅ ] [ ⏰ Jadval bo'yicha ] (action='now' bo'lganda)
+    yoki
+    [ 🚀 Hozir chop etish ] [ ⏰ Jadval bo'yicha ✅ ] (action='schedule' bo'lganda)
+    """
+    builder = InlineKeyboardBuilder()
+    
+    if not is_enabled:
+        turbo_off_text = {
+            'uzl': "⚡ Turbo rejim",
+            'uzk': "⚡ Турбо режим",
+            'ru': "⚡ Турбо режим",
+            'en': "⚡ Turbo mode"
+        }.get(lang, "⚡ Turbo rejim")
+        builder.button(text=turbo_off_text, callback_data="turbo:toggle")
+        builder.adjust(1)
+    else:
+        turbo_on_text = {
+            'uzl': "✅ Ha, turbo rejim yoqildi",
+            'uzk': "✅ Ҳа, турбо режим ёқилди",
+            'ru': "✅ Да, турбо режим включен",
+            'en': "✅ Yes, turbo mode enabled"
+        }.get(lang, "✅ Ha, turbo rejim yoqildi")
+        builder.button(text=turbo_on_text, callback_data="turbo:toggle")
+        
+        now_mark = " ✅" if action == 'now' else ""
+        schedule_mark = " ✅" if action == 'schedule' else ""
+        
+        if lang == 'ru':
+            now_text = f"🚀 Опубликовать сейчас{now_mark}"
+            schedule_text = f"⏰ По расписанию{schedule_mark}"
+        elif lang == 'en':
+            now_text = f"🚀 Publish now{now_mark}"
+            schedule_text = f"⏰ By schedule{schedule_mark}"
+        elif lang == 'uzk':
+            now_text = f"🚀 Ҳозир чоп этиш{now_mark}"
+            schedule_text = f"⏰ Жадвал бўйича{schedule_mark}"
+        else:
+            now_text = f"🚀 Hozir chop etish{now_mark}"
+            schedule_text = f"⏰ Jadval bo'yicha{schedule_mark}"
+            
+        builder.button(text=now_text, callback_data="turbo:action:now")
+        builder.button(text=schedule_text, callback_data="turbo:action:schedule")
+        builder.adjust(1, 2)
+        
+    return builder.as_markup()
+
 @start_router.message(LocalizedText('new_post_btn'))
 @start_router.message(LocalizedText('cr_another_post_btn'))
 async def start_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
@@ -191,14 +245,83 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
     if ai_assistant_enabled:
         content_text += get_text('ai_assistant_hint_msg', lang)
 
-    if isinstance(event, types.CallbackQuery):
-        content_message = await event.message.answer(content_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
-    else:
-        content_message = await event.answer(content_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+    # 1. Reply klaviaturani o'rnatish uchun vaqtinchalik xabar yuborib darhol o'chirish
+    opening_text = {
+        'uzl': "⏳ Menyu ochilmoqda...",
+        'uzk': "⏳ Меню очилмоқда...",
+        'ru': "⏳ Открытие меню...",
+        'en': "⏳ Opening menu..."
+    }.get(lang, "⏳ Menyu ochilmoqda...")
 
-    await state.update_data(content_message_id=content_message.message_id)
+    try:
+        if isinstance(event, types.CallbackQuery):
+            temp_msg = await event.message.answer(opening_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+        else:
+            temp_msg = await event.answer(opening_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+        await temp_msg.delete()
+    except Exception:
+        pass
+
+    # 2. Inline Turbo rejim tugmasi bilan kontent so'rash xabari
+    turbo_kb = get_turbo_mode_inline_kb(lang, is_enabled=False, action='now')
+    if isinstance(event, types.CallbackQuery):
+        content_message = await event.message.answer(content_text, reply_markup=turbo_kb)
+    else:
+        content_message = await event.answer(content_text, reply_markup=turbo_kb)
+
+    await state.update_data(
+        content_message_id=content_message.message_id,
+        turbo_enabled=False,
+        turbo_action='now'
+    )
 
     await state.set_state(PostCreation.waiting_for_content)
+
+@start_router.callback_query(PostCreation.waiting_for_content, F.data == "turbo:toggle")
+async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    turbo_enabled = not data.get('turbo_enabled', False)
+    turbo_action = data.get('turbo_action', 'now')
+    await state.update_data(turbo_enabled=turbo_enabled)
+    lang = await get_user_language(callback.from_user.id)
+    
+    new_kb = get_turbo_mode_inline_kb(lang, is_enabled=turbo_enabled, action=turbo_action)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=new_kb)
+    except Exception:
+        pass
+        
+    notice_text = "⚡ Turbo rejim yoqildi" if turbo_enabled else "Turbo rejim o'chirildi"
+    if lang == 'ru':
+        notice_text = "⚡ Турбо режим включен" if turbo_enabled else "Турбо режим выключен"
+    elif lang == 'en':
+        notice_text = "⚡ Turbo mode enabled" if turbo_enabled else "Turbo mode disabled"
+    elif lang == 'uzk':
+        notice_text = "⚡ Турбо режим ёқилди" if turbo_enabled else "Турбо режим ўчирилди"
+        
+    await callback.answer(notice_text)
+
+@start_router.callback_query(PostCreation.waiting_for_content, F.data.startswith("turbo:action:"))
+async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMContext):
+    action = callback.data.split(":")[2]  # 'now' or 'schedule'
+    await state.update_data(turbo_action=action, turbo_enabled=True)
+    lang = await get_user_language(callback.from_user.id)
+    
+    new_kb = get_turbo_mode_inline_kb(lang, is_enabled=True, action=action)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=new_kb)
+    except Exception:
+        pass
+        
+    action_notice = "Hozir chop etish tanlandi" if action == 'now' else "Jadval bo'yicha rejalashtirish tanlandi"
+    if lang == 'ru':
+        action_notice = "Выбрано: Опубликовать сейчас" if action == 'now' else "Выбрано: По расписанию"
+    elif lang == 'en':
+        action_notice = "Selected: Publish now" if action == 'now' else "Selected: By schedule"
+    elif lang == 'uzk':
+        action_notice = "Ҳозир чоп этиш танланди" if action == 'now' else "Жадвал бўйича режалаштириш танланди"
+        
+    await callback.answer(action_notice)
 
 @start_router.message(LocalizedText('edit_post_btn'))
 async def start_post_editing_process(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):

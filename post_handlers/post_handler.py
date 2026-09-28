@@ -418,6 +418,64 @@ async def _get_permanent_file_id(bot: Bot, message: Message, lang: str = 'uzl') 
         return message.animation.file_id
     return None
 
+async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot: Bot, post_data: dict, buttons_matrix: list, old_data: dict, lang: str) -> bool:
+    """
+    Agar turbo rejim yoqilgan bo'lsa:
+    - Postni bazaga saqlaydi
+    - Agar kanallar bo'lsa, kanal tanlash klaviaturasini chiqaradi
+    - Aks holda kanal qo'shish taklifini chiqaradi
+    - True qaytaradi (turbo rejim bajarilganligini bildirish uchun)
+    """
+    if not old_data.get('turbo_enabled', False):
+        return False
+        
+    user_id = message.from_user.id
+    turbo_action = old_data.get('turbo_action', 'now')
+    
+    from xdata_handlers.database import add_post_to_db, get_user_channels
+    from post_handlers.send_handler import PostSending
+    from post_handlers.xinline_keyboard import get_channel_list_keyboard, get_add_channel_with_post_keyboard
+    
+    post_code = await add_post_to_db(
+        user_id,
+        post_data,
+        buttons_matrix,
+        admin_ids=config.ADMIN_IDS
+    )
+    
+    if not post_code:
+        await message.answer(get_text('save_error', lang))
+        return True
+        
+    user_channels = await get_user_channels(user_id)
+    
+    await state.set_state(PostSending.choosing_channel_to_send)
+    await state.update_data(
+        post_code=post_code,
+        turbo_mode=True,
+        turbo_action=turbo_action,
+        schedule_post_code=post_code
+    )
+    
+    if not user_channels:
+        await message.answer(
+            get_text('need_channel_msg', lang),
+            reply_markup=get_add_channel_with_post_keyboard(post_code)
+        )
+    else:
+        turbo_title = {
+            'uzl': "⚡ <b>Turbo rejim:</b> Kanalni tanlang (Hozir chop etiladi):" if turbo_action == 'now' else "⚡ <b>Turbo rejim:</b> Kanalni tanlang (Jadval bo'yicha):",
+            'uzk': "⚡ <b>Турбо режим:</b> Канални танланг (Ҳозир чоп этилади):" if turbo_action == 'now' else "⚡ <b>Турбо режим:</b> Канални танланг (Жадвал бўйича):",
+            'ru': "⚡ <b>Турбо режим:</b> Выберите канал (публикация сейчас):" if turbo_action == 'now' else "⚡ <b>Турбо режим:</b> Выберите канал (по расписанию):",
+            'en': "⚡ <b>Turbo mode:</b> Select channel (publish now):" if turbo_action == 'now' else "⚡ <b>Turbo mode:</b> Select channel (by schedule):"
+        }.get(lang, "⚡ <b>Turbo rejim:</b> Kanalni tanlang:")
+        
+        await message.answer(
+            turbo_title,
+            reply_markup=get_channel_list_keyboard(user_channels, post_code),
+            parse_mode="HTML"
+        )
+    return True
 
 async def handle_location_content(message: Message, state: FSMContext, bot: Bot, old_data: dict, lang: str):
     """Location kontentini qayta ishlash"""
@@ -459,10 +517,12 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
 
-    if is_editing_session:
-        await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
-    else:
-        await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
+    is_turbo = old_data.get('turbo_enabled', False)
+    if not is_turbo:
+        if is_editing_session:
+            await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
+        else:
+            await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
 
     preview_message = await bot.send_location(
         message.chat.id,
@@ -475,6 +535,10 @@ async def handle_location_content(message: Message, state: FSMContext, bot: Bot,
         post_data['message_id'] = preview_message.message_id
         post_data['chat_id'] = preview_message.chat.id
         await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+
+        if is_turbo:
+            await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+            return
 
         if config.STORAGE_CHANNEL_ID and not is_editing_session:
             try:
@@ -544,10 +608,12 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
 
-    if is_editing_session:
-        await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
-    else:
-        await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
+    is_turbo = old_data.get('turbo_enabled', False)
+    if not is_turbo:
+        if is_editing_session:
+            await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
+        else:
+            await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
 
     try:
         from aiogram.types import InputPaidMediaPhoto, InputPaidMediaVideo
@@ -575,6 +641,10 @@ async def handle_paid_media_content(message: Message, state: FSMContext, bot: Bo
             post_data['message_id'] = preview_message.message_id
             post_data['chat_id'] = message.chat.id
             await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+
+            if is_turbo:
+                await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+                return
 
     except Exception:
         preview_message = await message.answer(media_text, reply_markup=keyboard, parse_mode='HTML')
@@ -634,10 +704,12 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
 
-    if is_editing_session:
-        await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
-    else:
-        await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
+    is_turbo = old_data.get('turbo_enabled', False)
+    if not is_turbo:
+        if is_editing_session:
+            await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
+        else:
+            await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
 
     preview_message = await message.answer_dice(emoji=dice_emoji, reply_markup=keyboard)
 
@@ -645,6 +717,10 @@ async def handle_dice_content(message: Message, state: FSMContext, bot: Bot, old
         post_data['message_id'] = preview_message.message_id
         post_data['chat_id'] = preview_message.chat.id
         await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+
+        if is_turbo:
+            await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+            return
 
         if config.STORAGE_CHANNEL_ID and not is_editing_session:
             try:
@@ -715,10 +791,12 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
     }
     reply_markup = get_post_settings_kb(**settings_kb_kwargs)
 
-    if is_editing_session:
-        await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
-    else:
-        await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
+    is_turbo = old_data.get('turbo_enabled', False)
+    if not is_turbo:
+        if is_editing_session:
+            await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
+        else:
+            await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
 
     try:
         logger.debug(f"Poll yuborish: chat_id={message.chat.id}, question={poll.question}")
@@ -743,6 +821,10 @@ async def handle_poll_content(message: Message, state: FSMContext, bot: Bot, old
             post_data['message_id'] = preview_message.message_id
             post_data['chat_id'] = preview_message.chat.id
             await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+
+            if is_turbo:
+                await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+                return
 
             if config.STORAGE_CHANNEL_ID and not is_editing_session:
                 # STORAGE_CHANNEL_ID ni tekshirish
@@ -957,10 +1039,12 @@ async def handle_forwarded_message(message: types.Message, state: FSMContext, bo
         }
         reply_markup = get_post_settings_kb(**settings_kb_kwargs)
         
-        await message.answer(
-            get_text('content_received', lang),
-            reply_markup=reply_markup
-        )
+        is_turbo = old_data.get('turbo_enabled', False)
+        if not is_turbo:
+            await message.answer(
+                get_text('content_received', lang),
+                reply_markup=reply_markup
+            )
         
         # Preview yuborish
         if message.content_type == 'photo' and message.photo:
@@ -1125,6 +1209,10 @@ async def handle_forwarded_message(message: types.Message, state: FSMContext, bo
             post_data['chat_id'] = preview_message.chat.id
         
         await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
+        
+        if is_turbo:
+            await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+            return
         
         settings_kb_kwargs = {
             "content_type": post_data.get('content_type', 'text'),
@@ -1373,10 +1461,12 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
         }
         reply_markup = get_post_settings_kb(**settings_kb_kwargs)
 
-        if is_editing_session:
-            await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
-        else:
-            await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
+        is_turbo = old_data.get('turbo_enabled', False)
+        if not is_turbo:
+            if is_editing_session:
+                await message.answer(get_text('content_updated', lang), reply_markup=reply_markup)
+            else:
+                await message.answer(get_text('content_received', lang), reply_markup=reply_markup)
 
         if is_incoming_media:
             permanent_file_id = await _get_permanent_file_id(bot, message, lang)
@@ -1574,6 +1664,10 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                     if storage_file_id:
                         post_data['storage_file_id'] = storage_file_id
 
+        if is_turbo:
+            await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+            return
+
     except TelegramBadRequest as e:
         error_msg = str(e).lower()
         if "can't parse entities" in error_msg:
@@ -1636,6 +1730,10 @@ async def universal_content_handler(message: Message, state: FSMContext, bot: Bo
                     post_data['chat_id'] = preview_message.chat.id
                     await state.update_data(post_data=post_data, buttons_matrix=buttons_matrix)
                     
+                    if is_turbo:
+                        await process_turbo_mode_if_enabled(message, state, bot, post_data, buttons_matrix, old_data, lang)
+                        return
+
                     # Success message
                     await message.answer(get_text('content_received', lang), reply_markup=get_post_settings_kb(
                         content_type=post_data['content_type'],

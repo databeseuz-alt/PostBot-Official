@@ -263,6 +263,32 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
 
     await state.update_data(selected_channel_id=callback_data.channel_id, selected_channel_name=safe_channel_name)
 
+    state_data = await state.get_data()
+    turbo_mode = state_data.get('turbo_mode', False)
+    turbo_action = state_data.get('turbo_action', 'now')
+
+    if turbo_mode:
+        if turbo_action == 'schedule':
+            from post_handlers.schedule_handler import ScheduleManage, get_schedule_quick_keyboard
+            await state.update_data(schedule_post_code=callback_data.post_code, schedule_channel_id=callback_data.channel_id)
+            await state.set_state(ScheduleManage.waiting_for_custom_time)
+            text = get_text('schedule_when_to_send', lang) + "\n\n" + get_text('schedule_enter_date_format', lang)
+            try:
+                await callback.message.edit_text(text, reply_markup=get_schedule_quick_keyboard(lang), parse_mode="HTML")
+            except Exception:
+                await callback.message.answer(text, reply_markup=get_schedule_quick_keyboard(lang), parse_mode="HTML")
+            await callback.answer()
+            return
+        else:
+            from post_handlers.xinline_keyboard import get_send_confirmation_keyboard
+            await state.set_state(PostSending.confirming_post_send)
+            await callback.message.edit_text(
+                get_text_formatted('confirm_send_msg', lang, channel_name=safe_channel_name),
+                reply_markup=get_send_confirmation_keyboard(callback_data.post_code, callback_data.channel_id, lang)
+            )
+            await callback.answer()
+            return
+
     await callback.message.edit_text(
         get_text_formatted('send_timing_msg', lang, channel_name=safe_channel_name),
         reply_markup=get_send_timing_keyboard(callback_data.post_code, callback_data.channel_id, lang)
