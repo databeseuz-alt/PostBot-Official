@@ -67,13 +67,17 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
     main_menu_keyboard = await get_main_menu(lang=lang, user_id=user.id)
 
     if isinstance(event, types.Message):
+        remover = await event.answer(".", reply_markup=ReplyKeyboardRemove())
+        try:
+            await remover.delete()
+        except Exception:
+            pass
         await event.answer(start_text, reply_markup=main_menu_keyboard)
     elif isinstance(event, types.CallbackQuery):
         try:
-            await event.message.delete()
+            await event.message.edit_text(start_text, reply_markup=main_menu_keyboard)
         except Exception:
-            pass
-        await event.message.answer(start_text, reply_markup=main_menu_keyboard)
+            await event.message.answer(start_text, reply_markup=main_menu_keyboard)
 
 @start_router.message(CommandStart(), StateFilter("*"), F.forward_from.is_(None))
 async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
@@ -218,6 +222,7 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
 
 @start_router.message(LocalizedText('new_post_btn'))
 @start_router.message(LocalizedText('cr_another_post_btn'))
+@start_router.callback_query(F.data == "main:new_post")
 async def start_post_creation(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
     is_member, text, keyboard = await check_user_membership(user, bot)
@@ -248,27 +253,13 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
     if ai_assistant_enabled:
         content_text += get_text('ai_assistant_hint_msg', lang)
 
-    # 1. Reply klaviaturani butunlay o'chirish uchun vaqtinchalik xabar yuborib darhol o'chirish
-    opening_text = {
-        'uzl': "⏳ Menyu ochilmoqda...",
-        'uzk': "⏳ Меню очилмоқда...",
-        'ru': "⏳ Открытие меню...",
-        'en': "⏳ Opening menu..."
-    }.get(lang, "⏳ Menyu ochilmoqda...")
-
-    try:
-        if isinstance(event, types.CallbackQuery):
-            temp_msg = await event.message.answer(opening_text, reply_markup=ReplyKeyboardRemove())
-        else:
-            temp_msg = await event.answer(opening_text, reply_markup=ReplyKeyboardRemove())
-        await temp_msg.delete()
-    except Exception:
-        pass
-
-    # 2. Inline Turbo rejim tugmasi bilan kontent so'rash xabari
+    # Inline Turbo rejim tugmasi bilan kontent so'rash xabari
     turbo_kb = get_turbo_mode_inline_kb(lang, is_enabled=False, action='now')
     if isinstance(event, types.CallbackQuery):
-        content_message = await event.message.answer(content_text, reply_markup=turbo_kb)
+        try:
+            content_message = await event.message.edit_text(content_text, reply_markup=turbo_kb)
+        except Exception:
+            content_message = await event.message.answer(content_text, reply_markup=turbo_kb)
     else:
         content_message = await event.answer(content_text, reply_markup=turbo_kb)
 

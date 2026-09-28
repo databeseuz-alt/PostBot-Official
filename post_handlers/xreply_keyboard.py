@@ -3,15 +3,22 @@ from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineK
 from aiogram.types import ReplyKeyboardMarkup
 from xdata_handlers.translator import get_text
 
-async def get_main_menu(lang: str, user_id: int):
-    builder = ReplyKeyboardBuilder()
-    builder.add(KeyboardButton(text=get_text('new_post_btn', lang)))
-    builder.add(KeyboardButton(text=get_text('edit_post_btn', lang)))
-    builder.add(KeyboardButton(text=get_text('statistic_btn', lang)))
-    builder.add(KeyboardButton(text=get_text('schedule_list_btn', lang)))
+class AwaitableInlineKeyboardMarkup(types.InlineKeyboardMarkup):
+    def __await__(self):
+        async def _identity():
+            return self
+        return _identity().__await__()
+
+def get_main_menu(lang: str, user_id: int = 0):
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('new_post_btn', lang), callback_data="main:new_post")
+    builder.button(text=get_text('edit_post_btn', lang), callback_data="main:edit_post")
+    builder.button(text=get_text('statistic_btn', lang), callback_data="main:statistic")
+    builder.button(text=get_text('schedule_list_btn', lang), callback_data="main:schedule_list")
 
     builder.adjust(2, 2)
-    return builder.as_markup(resize_keyboard=True)
+    markup = builder.as_markup()
+    return AwaitableInlineKeyboardMarkup(inline_keyboard=markup.inline_keyboard)
 
 def get_post_settings_kb(content_type: str, has_caption: bool = False, lang: str = 'uzl', is_editing: bool = False, is_paid: bool = False):
     builder = ReplyKeyboardBuilder()

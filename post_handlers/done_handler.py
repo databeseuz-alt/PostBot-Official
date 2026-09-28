@@ -1234,8 +1234,5 @@ async def cancel_action_handler(callback: types.CallbackQuery, state: FSMContext
         return
 
     await state.clear()
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.edit_text(
-        get_text('cancel_btn_msg', lang),
-        reply_markup=await get_main_menu_reply(lang=lang, user_id=callback.from_user.id)
-    )
+    from post_handlers.start_handler import show_main_menu
+    await show_main_menu(callback, state, bot)
