@@ -262,12 +262,13 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     await state.set_state(PostCreation.waiting_for_content)
 
-@start_router.callback_query(PostCreation.waiting_for_content, F.data == "turbo:toggle")
+@start_router.callback_query(F.data == "turbo:toggle")
 async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     turbo_enabled = not data.get('turbo_enabled', False)
     turbo_action = data.get('turbo_action', 'now')
-    await state.update_data(turbo_enabled=turbo_enabled)
+    await state.set_state(PostCreation.waiting_for_content)
+    await state.update_data(turbo_enabled=turbo_enabled, turbo_action=turbo_action)
     lang = await get_user_language(callback.from_user.id)
     
     new_kb = get_turbo_mode_inline_kb(lang, is_enabled=turbo_enabled, action=turbo_action)
@@ -286,9 +287,10 @@ async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
         
     await callback.answer(notice_text)
 
-@start_router.callback_query(PostCreation.waiting_for_content, F.data.startswith("turbo:action:"))
+@start_router.callback_query(F.data.startswith("turbo:action:"))
 async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMContext):
     action = callback.data.split(":")[2]  # 'now' or 'schedule'
+    await state.set_state(PostCreation.waiting_for_content)
     await state.update_data(turbo_action=action, turbo_enabled=True)
     lang = await get_user_language(callback.from_user.id)
     
