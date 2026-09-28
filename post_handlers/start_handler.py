@@ -156,16 +156,21 @@ async def check_subscription_again(callback: types.CallbackQuery, state: FSMCont
     else:
         await callback.answer(get_text('join_alert_msg', lang), show_alert=True)
 
+EMOJI_ID_CIRC_EMPTY = "5321100107603556331"
+EMOJI_ID_CIRC_CHECK = "5321505741494856875"
+EMOJI_ID_SQ_EMPTY = "5321564346323610109"
+EMOJI_ID_SQ_CHECK = "5321513296342328913"
+
 def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action: str = 'now'):
     """
-    Turbo rejim inline klaviaturasi.
+    Turbo rejim inline klaviaturasi (Premium Custom Emojilar bilan).
     O'chiq holatda:
-    [ ⚡ Turbo rejim ]
+    [ ⚪ ⚡ Turbo rejim ]
     [ ❌ Bekor qilish ]
     
     Yoqilgan holatda:
-    [ ✅ Ha, turbo rejim yoqildi ]
-    [ 🚀 Hozir chop etish ✅ ] [ ⏰ Jadval bo'yicha ] (action='now' bo'lganda)
+    [ 🟡 ⚡ Ha, turbo rejim yoqildi ]
+    [ 🟡 🚀 Hozir chop etish ] [ ⚪ ⏰ Jadval bo'yicha ] (action='now' bo'lganda)
     [ ❌ Bekor qilish ]
     """
     builder = InlineKeyboardBuilder()
@@ -178,36 +183,44 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
             'ru': "⚡ Турбо режим",
             'en': "⚡ Turbo mode"
         }.get(lang, "⚡ Turbo rejim")
-        builder.button(text=turbo_off_text, callback_data="turbo:toggle")
+        builder.button(
+            text=turbo_off_text, 
+            callback_data="turbo:toggle", 
+            icon_custom_emoji_id=EMOJI_ID_CIRC_EMPTY
+        )
         builder.button(text=cancel_text, callback_data="cancel_action")
         builder.adjust(1, 1)
     else:
         turbo_on_text = {
-            'uzl': "✅ Ha, turbo rejim yoqildi",
-            'uzk': "✅ Ҳа, турбо режим ёқилди",
-            'ru': "✅ Да, турбо режим включен",
-            'en': "✅ Yes, turbo mode enabled"
-        }.get(lang, "✅ Ha, turbo rejim yoqildi")
-        builder.button(text=turbo_on_text, callback_data="turbo:toggle")
+            'uzl': "⚡ Ha, turbo rejim yoqildi",
+            'uzk': "⚡ Ҳа, турбо режим ёқилди",
+            'ru': "⚡ Да, турбо режим включен",
+            'en': "⚡ Yes, turbo mode enabled"
+        }.get(lang, "⚡ Ha, turbo rejim yoqildi")
+        builder.button(
+            text=turbo_on_text, 
+            callback_data="turbo:toggle", 
+            icon_custom_emoji_id=EMOJI_ID_CIRC_CHECK
+        )
         
-        now_mark = " ✅" if action == 'now' else ""
-        schedule_mark = " ✅" if action == 'schedule' else ""
+        now_icon = EMOJI_ID_CIRC_CHECK if action == 'now' else EMOJI_ID_CIRC_EMPTY
+        schedule_icon = EMOJI_ID_CIRC_CHECK if action == 'schedule' else EMOJI_ID_CIRC_EMPTY
         
         if lang == 'ru':
-            now_text = f"🚀 Опубликовать сейчас{now_mark}"
-            schedule_text = f"⏰ По расписанию{schedule_mark}"
+            now_text = "🚀 Опубликовать сейчас"
+            schedule_text = "⏰ По расписанию"
         elif lang == 'en':
-            now_text = f"🚀 Publish now{now_mark}"
-            schedule_text = f"⏰ By schedule{schedule_mark}"
+            now_text = "🚀 Publish now"
+            schedule_text = "⏰ By schedule"
         elif lang == 'uzk':
-            now_text = f"🚀 Ҳозир чоп этиш{now_mark}"
-            schedule_text = f"⏰ Жадвал бўйича{schedule_mark}"
+            now_text = "🚀 Ҳозир чоп этиш"
+            schedule_text = "⏰ Жадвал бўйича"
         else:
-            now_text = f"🚀 Hozir chop etish{now_mark}"
-            schedule_text = f"⏰ Jadval bo'yicha{schedule_mark}"
+            now_text = "🚀 Hozir chop etish"
+            schedule_text = "⏰ Jadval bo'yicha"
             
-        builder.button(text=now_text, callback_data="turbo:action:now")
-        builder.button(text=schedule_text, callback_data="turbo:action:schedule")
+        builder.button(text=now_text, callback_data="turbo:action:now", icon_custom_emoji_id=now_icon)
+        builder.button(text=schedule_text, callback_data="turbo:action:schedule", icon_custom_emoji_id=schedule_icon)
         builder.button(text=cancel_text, callback_data="cancel_action")
         builder.adjust(1, 2, 1)
         
