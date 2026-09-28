@@ -5,65 +5,20 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from xdata_handlers.database import get_connection, release_connection, get_bot_stats
-from xdata_handlers import config
-from admin_handlers.xinline_keyboard import get_statistics_keyboard
+from xdata_handlers.database import get_total_users_count, get_bot_stats
 from admin_handlers.admin_handler import IsAdmin
+from admin_handlers.xinline_keyboard import get_statistics_keyboard
 
 statistics_router = Router()
-
-
-def get_tashkent_datetime(utc_dt: datetime) -> datetime:
-    """UTC vaqtni Toshkent vaqtiga (UTC+5) o'giradi."""
-    if utc_dt is None:
-        return None
-    tashkent_offset = timedelta(hours=5)
-    if utc_dt.tzinfo is None:
-        utc_dt = utc_dt.replace(tzinfo=timezone.utc)
-    tashkent_dt = utc_dt.astimezone(timezone(tashkent_offset))
-    return tashkent_dt
-
 
 def format_tashkent_datetime(dt: datetime) -> str:
     """Datetimeni DD.MM.YYYY HH:MM formatida qaytaradi (Toshkent vaqti)."""
     if dt is None:
         return "00.00.0000 00:00"
-    # Agar dt date bo'lsa (vaqt yo'q), datetime ga o'giramiz
     if isinstance(dt, datetime):
-        # UTC+5 vaqtga o'girish
         tashkent_dt = dt.astimezone(timezone(timedelta(hours=5)))
         return tashkent_dt.strftime("%d.%m.%Y %H:%M")
-    # Agar faqat sana bo'lsa
-    return dt.strftime("%d.%m.%Y")
-
-
-async def get_total_users_count() -> tuple[int, datetime]:
-    """Jami foydalanuvchilar sonini qaytaradi."""
-    import asyncio
-    def _sync():
-        conn = None
-        try:
-            conn = get_connection()
-            cursor = conn.cursor()
-            
-            # Adminlarni chiqarib tashlaymiz
-            admin_ids = config.ADMIN_IDS
-            if admin_ids:
-                admin_ids_str = ','.join('%s' for _ in admin_ids)
-                cursor.execute(f"SELECT COUNT(*) FROM users WHERE user_id NOT IN ({admin_ids_str})", admin_ids)
-            else:
-                cursor.execute("SELECT COUNT(*) FROM users")
-            total_users = cursor.fetchone()[0]
-            
-            return total_users, None
-        except Exception as e:
-            logger.error(f"Error getting total users count: {e}")
-            return 0, None
-        finally:
-            if conn: release_connection(conn)
-            
-    return await asyncio.to_thread(_sync)
-
+    return str(dt)
 
 @statistics_router.callback_query(F.data == "admin:statistics_main", IsAdmin())
 async def show_main_statistics(callback: types.CallbackQuery):
