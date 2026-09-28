@@ -137,6 +137,11 @@ async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot
             await message.answer(final_message, reply_markup=inline_kb, parse_mode="HTML")
 
             await state.clear()
+        elif data.get('from_post_creation'):
+            await state.clear()
+            await message.answer(get_text_formatted('add_channel_success_msg', lang, channel_name=html.escape(chat_info.title)))
+            from post_handlers.start_handler import start_post_creation # LOCAL IMPORT
+            await start_post_creation(message, state, bot)
         else:
             await state.clear()
             await message.answer(get_text_formatted('add_channel_success_msg', lang, channel_name=html.escape(chat_info.title)))

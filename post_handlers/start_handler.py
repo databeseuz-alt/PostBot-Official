@@ -164,60 +164,56 @@ EMOJI_ID_SQ_CHECK = "5321513296342328913"
 def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action: str = 'now'):
     """
     Turbo rejim inline klaviaturasi (Premium Custom Emojilar bilan).
+    Matn o'zgarmaydi, faqat oldidagi emoji yangilanadi:
     O'chiq holatda:
     [ ⚪ ⚡ Turbo rejim ]
     [ ❌ Bekor qilish ]
     
     Yoqilgan holatda:
-    [ 🟡 ⚡ Ha, turbo rejim yoqildi ]
+    [ 🟡 ⚡ Turbo rejim ]
     [ 🟡 🚀 Hozir chop etish ] [ ⚪ ⏰ Jadval bo'yicha ] (action='now' bo'lganda)
     [ ❌ Bekor qilish ]
     """
     builder = InlineKeyboardBuilder()
     cancel_text = get_text('cancel_btn', lang)
     
+    turbo_text = {
+        'uzl': "Turbo rejim",
+        'uzk': "Турбо режим",
+        'ru': "Турбо режим",
+        'en': "Turbo mode"
+    }.get(lang, "Turbo rejim")
+    
     if not is_enabled:
-        turbo_off_text = {
-            'uzl': "⚡ Turbo rejim",
-            'uzk': "⚡ Турбо режим",
-            'ru': "⚡ Турбо режим",
-            'en': "⚡ Turbo mode"
-        }.get(lang, "⚡ Turbo rejim")
         builder.button(
-            text=turbo_off_text, 
+            text=turbo_text, 
             callback_data="turbo:toggle", 
-            icon_custom_emoji_id=EMOJI_ID_CIRC_EMPTY
+            icon_custom_emoji_id=EMOJI_ID_SQ_EMPTY
         )
         builder.button(text=cancel_text, callback_data="cancel_action")
         builder.adjust(1, 1)
     else:
-        turbo_on_text = {
-            'uzl': "⚡ Ha, turbo rejim yoqildi",
-            'uzk': "⚡ Ҳа, турбо режим ёқилди",
-            'ru': "⚡ Да, турбо режим включен",
-            'en': "⚡ Yes, turbo mode enabled"
-        }.get(lang, "⚡ Ha, turbo rejim yoqildi")
         builder.button(
-            text=turbo_on_text, 
+            text=turbo_text, 
             callback_data="turbo:toggle", 
-            icon_custom_emoji_id=EMOJI_ID_CIRC_CHECK
+            icon_custom_emoji_id=EMOJI_ID_SQ_CHECK
         )
         
         now_icon = EMOJI_ID_CIRC_CHECK if action == 'now' else EMOJI_ID_CIRC_EMPTY
         schedule_icon = EMOJI_ID_CIRC_CHECK if action == 'schedule' else EMOJI_ID_CIRC_EMPTY
         
         if lang == 'ru':
-            now_text = "🚀 Опубликовать сейчас"
-            schedule_text = "⏰ По расписанию"
+            now_text = "Опубликовать сейчас"
+            schedule_text = "По расписанию"
         elif lang == 'en':
-            now_text = "🚀 Publish now"
-            schedule_text = "⏰ By schedule"
+            now_text = "Publish now"
+            schedule_text = "By schedule"
         elif lang == 'uzk':
-            now_text = "🚀 Ҳозир чоп этиш"
-            schedule_text = "⏰ Жадвал бўйича"
+            now_text = "Ҳозир чоп этиш"
+            schedule_text = "Жадвал бўйича"
         else:
-            now_text = "🚀 Hozir chop etish"
-            schedule_text = "⏰ Jadval bo'yicha"
+            now_text = "Hozir chop etish"
+            schedule_text = "Jadval bo'yicha"
             
         builder.button(text=now_text, callback_data="turbo:action:now", icon_custom_emoji_id=now_icon)
         builder.button(text=schedule_text, callback_data="turbo:action:schedule", icon_custom_emoji_id=schedule_icon)
@@ -249,6 +245,67 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
         await state.clear()
     
     lang = await get_user_language(user.id)
+
+    # Foydalanuvchida ulangan kanallar bor-yo'qligini tekshirish
+    from xdata_handlers.database import get_user_channels
+    user_channels = await get_user_channels(user.id)
+    if not user_channels:
+        from post_handlers.send_handler import PostSending
+        await state.clear()
+        await state.set_state(PostSending.waiting_for_channel_info)
+        await state.update_data(from_post_creation=True)
+        
+        need_channel_text = {
+            'uzl': (
+                "<b>❌ Sizda hali ulangan kanallar yo'q!</b>\n\n"
+                "Post yaratish va chop etish uchun avval kamida bitta kanalni botga ulashingiz kerak.\n\n"
+                "<b>📢 Kanal qo'shish yo'riqnomasi:</b>\n"
+                "1. Botni kerakli kanalga <b>admin</b> qiling.\n"
+                "2. Quyidagi usullardan birini bajaring:\n"
+                " • Kanaldan istalgan xabarni shu yerga <b>↪️ forward qiling</b>;\n"
+                " • Yoki kanalning <b>@username</b> yoki <b>ID</b>sini yuboring."
+            ),
+            'uzk': (
+                "<b>❌ Сизда ҳали уланган каналлар йўқ!</b>\n\n"
+                "Пост яратиш ва чоп этиш учун аввал камида битта канални ботга улашингиз керак.\n\n"
+                "<b>📢 Канал қўшиш йўриқномаси:</b>\n"
+                "1. Ботни керакли каналга <b>админ</b> қилинг.\n"
+                "2. Қуйидаги усуллардан бирини бажаринг:\n"
+                " • Каналдан исталган хабарни шу ерга <b>↪️ forward қилинг</b>;\n"
+                " • Ёки каналнинг <b>@username</b> ёки <b>ID</b>сини юборинг."
+            ),
+            'ru': (
+                "<b>❌ У вас еще нет подключенных каналов!</b>\n\n"
+                "Чтобы создавать и публиковать посты, сначала подключите хотя бы один канал к боту.\n\n"
+                "<b>📢 Инструкция по добавлению канала:</b>\n"
+                "1. Добавьте бота в канал в качестве <b>администратора</b>.\n"
+                "2. Выполните одно из действий:\n"
+                " • Перешлите (<b>forward</b>) любое сообщение из канала сюда;\n"
+                " • Или отправьте <b>@username</b> или <b>ID</b> канала."
+            ),
+            'en': (
+                "<b>❌ You have no connected channels yet!</b>\n\n"
+                "To create and publish posts, you must connect at least one channel to the bot first.\n\n"
+                "<b>📢 How to add a channel:</b>\n"
+                "1. Add the bot to your channel as an <b>administrator</b>.\n"
+                "2. Do one of the following:\n"
+                " • <b>Forward</b> any message from your channel here;\n"
+                " • Or send the channel's <b>@username</b> or <b>ID</b>."
+            )
+        }.get(lang, "<b>❌ Sizda hali ulangan kanallar yo'q!</b>\n\nPost yaratish uchun avval kanal ulang.")
+
+        builder = InlineKeyboardBuilder()
+        cancel_text = get_text('cancel_btn', lang)
+        builder.button(text=cancel_text, callback_data="cancel_action")
+        
+        if isinstance(event, types.CallbackQuery):
+            try:
+                await event.message.edit_text(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+            except Exception:
+                await event.message.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        else:
+            await event.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        return
 
     user_settings = await get_user_post_settings(user.id)
     ai_assistant_enabled = user_settings.get('ai_assistant_enabled', False)
