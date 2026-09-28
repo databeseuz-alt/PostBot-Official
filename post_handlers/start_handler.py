@@ -164,14 +164,15 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
     Turbo rejim inline klaviaturasi.
     O'chiq holatda:
     [ ⚡ Turbo rejim ]
+    [ ❌ Bekor qilish ]
     
     Yoqilgan holatda:
     [ ✅ Ha, turbo rejim yoqildi ]
     [ 🚀 Hozir chop etish ✅ ] [ ⏰ Jadval bo'yicha ] (action='now' bo'lganda)
-    yoki
-    [ 🚀 Hozir chop etish ] [ ⏰ Jadval bo'yicha ✅ ] (action='schedule' bo'lganda)
+    [ ❌ Bekor qilish ]
     """
     builder = InlineKeyboardBuilder()
+    cancel_text = get_text('cancel_btn', lang)
     
     if not is_enabled:
         turbo_off_text = {
@@ -181,7 +182,8 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
             'en': "⚡ Turbo mode"
         }.get(lang, "⚡ Turbo rejim")
         builder.button(text=turbo_off_text, callback_data="turbo:toggle")
-        builder.adjust(1)
+        builder.button(text=cancel_text, callback_data="cancel_action")
+        builder.adjust(1, 1)
     else:
         turbo_on_text = {
             'uzl': "✅ Ha, turbo rejim yoqildi",
@@ -209,7 +211,8 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
             
         builder.button(text=now_text, callback_data="turbo:action:now")
         builder.button(text=schedule_text, callback_data="turbo:action:schedule")
-        builder.adjust(1, 2)
+        builder.button(text=cancel_text, callback_data="cancel_action")
+        builder.adjust(1, 2, 1)
         
     return builder.as_markup()
 
@@ -245,7 +248,7 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
     if ai_assistant_enabled:
         content_text += get_text('ai_assistant_hint_msg', lang)
 
-    # 1. Reply klaviaturani o'rnatish uchun vaqtinchalik xabar yuborib darhol o'chirish
+    # 1. Reply klaviaturani butunlay o'chirish uchun vaqtinchalik xabar yuborib darhol o'chirish
     opening_text = {
         'uzl': "⏳ Menyu ochilmoqda...",
         'uzk': "⏳ Меню очилмоқда...",
@@ -255,9 +258,9 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     try:
         if isinstance(event, types.CallbackQuery):
-            temp_msg = await event.message.answer(opening_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+            temp_msg = await event.message.answer(opening_text, reply_markup=ReplyKeyboardRemove())
         else:
-            temp_msg = await event.answer(opening_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
+            temp_msg = await event.answer(opening_text, reply_markup=ReplyKeyboardRemove())
         await temp_msg.delete()
     except Exception:
         pass
