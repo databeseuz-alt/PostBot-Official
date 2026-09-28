@@ -13,9 +13,21 @@ from xdata_handlers import config
 
 logger = logging.getLogger(__name__)
 
+import time
+
 TASHKENT_TZ = timezone(timedelta(hours=5))
 
 _supabase_client: Optional[Client] = None
+
+# ==================== TEZKOR KESHLASH (IN-MEMORY CACHE) ====================
+_user_lang_cache: Dict[int, str] = {}
+_blocked_users_cache: Optional[set] = None
+_blocked_cache_time: float = 0
+_user_activity_cache: Dict[int, float] = {}
+_user_channels_cache: Dict[int, tuple[float, List[Dict]]] = {}
+_req_channels_cache: Optional[tuple[float, List[Dict]]] = None
+_user_signature_cache: Dict[int, tuple[float, dict]] = {}
+_posts_cache: Dict[str, tuple[float, dict]] = {}
 
 def get_now() -> datetime:
     """Hozirgi vaqtni har doim Toshkent vaqti bilan qaytaradi."""
@@ -64,6 +76,7 @@ def _normalize_language(language: str | None) -> str:
 async def set_user_language(user_id: int, nickname: str = None, username: str = None, language: str = 'uzl') -> bool:
     """Foydalanuvchi tilini o'rnatadi."""
     language = _normalize_language(language)
+    _user_lang_cache[user_id] = language
     def _sync():
         try:
             sp = get_supabase()
@@ -84,7 +97,10 @@ async def set_user_language(user_id: int, nickname: str = None, username: str = 
     return await asyncio.to_thread(_sync)
 
 async def get_user_language(user_id: int) -> str:
-    """Foydalanuvchi tilini oladi."""
+    """Foydalanuvchi tilini oladi (kesh orqali bir lahzada qaytadi)."""
+    if user_id in _user_lang_cache:
+        return _user_lang_cache[user_id]
+
     def _sync():
         try:
             sp = get_supabase()
@@ -95,12 +111,25 @@ async def get_user_language(user_id: int) -> str:
         except Exception as e:
             logger.error(f"get_user_language error: {e}")
             return 'uzl'
-    return await asyncio.to_thread(_sync)
+
+    lang = await asyncio.to_thread(_sync)
+    _user_lang_cache[user_id] = lang
+    return lang
 
 async def add_or_update_user(user_id: int, nickname: str = None, username: str = None, language: str = None):
-    """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi."""
+    """Foydalanuvchini bazaga qo'shadi yoki ma'lumotlarini yangilaydi (kesh va throttle bilan)."""
     if config.ADMIN_IDS and user_id in config.ADMIN_IDS:
         return
+    now = time.time()
+    last_updated = _user_activity_cache.get(user_id, 0)
+    # Agar foydalanuvchi so'nggi 5 daqiqa (300 soniya) ichida yangilangan bo'lsa va til berilmagan bo'lsa, qayta yozmaymiz
+    if language is None and (now - last_updated < 300):
+        return
+
+    _user_activity_cache[user_id] = now
+    if language:
+        _user_lang_cache[user_id] = _normalize_language(language)
+
     return await _add_or_update_user_impl(user_id=user_id, nickname=nickname, username=username, language=language)
 
 async def _add_or_update_user_impl(user_id: int, nickname: str = None, username: str = None, language: str = None):
@@ -166,19 +195,31 @@ async def get_blocked_users_with_info(admin_ids: List[int] = None) -> List[Dict]
             return []
     return await asyncio.to_thread(_sync)
 
+async def _refresh_blocked_cache_if_needed():
+    global _blocked_users_cache, _blocked_cache_time
+    now = time.time()
+    if _blocked_users_cache is None or (now - _blocked_cache_time > 60):
+        def _sync():
+            try:
+                sp = get_supabase()
+                res = sp.table('users').select('user_id').eq('is_blocked', 1).execute()
+                return {row['user_id'] for row in res.data} if res.data else set()
+            except Exception as e:
+                logger.error(f"refresh_blocked_cache error: {e}")
+                return set()
+        _blocked_users_cache = await asyncio.to_thread(_sync)
+        _blocked_cache_time = now
+
 async def is_user_blocked(user_id: int) -> bool:
-    def _sync():
-        try:
-            sp = get_supabase()
-            res = sp.table('users').select('is_blocked').eq('user_id', user_id).execute()
-            if res.data:
-                return bool(res.data[0].get('is_blocked'))
-            return False
-        except Exception:
-            return False
-    return await asyncio.to_thread(_sync)
+    global _blocked_users_cache
+    if _blocked_users_cache is None:
+        await _refresh_blocked_cache_if_needed()
+    return user_id in _blocked_users_cache if _blocked_users_cache is not None else False
 
 async def block_user(user_id: int) -> bool:
+    global _blocked_users_cache
+    if _blocked_users_cache is not None:
+        _blocked_users_cache.add(user_id)
     def _sync():
         try:
             sp = get_supabase()
@@ -190,6 +231,9 @@ async def block_user(user_id: int) -> bool:
     return await asyncio.to_thread(_sync)
 
 async def unblock_user(user_id: int) -> bool:
+    global _blocked_users_cache
+    if _blocked_users_cache is not None:
+        _blocked_users_cache.discard(user_id)
     def _sync():
         try:
             sp = get_supabase()
@@ -250,6 +294,7 @@ async def get_user_block_info(user_id: int):
 # ==================== KANALLAR ====================
 
 async def add_user_channel(user_id: int, channel_id: int, channel_name: str, send_posts: bool = False) -> bool:
+    _user_channels_cache.pop(user_id, None)
     def _sync():
         try:
             sp = get_supabase()
@@ -267,6 +312,12 @@ async def add_user_channel(user_id: int, channel_id: int, channel_name: str, sen
     return await asyncio.to_thread(_sync)
 
 async def get_user_channels(user_id: int) -> List[Dict]:
+    now = time.time()
+    if user_id in _user_channels_cache:
+        cached_time, data = _user_channels_cache[user_id]
+        if now - cached_time < 30: # 30 soniyalik tezkor kesh
+            return data
+
     def _sync():
         try:
             sp = get_supabase()
@@ -283,9 +334,19 @@ async def get_user_channels(user_id: int) -> List[Dict]:
         except Exception as e:
             logger.error(f"get_user_channels error: {e}")
             return []
-    return await asyncio.to_thread(_sync)
+
+    channels = await asyncio.to_thread(_sync)
+    _user_channels_cache[user_id] = (now, channels)
+    return channels
 
 async def get_channel_name(user_id: int, channel_id: int) -> Optional[str]:
+    # Avval keshdan qidirish
+    if user_id in _user_channels_cache:
+        _, ch_list = _user_channels_cache[user_id]
+        for ch in ch_list:
+            if ch['channel_id'] == channel_id:
+                return ch.get('channel_name')
+
     def _sync():
         try:
             sp = get_supabase()
@@ -298,6 +359,7 @@ async def get_channel_name(user_id: int, channel_id: int) -> Optional[str]:
     return await asyncio.to_thread(_sync)
 
 async def remove_user_channel(user_id: int, channel_id: int) -> bool:
+    _user_channels_cache.pop(user_id, None)
     def _sync():
         try:
             sp = get_supabase()
@@ -309,6 +371,7 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
     return await asyncio.to_thread(_sync)
 
 async def update_channel_post_code(user_id: int, channel_id: int, post_code: str = None) -> bool:
+    _user_channels_cache.pop(user_id, None)
     def _sync():
         try:
             sp = get_supabase()
@@ -335,6 +398,13 @@ async def get_user_channel_statistics(user_id: int, channel_id: int = None) -> D
 # ==================== MAJBURIY OBUNA KANALLARI (REQ_CHANNELS) ====================
 
 async def get_all_required_channels() -> List[Dict]:
+    global _req_channels_cache
+    now = time.time()
+    if _req_channels_cache is not None:
+        cached_time, data = _req_channels_cache
+        if now - cached_time < 60: # 60 soniya kesh
+            return data
+
     def _sync():
         try:
             sp = get_supabase()
@@ -352,12 +422,17 @@ async def get_all_required_channels() -> List[Dict]:
         except Exception as e:
             logger.error(f"get_all_required_channels error: {e}")
             return []
-    return await asyncio.to_thread(_sync)
+
+    channels = await asyncio.to_thread(_sync)
+    _req_channels_cache = (now, channels)
+    return channels
 
 async def get_required_channels() -> List[Dict]:
     return await get_all_required_channels()
 
 async def add_required_channel(channel_id: int, channel_name: str, username: str = None) -> bool:
+    global _req_channels_cache
+    _req_channels_cache = None
     def _sync():
         try:
             sp = get_supabase()
@@ -373,6 +448,8 @@ async def add_required_channel(channel_id: int, channel_name: str, username: str
     return await asyncio.to_thread(_sync)
 
 async def remove_required_channel(channel_id: int) -> bool:
+    global _req_channels_cache
+    _req_channels_cache = None
     def _sync():
         try:
             sp = get_supabase()
@@ -385,7 +462,7 @@ async def remove_required_channel(channel_id: int) -> bool:
 
 # ==================== POST MANAGEMENT (POST_INFO) ====================
 
-def generate_post_code(length: int = 5) -> str:
+def generate_post_code(length: int = 6) -> str:
     """Unikal post kodi generatsiya qiladi."""
     return ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(length))
 
@@ -395,13 +472,6 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
             sp = get_supabase()
             post_code = generate_post_code()
             
-            # Kod takrorlanmasligini tekshirish
-            while True:
-                check = sp.table('post_info').select('id').eq('post_code', post_code).execute()
-                if not check.data:
-                    break
-                post_code = generate_post_code()
-                
             if isinstance(post_data, dict) and ('post_content' in post_data or 'buttons_matrix' in post_data):
                 full_post_data = post_data
                 if buttons_matrix is not None and 'buttons_matrix' not in full_post_data:
@@ -421,13 +491,25 @@ async def add_post_to_db(user_id: int, post_data: dict, buttons_matrix: list = N
                 'created_at': get_now().isoformat()
             }).execute()
             
-            return post_code
+            return post_code, full_post_data
         except Exception as e:
             logger.error(f"add_post_to_db error: {e}")
-            return None
-    return await asyncio.to_thread(_sync)
+            return None, None
+
+    res = await asyncio.to_thread(_sync)
+    if res and res[0]:
+        post_code, full_post_data = res
+        _posts_cache[post_code] = (time.time(), full_post_data)
+        return post_code
+    return None
 
 async def get_post_from_db(post_code: str) -> dict | None:
+    now = time.time()
+    if post_code in _posts_cache:
+        cached_time, post_data = _posts_cache[post_code]
+        if now - cached_time < 300: # 5 daqiqa kesh
+            return post_data
+
     def _sync():
         try:
             sp = get_supabase()
@@ -441,7 +523,11 @@ async def get_post_from_db(post_code: str) -> dict | None:
         except Exception as e:
             logger.error(f"get_post_from_db error: {e}")
             return None
-    return await asyncio.to_thread(_sync)
+
+    data = await asyncio.to_thread(_sync)
+    if data:
+        _posts_cache[post_code] = (now, data)
+    return data
 
 async def check_post_owner(post_code: str, user_id: int) -> bool:
     def _sync():
@@ -588,6 +674,12 @@ def _build_signature_value(enabled: bool, text: str) -> str:
     return status
 
 async def get_user_auto_signature(user_id: int) -> dict:
+    now = time.time()
+    if user_id in _user_signature_cache:
+        cached_time, sig = _user_signature_cache[user_id]
+        if now - cached_time < 60: # 60 soniya kesh
+            return sig
+
     def _sync():
         try:
             sp = get_supabase()
@@ -599,9 +691,13 @@ async def get_user_auto_signature(user_id: int) -> dict:
         except Exception as e:
             logger.error(f"get_user_auto_signature error: {e}")
             return {'enabled': False, 'text': '', 'position': 'bottom', 'newline': True}
-    return await asyncio.to_thread(_sync)
+
+    sig = await asyncio.to_thread(_sync)
+    _user_signature_cache[user_id] = (now, sig)
+    return sig
 
 async def toggle_auto_signature(user_id: int) -> bool:
+    _user_signature_cache.pop(user_id, None)
     def _sync():
         try:
             sp = get_supabase()
@@ -625,6 +721,7 @@ async def toggle_auto_signature(user_id: int) -> bool:
     return await asyncio.to_thread(_sync)
 
 async def update_auto_signature_text(user_id: int, text: str) -> bool:
+    _user_signature_cache.pop(user_id, None)
     def _sync():
         try:
             sp = get_supabase()
@@ -1187,14 +1284,39 @@ async def get_user_settings_for_export(admin_ids: list = None, period: str = 'al
 # ==================== INIT_DB ====================
 
 async def init_db():
-    """Supabase bazaga ulanishni tekshiradi."""
+    """Supabase bazaga ulanishni tekshiradi va keshni ishga tushiradi."""
     def _sync():
         try:
             sp = get_supabase()
             res = sp.table('users').select('user_id').limit(1).execute()
             logger.info("✅ Supabase ma'lumotlar bazasiga ulanish muvaffaqiyatli!")
-            return True
+            
+            # Bloklangan foydalanuvchilar keshini to'ldiramiz
+            b_res = sp.table('users').select('user_id').eq('is_blocked', 1).execute()
+            blocked_set = {row['user_id'] for row in b_res.data} if b_res.data else set()
+            
+            # Majburiy kanallarni keshlaymiz
+            r_res = sp.table('req_channels').select('*').execute()
+            req_list = [
+                {
+                    'id': row['channel_id'],
+                    'channel_id': row['channel_id'],
+                    'title': row.get('channel_name') or 'Kanal',
+                    'name': row.get('channel_name') or 'Kanal',
+                    'username': row.get('username')
+                }
+                for row in r_res.data
+            ] if r_res.data else []
+            
+            return blocked_set, req_list
         except Exception as e:
             logger.error(f"❌ Supabase ulanishida xatolik: {e}")
-            return False
-    return await asyncio.to_thread(_sync)
+            return set(), []
+
+    global _blocked_users_cache, _blocked_cache_time, _req_channels_cache
+    blocked_set, req_list = await asyncio.to_thread(_sync)
+    _blocked_users_cache = blocked_set
+    _blocked_cache_time = time.time()
+    _req_channels_cache = (time.time(), req_list)
+    logger.info(f"⚡ Kesh yuklandi: {len(blocked_set)} ta bloklangan foydalanuvchi, {len(req_list)} ta majburiy kanal.")
+    return True

@@ -198,13 +198,6 @@ class BlockUserMiddleware(BaseMiddleware):
         if chat and chat.type in ('group', 'supergroup'):
             return
 
-        if user and not user.is_bot and chat and chat.type == 'private':
-            await add_or_update_user(
-                user_id=user.id,
-                nickname=user.full_name,
-                username=user.username
-            )
-
         if user and await is_user_blocked(user.id):
             lang = await get_user_language(user.id)
 

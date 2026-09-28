@@ -33,6 +33,7 @@ class StatsMiddleware(BaseMiddleware):
         if config.ADMIN_IDS and user.id in config.ADMIN_IDS:
             return await handler(event, data)
             
-        await add_or_update_user(user_id=user.id, nickname=user.full_name, username=user.username)
+        import asyncio
+        asyncio.create_task(add_or_update_user(user_id=user.id, nickname=user.full_name, username=user.username))
 
         return await handler(event, data)
