@@ -318,6 +318,7 @@ async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMCo
     await callback.answer(action_notice)
 
 @start_router.message(LocalizedText('edit_post_btn'))
+@start_router.callback_query(F.data == "main:edit_post")
 async def start_post_editing_process(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
     lang = await get_user_language(user.id)
@@ -348,21 +349,32 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
 
     if isinstance(event, types.CallbackQuery):
         await event.answer()
-        await event.message.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
+        try:
+            await event.message.edit_text(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
+        except Exception:
+            await event.message.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
     else:
         await event.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
 
 @start_router.message(LocalizedText('statistic_btn'))
+@start_router.callback_query(F.data == "main:statistic")
 async def handle_statistics_button(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     """Statistika tugmasi bosilganda statistika sahifasini ko'rsatadi"""
     from post_handlers.statistic_handler import handle_generate_statistics
-    await handle_generate_statistics(event, state, bot)
+    msg = event.message if isinstance(event, types.CallbackQuery) else event
+    if isinstance(event, types.CallbackQuery):
+        await event.answer()
+    await handle_generate_statistics(msg, state, bot)
 
 @start_router.message(LocalizedText('schedule_list_btn'))
-async def handle_schedule_list_button(event: types.Message, state: FSMContext, bot: Bot):
+@start_router.callback_query(F.data == "main:schedule_list")
+async def handle_schedule_list_button(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     """Jadval tugmasi: rejalashtirilgan postlar ro'yxatini ko'rsatadi"""
     from post_handlers.schedule_handler import show_scheduled_posts_for_message
-    await show_scheduled_posts_for_message(event, state, bot)
+    msg = event.message if isinstance(event, types.CallbackQuery) else event
+    if isinstance(event, types.CallbackQuery):
+        await event.answer()
+    await show_scheduled_posts_for_message(msg, state, bot)
 
 @start_router.callback_query(F.data.startswith("lang:"))
 async def set_language_from_start(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
@@ -430,6 +442,9 @@ async def handle_unknown_message(event: types.Message, state: FSMContext, bot: B
     ),
     LocalizedText('cancel_btn')
 )
-async def cancel_action(message: types.Message, state: FSMContext, bot: Bot):
+@start_router.callback_query(F.data == "cancel_action")
+async def cancel_action(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+    if isinstance(event, types.CallbackQuery):
+        await event.answer()
     await state.clear()
-    await cmd_start(message, state, bot)
+    await show_main_menu(event, state, bot)
