@@ -285,11 +285,19 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
             await callback.answer()
             return
         else:
-            from post_handlers.xinline_keyboard import get_send_confirmation_keyboard
-            await state.set_state(PostSending.confirming_post_send)
-            await callback.message.edit_text(
-                get_text_formatted('confirm_send_msg', lang, channel_name=safe_channel_name),
-                reply_markup=get_send_confirmation_keyboard(callback_data.post_code, callback_data.channel_id, lang)
+            # TURBO REJIM ('now'): Hech qanday tasdiq/ruxsat so'ralmaydi, darhol kanalga yuboriladi!
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
+            await execute_send_post(
+                bot=bot,
+                user_id=callback.from_user.id,
+                post_code=callback_data.post_code,
+                channel_id=callback_data.channel_id,
+                channel_name=safe_channel_name,
+                lang=lang,
+                state=state
             )
             await callback.answer()
             return
