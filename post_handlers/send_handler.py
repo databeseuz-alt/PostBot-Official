@@ -24,8 +24,9 @@ from post_handlers.xinline_keyboard import (
 )
 
 from xdata_handlers.translator import get_text, safe_format, get_text_formatted
-from post_handlers.xreply_keyboard import get_post_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
+from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
 from post_handlers.localize_filter import LocalizedText
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def validate_html_content(content: str) -> str:
     """
@@ -341,38 +342,19 @@ async def back_to_timing_from_confirm(callback: types.CallbackQuery, callback_da
 
     await callback.answer()
 
-@send_router.callback_query(PostSending.confirming_post_send, PostSendCallbackFactory.filter(F.action == "confirm_send"))
-async def confirm_send_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, bot: Bot, state: FSMContext):
-    post_code = callback_data.post_code
-    
-    # post_code None bo'lsa, state dan olishga urinib ko'rish
-    if not post_code:
-        data = await state.get_data()
-        post_code = data.get("post_code")
-    
-    # Yana ham None bo'lsa, xabar berish
-    if not post_code:
-        lang = await get_user_language(callback.from_user.id)
-        await callback.message.answer(get_text('post_code_missing_error', lang), parse_mode="HTML")
-        await callback.answer()
-        return
-    channel_id = callback_data.channel_id
-    user_id = callback.from_user.id # User ID ni olamiz
-    lang = await get_user_language(user_id)
-
-    try:
-        await callback.message.delete()
-    except Exception:
-        pass
-
-    data = await state.get_data()
-    original_msg_id = data.get('original_post_msg_id')
-    original_chat_id = data.get('original_post_chat_id')
-    if original_msg_id and original_chat_id:
-        try:
-            await bot.delete_message(original_chat_id, original_msg_id)
-        except Exception:
-            pass
+async def execute_send_post(
+    bot: Bot,
+    user_id: int,
+    post_code: str,
+    channel_id: int,
+    channel_name: str,
+    lang: str,
+    state: FSMContext = None
+):
+    """Postni kanalga to'g'ridan-to'g'ri yuboruvchi asosiy funksiya."""
+    data = await state.get_data() if state else {}
+    if not channel_name:
+        channel_name = data.get('selected_channel_name', '')
 
     full_post = await get_post_from_db(post_code)
     if not full_post:
@@ -669,13 +651,15 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                     schedule_message_deletion(bot, channel_id, sent_message.message_id, delete_timer_seconds)
                 )
 
+        display_channel_name = channel_name or (await state.get_data() if state else {}).get('selected_channel_name', '')
         await bot.send_message(
             user_id,
-            safe_format(get_text('post_sent_success_msg', lang), channel_name=data.get('selected_channel_name', '')),
+            safe_format(get_text('post_sent_success_msg', lang), channel_name=display_channel_name),
             reply_markup=get_post_done_menu(lang)
         )
 
-        await state.clear()
+        if state:
+            await state.clear()
 
     except Exception as e:
         # Server console ga yozish
@@ -716,4 +700,19 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
                 parse_mode="HTML"
             )
 
+
+@send_router.callback_query(PostSending.confirming_post_send, PostSendCallbackFactory.filter(F.action == "confirm_send"))
+async def confirm_send_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, bot: Bot, state: FSMContext):
+    """Postni yuborishni tasdiqlash (normal rejimda 'Ha' tugmasi)."""
+    post_code = callback_data.post_code or (await state.get_data()).get("post_code")
+    channel_id = callback_data.channel_id
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    data = await state.get_data()
+    channel_name = data.get('selected_channel_name', '')
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    await execute_send_post(bot, user_id, post_code, channel_id, channel_name, lang, state)
     await callback.answer()

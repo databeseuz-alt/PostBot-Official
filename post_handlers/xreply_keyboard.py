@@ -86,6 +86,20 @@ def get_post_done_menu(lang: str):
     builder.adjust(2)
     return builder.as_markup(resize_keyboard=True)
 
+def get_turbo_done_menu(lang: str):
+    builder = ReplyKeyboardBuilder()
+    exit_text = {
+        'uzl': "❌ Turbo rejimdan chiqish",
+        'uzk': "❌ Турбо режимдан чиқиш",
+        'ru': "❌ Выйти из турбо режима",
+        'en': "❌ Exit Turbo mode"
+    }.get(lang, "❌ Turbo rejimdan chiqish")
+    back_text = get_text('back_btn', lang)
+    builder.add(KeyboardButton(text=exit_text))
+    builder.add(KeyboardButton(text=back_text))
+    builder.adjust(2)
+    return builder.as_markup(resize_keyboard=True)
+
 def get_single_button_kb(text: str) -> ReplyKeyboardMarkup:
     """Bitta tugmali klaviatura yaratish uchun umumiy funksiya."""
     builder = ReplyKeyboardBuilder()

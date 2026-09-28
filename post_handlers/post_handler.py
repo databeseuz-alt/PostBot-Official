@@ -462,6 +462,30 @@ async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot
             get_text('need_channel_msg', lang),
             reply_markup=get_add_channel_with_post_keyboard(post_code)
         )
+    elif turbo_action == 'now' and len(user_channels) == 1:
+        # Foydalanuvchida 1 ta kanal bo'lsa va turbo_action == 'now' bo'lsa:
+        # Hech qanday so'rov/tasdiqsiz to'g'ridan-to'g'ri kanalga yuboriladi!
+        ch = user_channels[0]
+        from post_handlers.send_handler import execute_send_post
+        await execute_send_post(
+            bot=bot,
+            user_id=user_id,
+            post_code=post_code,
+            channel_id=ch['channel_id'],
+            channel_name=ch['channel_name'],
+            lang=lang,
+            state=state
+        )
+        return True
+    elif turbo_action == 'schedule' and len(user_channels) == 1:
+        # 1 ta kanal bo'lsa, to'g'ridan-to'g'ri jadval vaqtini so'raymiz
+        from post_handlers.schedule_handler import ScheduleManage, get_schedule_quick_keyboard
+        ch = user_channels[0]
+        await state.update_data(schedule_post_code=post_code, schedule_channel_id=ch['channel_id'])
+        await state.set_state(ScheduleManage.waiting_for_custom_time)
+        text = get_text('schedule_when_to_send', lang) + "\n\n" + get_text('schedule_enter_date_format', lang)
+        await message.answer(text, reply_markup=get_schedule_quick_keyboard(lang), parse_mode="HTML")
+        return True
     else:
         turbo_title = {
             'uzl': '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Hozir chop etiladi):' if turbo_action == 'now' else '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Jadval bo\'yicha):',

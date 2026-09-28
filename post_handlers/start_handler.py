@@ -346,16 +346,8 @@ async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
         await callback.message.edit_reply_markup(reply_markup=new_kb)
     except Exception:
         pass
-        
-    notice_text = "⚡ Turbo rejim yoqildi" if turbo_enabled else "Turbo rejim o'chirildi"
-    if lang == 'ru':
-        notice_text = "⚡ Турбо режим включен" if turbo_enabled else "Турбо режим выключен"
-    elif lang == 'en':
-        notice_text = "⚡ Turbo mode enabled" if turbo_enabled else "Turbo mode disabled"
-    elif lang == 'uzk':
-        notice_text = "⚡ Турбо режим ёқилди" if turbo_enabled else "Турбо режим ўчирилди"
-        
-    await callback.answer(notice_text)
+
+    await callback.answer()
 
 @start_router.callback_query(F.data.startswith("turbo:action:"))
 async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMContext):
@@ -369,16 +361,8 @@ async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMCo
         await callback.message.edit_reply_markup(reply_markup=new_kb)
     except Exception:
         pass
-        
-    action_notice = "Hozir chop etish tanlandi" if action == 'now' else "Jadval bo'yicha rejalashtirish tanlandi"
-    if lang == 'ru':
-        action_notice = "Выбрано: Опубликовать сейчас" if action == 'now' else "Выбрано: По расписанию"
-    elif lang == 'en':
-        action_notice = "Selected: Publish now" if action == 'now' else "Selected: By schedule"
-    elif lang == 'uzk':
-        action_notice = "Ҳозир чоп этиш танланди" if action == 'now' else "Жадвал бўйича режалаштириш танланди"
-        
-    await callback.answer(action_notice)
+
+    await callback.answer()
 
 @start_router.message(LocalizedText('edit_post_btn'))
 @start_router.callback_query(F.data == "main:edit_post")
@@ -509,3 +493,21 @@ async def cancel_action(event: types.Message | types.CallbackQuery, state: FSMCo
         await event.answer()
     await state.clear()
     await show_main_menu(event, state, bot)
+
+@start_router.message(F.text.in_([
+    "❌ Turbo rejimdan chiqish",
+    "❌ Турбо режимдан чиқиш",
+    "❌ Выйти из турбо режима",
+    "❌ Exit Turbo mode"
+]))
+async def handle_exit_turbo_mode(message: types.Message, state: FSMContext, bot: Bot):
+    await state.clear()
+    lang = await get_user_language(message.from_user.id)
+    exit_text = {
+        'uzl': "Turbo rejimdan chiqildi.",
+        'uzk': "Турбо режимдан чиқилди.",
+        'ru': "Вы вышли из турбо режима.",
+        'en': "Exited Turbo mode."
+    }.get(lang, "Turbo rejimdan chiqildi.")
+    await message.answer(exit_text)
+    await show_main_menu(message, state, bot)
