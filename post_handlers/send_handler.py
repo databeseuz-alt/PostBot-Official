@@ -286,12 +286,13 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
             await callback.answer()
             return
         else:
-            # TURBO REJIM ('now'): Hech qanday tasdiq/ruxsat so'ralmaydi, darhol kanalga yuboriladi!
+            # TURBO REJIM ('now'): 3 sekund kutiladi, bekor qilish imkoni beriladi va kanalga yuboriladi
             try:
                 await callback.message.delete()
             except Exception:
                 pass
-            await execute_send_post(
+            await callback.answer()
+            await start_turbo_countdown_and_send(
                 bot=bot,
                 user_id=callback.from_user.id,
                 post_code=callback_data.post_code,
@@ -300,7 +301,6 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
                 lang=lang,
                 state=state
             )
-            await callback.answer()
             return
 
     await callback.message.edit_text(
@@ -342,7 +342,23 @@ async def back_to_timing_from_confirm(callback: types.CallbackQuery, callback_da
 
     await callback.answer()
 
-async def execute_send_post(
+active_turbo_cancels: dict[str, asyncio.Event] = {}
+
+def get_turbo_cancel_keyboard(post_code: str, lang: str):
+    builder = InlineKeyboardBuilder()
+    cancel_text = get_text('cancel_btn', lang)
+    builder.button(text=cancel_text, callback_data=f"turbo_cancel:{post_code}")
+    return builder.as_markup()
+
+@send_router.callback_query(F.data.startswith("turbo_cancel:"))
+async def handle_turbo_cancel(callback: types.CallbackQuery, state: FSMContext):
+    post_code = callback.data.split(":")[1]
+    event = active_turbo_cancels.get(post_code)
+    if event:
+        event.set()
+    await callback.answer()
+
+async def start_turbo_countdown_and_send(
     bot: Bot,
     user_id: int,
     post_code: str,
@@ -350,6 +366,80 @@ async def execute_send_post(
     channel_name: str,
     lang: str,
     state: FSMContext = None
+):
+    """Turbo rejimda 3 sekund kutiladi, bekor qilish imkoni beriladi va kanalga yuboriladi."""
+    sparkle_emoji = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
+    waiting_text = {
+        'uzl': f"{sparkle_emoji} <b>Turbo rejim ishga tushirilmoqda. Kuting!</b>",
+        'uzk': f"{sparkle_emoji} <b>Турбо режим ишга туширилмоқда. Кутинг!</b>",
+        'ru': f"{sparkle_emoji} <b>Запуск турбо режима. Подождите!</b>",
+        'en': f"{sparkle_emoji} <b>Starting Turbo mode. Please wait!</b>"
+    }.get(lang, f"{sparkle_emoji} <b>Turbo rejim ishga tushirilmoqda. Kuting!</b>")
+
+    waiting_msg = None
+    try:
+        waiting_msg = await bot.send_message(
+            chat_id=user_id,
+            text=waiting_text,
+            reply_markup=get_turbo_cancel_keyboard(post_code, lang),
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Error sending turbo waiting message: {e}")
+
+    cancel_event = asyncio.Event()
+    active_turbo_cancels[post_code] = cancel_event
+
+    cancelled = False
+    try:
+        await asyncio.wait_for(cancel_event.wait(), timeout=3.0)
+        cancelled = True
+    except asyncio.TimeoutError:
+        cancelled = False
+    finally:
+        active_turbo_cancels.pop(post_code, None)
+
+    if cancelled:
+        cancel_text = {
+            'uzl': "❌ <b>Turbo yuborish bekor qilindi.</b>",
+            'uzk': "❌ <b>Турбо юбориш бекор қилинди.</b>",
+            'ru': "❌ <b>Турбо отправка отменена.</b>",
+            'en': "❌ <b>Turbo sending cancelled.</b>"
+        }.get(lang, "❌ <b>Turbo yuborish bekor qilindi.</b>")
+        if waiting_msg:
+            try:
+                await waiting_msg.edit_text(cancel_text, parse_mode="HTML")
+            except Exception:
+                pass
+        return
+
+    # Bekor qilinmadi - kutish xabarini o'chirib, postni kanalga yuboramiz
+    if waiting_msg:
+        try:
+            await waiting_msg.delete()
+        except Exception:
+            pass
+
+    await execute_send_post(
+        bot=bot,
+        user_id=user_id,
+        post_code=post_code,
+        channel_id=channel_id,
+        channel_name=channel_name,
+        lang=lang,
+        state=state,
+        is_turbo=True
+    )
+
+async def execute_send_post(
+    bot: Bot,
+    user_id: int,
+    post_code: str,
+    channel_id: int,
+    channel_name: str,
+    lang: str,
+    state: FSMContext = None,
+    is_turbo: bool = False
 ):
     """Postni kanalga to'g'ridan-to'g'ri yuboruvchi asosiy funksiya."""
     data = await state.get_data() if state else {}
@@ -652,14 +742,90 @@ async def execute_send_post(
                 )
 
         display_channel_name = channel_name or (await state.get_data() if state else {}).get('selected_channel_name', '')
-        await bot.send_message(
-            user_id,
-            safe_format(get_text('post_sent_success_msg', lang), channel_name=display_channel_name),
-            reply_markup=get_post_done_menu(lang)
-        )
 
-        if state:
-            await state.clear()
+        if not is_turbo and state:
+            state_data = await state.get_data()
+            is_turbo = state_data.get('turbo_mode', False) or state_data.get('turbo_enabled', False)
+
+        if is_turbo:
+            post_url = ""
+            channel_url = ""
+            try:
+                chat = await bot.get_chat(channel_id)
+                username = getattr(chat, 'username', None)
+                if username:
+                    post_url = f"https://t.me/{username}/{sent_message.message_id}"
+                    channel_url = f"https://t.me/{username}"
+                else:
+                    clean_id = str(channel_id).replace("-100", "").replace("-", "")
+                    post_url = f"https://t.me/c/{clean_id}/{sent_message.message_id}"
+                    channel_url = getattr(chat, 'invite_link', None) or f"https://t.me/c/{clean_id}"
+            except Exception:
+                clean_id = str(channel_id).replace("-100", "").replace("-", "")
+                post_url = f"https://t.me/c/{clean_id}/{sent_message.message_id}"
+                channel_url = f"https://t.me/c/{clean_id}"
+
+            post_link = f'<a href="{post_url}">post</a>'
+            channel_link = f'<a href="{channel_url}">{html.escape(display_channel_name)}</a>'
+            sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
+
+            if lang == 'ru':
+                success_text = (
+                    f"{sparkle} <b>Готово, {post_link} отправлен в канал!</b>\n"
+                    f"<b>Канал :</b> {channel_link}\n\n"
+                    f"<b>Что делаем:</b>\n"
+                    f"▫️ Отправляйте новые посты\n"
+                    f"▫️ Или нажмите любую кнопку, чтобы выйти из режима Турбо отправки"
+                )
+            elif lang == 'en':
+                success_text = (
+                    f"{sparkle} <b>Done, {post_link} has been sent to the channel!</b>\n"
+                    f"<b>Channel :</b> {channel_link}\n\n"
+                    f"<b>What's next:</b>\n"
+                    f"▫️ Send new posts\n"
+                    f"▫️ Or press any button to exit Turbo mode"
+                )
+            elif lang == 'uzk':
+                success_text = (
+                    f"{sparkle} <b>Тайёр {post_link} каналга юборилди!</b>\n"
+                    f"<b>Канал :</b> {channel_link}\n\n"
+                    f"<b>Нима қиламиз:</b>\n"
+                    f"▫️ Янги постларни юборинг\n"
+                    f"▫️ Ёки Турбо Юбориш режимидан чиқиш учун ҳар қандай тугмани босинг"
+                )
+            else:
+                success_text = (
+                    f"{sparkle} <b>Tayyor {post_link} kanalga yuborildi!</b>\n"
+                    f"<b>Kanal :</b> {channel_link}\n\n"
+                    f"<b>Nima qilamiz:</b>\n"
+                    f"▫️ Yangi postlarni yuboring\n"
+                    f"▫️ Yoki Turbo Yuborish rejimidan chiqish uchun har qanday tugmani bosing"
+                )
+
+            await bot.send_message(
+                user_id,
+                success_text,
+                reply_markup=get_turbo_done_menu(lang),
+                parse_mode="HTML",
+                disable_web_page_preview=True
+            )
+
+            if state:
+                from post_handlers.post_handler import PostCreation
+                await state.set_state(PostCreation.waiting_for_content)
+                await state.update_data(
+                    turbo_enabled=True,
+                    turbo_action='now'
+                )
+        else:
+            await bot.send_message(
+                user_id,
+                safe_format(get_text('post_sent_success_msg', lang), channel_name=display_channel_name),
+                reply_markup=get_post_done_menu(lang)
+            )
+
+            if state:
+                await state.clear()
 
     except Exception as e:
         # Server console ga yozish
