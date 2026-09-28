@@ -9,3 +9,5 @@ requests
 google-genai
 matplotlib
 qrcode
+supabase
+beautifulsoup4

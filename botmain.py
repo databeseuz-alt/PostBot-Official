@@ -50,7 +50,27 @@ from admin_handlers.block_handler import BlockUserMiddleware
 
 from admin_handlers.statsmiddleware import StatsMiddleware
 
+async def start_dummy_web_server():
+    port = os.environ.get("PORT")
+    if not port:
+        return
+    try:
+        from aiohttp import web
+        app = web.Application()
+        async def handle_ping(request):
+            return web.Response(text="Bot is running!")
+        app.router.add_get("/", handle_ping)
+        app.router.add_get("/health", handle_ping)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", int(port))
+        await site.start()
+        logger.info(f"Render web server ishga tushdi (port: {port})")
+    except Exception as e:
+        logger.warning(f"Render web serverni ishga tushirishda xatolik: {e}")
+
 async def main():
+    await start_dummy_web_server()
 
     await init_db()
 
