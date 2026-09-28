@@ -41,7 +41,6 @@ from post_handlers.assistant_handler import ai_assistant_router
 from post_handlers.signature_handler import router as auto_signature_router
 from post_handlers.statistic_handler import statistic_router as post_statistic_router
 from post_handlers.watermark_handler import watermark_router
-from post_handlers.features_handler import features_router
 from admin_handlers.statistic_handler import statistics_router
 
 from user_handlers.feedback_handler import feedback_router
@@ -103,7 +102,6 @@ async def main():
     dp.include_router(schedule_router)
     dp.include_router(auto_signature_router)
     dp.include_router(watermark_router)
-    dp.include_router(features_router)
 
     from post_handlers.schedule_handler import start_scheduler
     start_scheduler(bot)

@@ -108,10 +108,6 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
 
     await show_main_menu(event, state, bot)
 
-@start_router.message(Command("features"))
-async def cmd_features(message: types.Message, state: FSMContext):
-    from post_handlers.features_handler import show_features_menu
-    await show_features_menu(message)
 
 @start_router.message(Command("newpost"))
 async def cmd_newpost(message: types.Message, state: FSMContext, bot: Bot):

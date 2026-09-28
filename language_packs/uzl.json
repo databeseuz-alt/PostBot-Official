@@ -1,7 +1,5 @@
 {
-    "welcome_msg": "Xush kelibsiz , ㅤ 👋\n\nbu adminlar uchun yaratilgan eng zamonaviy va mukammal  bot hisoblanadi 😉\n\n/features - nimalarga qodir ekanimni ko'ring \n\ntugmalardan birini tanlang 👇",
-    "features_title": "Xususiyatlar",
-    "features_msg": "Xususiyatlar\n\nBunday aqlli avtomatlashtirish va soddalik kombinatsiyasini boshqa joyda topa olmaysiz.\n\nSizni qiziqtirgan narsani tanlang:",
+    "welcome_msg": "<b>Xush kelibsiz , {nickname}</b> 👋\n\nbu adminlar uchun yaratilgan <b>eng zamonaviy va mukammal </b> bot hisoblanadi 😉\n\ntugmalardan birini tanlang 👇",
     "donate_msg": "<b>💰 Botni qo'llab quvvatlash</b>\n\nBotni qo'llab quvvatlash uchun donat qiling.donat qilish uchun pastki tugmalardan birortasini tanlang:",
     "donate_thanks_msg": "<b>✅ Rahmat!</b>\n\nSizning donat so'rovingiz yuborildi. Tez orada siz bilan bog'lanamiz.",
     "donate_error_msg": "<b>❌ Xatolik</b>\n\nNimadir xato ketdi. Iltimos qayta urinib ko'ring yoki @admin ga yozing",
