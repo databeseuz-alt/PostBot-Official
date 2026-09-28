@@ -632,29 +632,7 @@ async def save_post_name_received(message: types.Message, state: FSMContext, bot
 @done_router.message(LocalizedText('cr_another_post_btn'))
 async def create_another_post_handler(message: types.Message, state: FSMContext, bot: Bot):
     """Yangi post yaratish - done_handler dan"""
-    user = message.from_user
-    is_member, text, keyboard = await check_user_membership(user, bot)
-    
-    if not is_member:
-        remover_message = await message.answer(".", reply_markup=ReplyKeyboardRemove())
-        await remover_message.delete()
-        await message.answer(text, reply_markup=keyboard)
-        return
-    
-    await state.clear()
-    lang = await get_user_language(user.id)
-    
-    user_settings = await get_user_post_settings(user.id)
-    ai_assistant_enabled = user_settings.get('ai_assistant_enabled', False)
-    
-    content_text = get_text('content_msg', lang)
-    if ai_assistant_enabled:
-        content_text += get_text('ai_assistant_hint_msg', lang)
-    
-    content_message = await message.answer(content_text, reply_markup=get_cancel_reply_kb(lang, ai_assistant_enabled))
-    
-    await state.update_data(content_message_id=content_message.message_id)
-    await state.set_state(PostCreation.waiting_for_content)
+    await start_post_creation(message, state, bot)
 
 @done_router.message(LocalizedText('back_btn'))
 async def back_to_main_menu_handler(message: types.Message, state: FSMContext, bot: Bot):

@@ -67,11 +67,6 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
     main_menu_keyboard = await get_main_menu(lang=lang, user_id=user.id)
 
     if isinstance(event, types.Message):
-        remover = await event.answer(".", reply_markup=ReplyKeyboardRemove())
-        try:
-            await remover.delete()
-        except Exception:
-            pass
         await event.answer(start_text, reply_markup=main_menu_keyboard)
     elif isinstance(event, types.CallbackQuery):
         try:
@@ -99,8 +94,6 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
 
     if not is_member:
         if isinstance(event, types.Message):
-            remover_message = await event.answer(".", reply_markup=ReplyKeyboardRemove())
-            await remover_message.delete()
             await event.answer(text, reply_markup=keyboard)
         elif isinstance(event, types.CallbackQuery):
             await event.message.answer(text, reply_markup=keyboard)
@@ -234,8 +227,6 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
             return
     else:
         if not is_member:
-            remover_message = await event.answer(".", reply_markup=ReplyKeyboardRemove())
-            await remover_message.delete()
             await event.answer(text, reply_markup=keyboard)
             return
 
@@ -419,8 +410,6 @@ async def handle_unknown_message(event: types.Message, state: FSMContext, bot: B
     is_member, text, keyboard = await check_user_membership(user, bot)
     
     if not is_member:
-        remover_message = await event.answer(".", reply_markup=ReplyKeyboardRemove())
-        await remover_message.delete()
         await event.answer(text, reply_markup=keyboard)
         return
     
