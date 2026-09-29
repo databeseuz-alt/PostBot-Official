@@ -117,8 +117,9 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
                         icon_custom_emoji_id=EMOJI_SAVE
                     )
                     builder.button(
-                        text=get_text('cancel_btn', current_lang),
-                        callback_data="cancel_action"
+                        text=clean_btn_text(get_text('cancel_btn', current_lang)),
+                        callback_data="cancel_action",
+                        icon_custom_emoji_id=EMOJI_CLOSE
                     )
                     builder.adjust(1)
                     await event.answer(import_text, reply_markup=builder.as_markup(), parse_mode="HTML")
@@ -307,7 +308,11 @@ async def handle_post_add_channel(callback: types.CallbackQuery, state: FSMConte
     await state.update_data(from_post_creation=True)
 
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+    builder.button(
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
 
     add_channel_text = get_text('add_channel_msg', lang)
     try:

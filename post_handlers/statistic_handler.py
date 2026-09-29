@@ -23,7 +23,7 @@ from xdata_handlers.database import (
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, HTML_EMOJI_CHANNEL, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_STATISTIC, HTML_EMOJI_CHANNEL, clean_btn_text
 
 import html as _html
 
@@ -40,7 +40,11 @@ class StatChannelSelectCallback(CallbackData, prefix="stat_ch_sel"):
 def get_stats_actions_keyboard(lang: str = 'uzl') -> types.InlineKeyboardMarkup:
     """Statistika rasmi ostidagi tugmalar."""
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('back_btn', lang), callback_data="cancel_action")
+    builder.button(
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
     builder.adjust(1)
     return builder.as_markup()
 
@@ -606,8 +610,9 @@ async def handle_generate_statistics(event: types.Message | types.CallbackQuery,
     builder = InlineKeyboardBuilder()
     if len(user_channels) > 1:
         builder.button(
-            text="📊 Barcha kanallar",
-            callback_data=StatChannelSelectCallback(channel_id="all").pack()
+            text=clean_btn_text(get_text('all_channels_btn', lang)) if get_text('all_channels_btn', lang) != 'all_channels_btn' else "Barcha kanallar",
+            callback_data=StatChannelSelectCallback(channel_id="all").pack(),
+            icon_custom_emoji_id=EMOJI_STATISTIC
         )
     for ch in user_channels:
         builder.button(
@@ -684,7 +689,11 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
     await state.set_state(PostSending.waiting_for_channel_info)
 
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+    builder.button(
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
 
     add_channel_text = get_text('add_channel_msg', lang)
     try:
