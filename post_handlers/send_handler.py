@@ -26,7 +26,7 @@ from post_handlers.xinline_keyboard import (
 from xdata_handlers.translator import get_text, safe_format, get_text_formatted
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
-from post_handlers.custom_emojis import EMOJI_CLOSE, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_CLOSE, EMOJI_BACK, HTML_EMOJI_ARROW_RIGHT, HTML_EMOJI_BUNDLE, clean_btn_text
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
@@ -98,7 +98,7 @@ async def cmd_add_channel(message: types.Message, state: FSMContext):
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:my_channels",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.button(
         text=get_text('home_screen_btn', lang),
@@ -267,7 +267,7 @@ async def redirect_to_add_channel_with_post(callback: types.CallbackQuery, callb
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=f"send_post:{post_code}",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.button(
         text=get_text('home_screen_btn', lang),
@@ -579,12 +579,12 @@ async def start_turbo_countdown_and_send_bundle(
     post_link = "пост" if lang in ['ru', 'uzk', 'tj', 'kg'] else "post"
     sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
     channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
-    bullet = '<tg-emoji emoji-id="6203760464397078712">🫙</tg-emoji>'
+    bullet = HTML_EMOJI_ARROW_RIGHT
     safe_bname = html.escape(bundle_name)
 
     success_text = (
         f"{sparkle} <b>Tayyor {post_link} yuborildi !</b>\n"
-        f"{channel_emoji} <b>To'plam :</b> 📁 {safe_bname} ({len(channel_ids)} ta kanal)\n\n"
+        f"{channel_emoji} <b>To'plam :</b> {HTML_EMOJI_BUNDLE} {safe_bname} ({len(channel_ids)} ta kanal)\n\n"
         f"<b>Nima qilamiz:</b>\n"
         f"{bullet} Yangi postlarni yuboring\n"
         f"{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing"
@@ -973,7 +973,7 @@ async def execute_send_post(
 
             sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
             channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
-            bullet = '<tg-emoji emoji-id="6203760464397078712">🫙</tg-emoji>'
+            bullet = HTML_EMOJI_ARROW_RIGHT
 
             success_text = get_text_formatted(
                 'turbo_success_msg',

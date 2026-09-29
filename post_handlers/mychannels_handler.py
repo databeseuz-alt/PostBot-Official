@@ -40,7 +40,7 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.custom_emojis import (
     EMOJI_BUNDLE, EMOJI_ADD_BUNDLE, EMOJI_RENAME_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL,
-    EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT, EMOJI_CLOSE,
+    EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT, EMOJI_CLOSE, EMOJI_BACK,
     HTML_EMOJI_BUNDLE, HTML_EMOJI_ADD_BUNDLE, HTML_EMOJI_RENAME_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
 )
 
@@ -100,7 +100,7 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_b
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=MyChannelsCallback(action="back_to_list").pack(),
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -176,7 +176,7 @@ async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContex
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=MyChannelsCallback(action="back_to_list").pack(),
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.button(
         text=get_text('home_screen_btn', lang),
@@ -243,8 +243,9 @@ async def handle_channel_add_to_bundle(callback: types.CallbackQuery):
             icon_custom_emoji_id=EMOJI_ADD_BUNDLE
         )
         builder.button(
-            text=get_text('back_btn', lang),
-            callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
+            text=clean_btn_text(get_text('back_btn', lang)),
+            callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack(),
+            icon_custom_emoji_id=EMOJI_BACK
         )
         builder.adjust(1)
         try:
@@ -276,8 +277,9 @@ async def handle_channel_add_to_bundle(callback: types.CallbackQuery):
             icon_custom_emoji_id=EMOJI_BUNDLE
         )
     builder.button(
-        text=get_text('back_btn', lang),
-        callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack(),
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
 
@@ -358,8 +360,9 @@ async def handle_channel_remove_from_bundle(callback: types.CallbackQuery):
             icon_custom_emoji_id=EMOJI_BUNDLE
         )
     builder.button(
-        text=get_text('back_btn', lang),
-        callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack(),
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
     text = get_text('choose_bundle_to_remove', lang)
@@ -492,7 +495,7 @@ async def get_bundles_list_keyboard(user_id: int, lang: str):
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="bundle:back_to_channels",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -571,8 +574,9 @@ def get_bundle_channels_edit_keyboard(user_channels: list, selected_ids: set, bu
         icon_custom_emoji_id=EMOJI_SAVE
     )
     builder.button(
-        text=get_text('back_btn', lang),
-        callback_data=f"bundle:view:{bundle_id}"
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data=f"bundle:view:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_BACK
     )
     sizes = [1] * len(user_channels) + [2]
     builder.adjust(*sizes)
@@ -634,7 +638,7 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="bundle:list",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     sizes = [2, 2, 1, 1] if has_channels else [1, 2, 1, 1]
     builder.adjust(*sizes)
@@ -887,7 +891,7 @@ async def handle_bundle_remove_channels_menu(callback: types.CallbackQuery):
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=f"bundle:view:{bundle_id}",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
     prompt = get_text('bundle_select_channel_to_remove', lang)
@@ -1014,8 +1018,9 @@ async def handle_bundle_rename_input(message: types.Message, state: FSMContext):
                 icon_custom_emoji_id=EMOJI_DELETE
             )
             builder.button(
-                text=get_text('back_btn', lang),
-                callback_data="bundle:list"
+                text=clean_btn_text(get_text('back_btn', lang)),
+                callback_data="bundle:list",
+                icon_custom_emoji_id=EMOJI_BACK
             )
             sizes = [2, 2, 1, 1] if has_channels else [1, 2, 1, 1]
             builder.adjust(*sizes)
@@ -1066,8 +1071,9 @@ async def handle_bundle_share(callback: types.CallbackQuery, bot: Bot):
         url=telegram_share_url
     )
     builder.button(
-        text=get_text('back_btn', lang),
-        callback_data=f"bundle:view:{bundle_id}"
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data=f"bundle:view:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
 

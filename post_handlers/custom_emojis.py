@@ -16,10 +16,14 @@ EMOJI_CREATE = "6026349903863619779"       # 🪄 Yangi yaratish
 EMOJI_STATISTIC = "5931472654660800739"    # 📊 Statistika
 EMOJI_WAVE = "6023985511482268644"         # 👋 Xush kelibsiz (start)
 EMOJI_WINK = "5458394638505223612"         # 😉 Start xabari
+EMOJI_BACK = "5877629862306385808"          # ◀️ Orqaga tugmasi
+EMOJI_ARROW_RIGHT = "5807829874877930085"   # ➡️ Turbo rejim o'q emojisi
 EMOJI_DOWN = "6023566962624306038"         # 👇 Pastga ko'rsatish
 EMOJI_SMILE = "5458394638505223612"        # Alias
 
 # HTML custom emoji tags for message texts
+HTML_EMOJI_BACK = '<tg-emoji emoji-id="5877629862306385808">◀️</tg-emoji>'
+HTML_EMOJI_ARROW_RIGHT = '<tg-emoji emoji-id="5807829874877930085">➡️</tg-emoji>'
 HTML_EMOJI_BUNDLE = '<tg-emoji emoji-id="5877332341331857066">📁</tg-emoji>'
 HTML_EMOJI_ADD_BUNDLE = '<tg-emoji emoji-id="6021672250686576456">📁</tg-emoji>'
 HTML_EMOJI_RENAME_BUNDLE = '<tg-emoji emoji-id="6021859047404214713">📁</tg-emoji>'

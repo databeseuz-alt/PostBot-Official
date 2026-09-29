@@ -23,7 +23,7 @@ from xdata_handlers.database import (
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_STATISTIC, HTML_EMOJI_CHANNEL, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_BACK, EMOJI_STATISTIC, HTML_EMOJI_CHANNEL, clean_btn_text
 
 import html as _html
 
@@ -43,7 +43,7 @@ def get_stats_actions_keyboard(lang: str = 'uzl') -> types.InlineKeyboardMarkup:
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(1)
     return builder.as_markup()
@@ -692,7 +692,7 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:statistic",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.button(
         text=get_text('home_screen_btn', lang),

@@ -15,7 +15,7 @@ from post_handlers.post_handler import PostCreation
 from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_SAVE, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_SAVE, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_BACK, clean_btn_text
 
 start_router = Router()
 logger = logging.getLogger(__name__)
@@ -311,7 +311,7 @@ async def handle_post_add_channel(callback: types.CallbackQuery, state: FSMConte
     builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_CLOSE
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.button(
         text=get_text('home_screen_btn', lang),

@@ -6,7 +6,7 @@ from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE, EMOJI_CLOSE,
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE, EMOJI_CLOSE, EMOJI_BACK,
     clean_btn_text
 )
 
@@ -615,7 +615,11 @@ def get_ai_assistant_keyboard(is_enabled: bool, lang: str = 'uzl'):
         text=f"{check_mark} Ai bilan yozish",
         callback_data="toggle_ai_assistant"
     )
-    builder.button(text=get_text('back_btn', lang), callback_data="back_to_settings_main")
+    builder.button(
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data="back_to_settings_main",
+        icon_custom_emoji_id=EMOJI_BACK
+    )
     builder.adjust(1)
     return builder.as_markup()
 
@@ -707,7 +711,11 @@ def get_auto_signature_settings_kb(signature_settings: dict, lang: str = 'uzl'):
 def get_auto_signature_back_kb(lang: str = 'uzl'):
     """Avto imzo matnini kiritishdan keyin qaytish tugmasi"""
     builder = InlineKeyboardBuilder()
-    builder.button(text="🔙 orqaga", callback_data="auto_sig_settings")
+    builder.button(
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data="auto_sig_settings",
+        icon_custom_emoji_id=EMOJI_BACK
+    )
     return builder.as_markup()
 
 

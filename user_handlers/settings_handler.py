@@ -20,6 +20,7 @@ from post_handlers.xinline_keyboard import (
     create_country_selection_keyboard,
     create_city_selection_keyboard
 )
+from post_handlers.custom_emojis import EMOJI_BACK
 
 import datetime
 import pytz
@@ -177,13 +178,13 @@ async def settings_mybots_menu(callback: types.CallbackQuery):
 @settings_router.callback_query(F.data == "settings_templates")
 async def settings_templates_menu(callback: types.CallbackQuery):
     lang = await get_user_language(callback.from_user.id)
-    await callback.message.edit_text(get_text('settings_templates_msg', lang), reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="← Orqaga", callback_data="back_to_settings_main")]]), parse_mode="HTML")
+    await callback.message.edit_text(get_text('settings_templates_msg', lang), reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="Orqaga", callback_data="back_to_settings_main", icon_custom_emoji_id=EMOJI_BACK)]]), parse_mode="HTML")
     await callback.answer()
 
 @settings_router.callback_query(F.data == "settings_add_channel")
 async def settings_add_channel_menu(callback: types.CallbackQuery):
     lang = await get_user_language(callback.from_user.id)
-    await callback.message.edit_text(get_text('settings_add_channel_title', lang), reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="← Orqaga", callback_data="back_to_settings_main")]]), parse_mode="HTML")
+    await callback.message.edit_text(get_text('settings_add_channel_title', lang), reply_markup=types.InlineKeyboardMarkup(inline_keyboard=[[types.InlineKeyboardButton(text="Orqaga", callback_data="back_to_settings_main", icon_custom_emoji_id=EMOJI_BACK)]]), parse_mode="HTML")
     await callback.answer()
 
 @settings_router.callback_query(F.data == "settings_timezone")
