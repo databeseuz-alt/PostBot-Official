@@ -498,7 +498,15 @@ async def cancel_action(event: types.Message | types.CallbackQuery, state: FSMCo
     "❌ Turbo rejimdan chiqish",
     "❌ Турбо режимдан чиқиш",
     "❌ Выйти из турбо режима",
-    "❌ Exit Turbo mode"
+    "❌ Exit Turbo mode",
+    "🏠 Bosh menyu",
+    "🏠 Бош меню",
+    "🏠 Главное меню",
+    "🏠 Main menu",
+    "Bosh menyu",
+    "Бош меню",
+    "Главное меню",
+    "Main menu"
 ]))
 async def handle_exit_turbo_mode(message: types.Message, state: FSMContext, bot: Bot):
     await state.clear()

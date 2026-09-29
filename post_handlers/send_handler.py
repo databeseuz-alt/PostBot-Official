@@ -25,8 +25,22 @@ from post_handlers.xinline_keyboard import (
 
 from xdata_handlers.translator import get_text, safe_format, get_text_formatted
 from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
-from post_handlers.localize_filter import LocalizedText
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+
+def get_turbo_success_keyboard(lang: str = 'uzl'):
+    builder = InlineKeyboardBuilder()
+    main_menu_text = {
+        'uzl': "Bosh menyu",
+        'uzk': "Бош меню",
+        'ru': "Главное меню",
+        'en': "Main menu"
+    }.get(lang, "Bosh menyu")
+    builder.button(
+        text=main_menu_text,
+        callback_data="turbo:exit_to_main_menu",
+        icon_custom_emoji_id="6042137469204303531"
+    )
+    return builder.as_markup()
 
 def validate_html_content(content: str) -> str:
     """
@@ -797,44 +811,45 @@ async def execute_send_post(
 
             sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
             channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
+            bullet = '<tg-emoji emoji-id="6203760464397078712">🫙</tg-emoji>'
 
             if lang == 'ru':
                 success_text = (
                     f"{sparkle} <b>Готово, {post_link} отправлен!</b>\n"
                     f"{channel_emoji} <b>Канал :</b> {channel_link}\n\n"
                     f"<b>Что делаем:</b>\n"
-                    f"▫️ Отправляйте новые посты\n"
-                    f"▫️ Или нажмите любую кнопку, чтобы выйти из режима Турбо отправки"
+                    f"{bullet} Отправляйте новые посты\n"
+                    f"{bullet} Чтобы выйти из турбо режима, нажмите кнопку Главное меню"
                 )
             elif lang == 'en':
                 success_text = (
                     f"{sparkle} <b>Done, {post_link} has been sent!</b>\n"
                     f"{channel_emoji} <b>Channel :</b> {channel_link}\n\n"
                     f"<b>What's next:</b>\n"
-                    f"▫️ Send new posts\n"
-                    f"▫️ Or press any button to exit Turbo mode"
+                    f"{bullet} Send new posts\n"
+                    f"{bullet} Press Main menu button to exit Turbo mode"
                 )
             elif lang == 'uzk':
                 success_text = (
                     f"{sparkle} <b>Тайёр {post_link} юборилди!</b>\n"
                     f"{channel_emoji} <b>Канал :</b> {channel_link}\n\n"
                     f"<b>Нима қиламиз:</b>\n"
-                    f"▫️ Янги постларни юборинг\n"
-                    f"▫️ Ёки Турбо Юбориш режимидан чиқиш учун ҳар қандай тугмани босинг"
+                    f"{bullet} Янги постларни юборинг\n"
+                    f"{bullet} Турбо режимдан чиқиш учун Бош меню тугмасини босинг"
                 )
             else:
                 success_text = (
                     f"{sparkle} <b>Tayyor {post_link} yuborildi!</b>\n"
                     f"{channel_emoji} <b>Kanal :</b> {channel_link}\n\n"
                     f"<b>Nima qilamiz:</b>\n"
-                    f"▫️ Yangi postlarni yuboring\n"
-                    f"▫️ Yoki Turbo Yuborish rejimidan chiqish uchun har qanday tugmani bosing"
+                    f"{bullet} Yangi postlarni yuboring\n"
+                    f"{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing"
                 )
 
             await bot.send_message(
                 user_id,
                 success_text,
-                reply_markup=get_turbo_done_menu(lang),
+                reply_markup=get_turbo_success_keyboard(lang),
                 parse_mode="HTML",
                 disable_web_page_preview=True
             )
@@ -911,3 +926,10 @@ async def confirm_send_handler(callback: types.CallbackQuery, callback_data: Pos
         pass
     await execute_send_post(bot, user_id, post_code, channel_id, channel_name, lang, state)
     await callback.answer()
+
+@send_router.callback_query(F.data == "turbo:exit_to_main_menu")
+async def handle_turbo_exit_to_main_menu(callback: types.CallbackQuery, state: FSMContext, bot: Bot):
+    await callback.answer()
+    await state.clear()
+    from post_handlers.start_handler import show_main_menu
+    await show_main_menu(callback, state, bot)
