@@ -234,5 +234,8 @@
     "turbo_success_msg": "{sparkle} <b>Hazır {post_link} kanala göndərildi!</b>\n{channel_emoji} <b>Kanal :</b> {channel_link}\n\n<b>Nə edirik:</b>\n{bullet} Yeni postları göndərin\n{bullet} Turbo rejimindən çıxmaq üçün Əsas menyu düyməsinə basın",
     "turbo_main_menu_btn": "Əsas menyu",
     "exit_turbo_mode_btn": "❌ Turbo rejimindən çıx",
-    "exit_turbo_mode_msg": "Turbo rejimindən çıxıldı."
+    "exit_turbo_mode_msg": "Turbo rejimindən çıxıldı.",
+    "need_channel_instruction_msg": "<b>❌ You have no connected channels yet!</b>\n\nTo create and publish posts, you must connect at least one channel to the bot first.\n\n<b>📢 How to add a channel:</b>\n1. Add the bot to your channel as an <b>administrator</b>.\n2. Do one of the following:\n • <b>Forward</b> any message from your channel here;\n • Or send the channel's <b>@username</b> or <b>ID</b>.",
+    "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (publish now):",
+    "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (by schedule):"
 }

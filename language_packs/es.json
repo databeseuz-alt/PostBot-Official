@@ -234,5 +234,8 @@
     "turbo_success_msg": "{sparkle} <b>Done, {post_link} has been sent!</b>\n{channel_emoji} <b>Channel :</b> {channel_link}\n\n<b>What's next:</b>\n{bullet} Send new posts\n{bullet} Press Main menu button to exit Turbo mode",
     "turbo_main_menu_btn": "Main menu",
     "exit_turbo_mode_btn": "❌ Exit Turbo mode",
-    "exit_turbo_mode_msg": "Exited Turbo mode."
+    "exit_turbo_mode_msg": "Exited Turbo mode.",
+    "need_channel_instruction_msg": "<b>❌ You have no connected channels yet!</b>\n\nTo create and publish posts, you must connect at least one channel to the bot first.\n\n<b>📢 How to add a channel:</b>\n1. Add the bot to your channel as an <b>administrator</b>.\n2. Do one of the following:\n • <b>Forward</b> any message from your channel here;\n • Or send the channel's <b>@username</b> or <b>ID</b>.",
+    "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (publish now):",
+    "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (by schedule):"
 }

@@ -234,5 +234,8 @@
     "turbo_success_msg": "{sparkle} <b>{post_link} омода ба канал фиристода шуд!</b>\n{channel_emoji} <b>Канал :</b> {channel_link}\n\n<b>Чӣ бояд кард:</b>\n{bullet} Паёмҳои нав фиристед\n{bullet} Барои баромадан аз реҷаи Турбо тугмаи Менюи асосиро пахш кунед",
     "turbo_main_menu_btn": "Менюи асосӣ",
     "exit_turbo_mode_btn": "❌ Баромадан аз ҳолати Турбо",
-    "exit_turbo_mode_msg": "Шумо аз ҳолати Турбо баромадед."
+    "exit_turbo_mode_msg": "Шумо аз ҳолати Турбо баромадед.",
+    "need_channel_instruction_msg": "<b>❌ You have no connected channels yet!</b>\n\nTo create and publish posts, you must connect at least one channel to the bot first.\n\n<b>📢 How to add a channel:</b>\n1. Add the bot to your channel as an <b>administrator</b>.\n2. Do one of the following:\n • <b>Forward</b> any message from your channel here;\n • Or send the channel's <b>@username</b> or <b>ID</b>.",
+    "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (publish now):",
+    "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (by schedule):"
 }

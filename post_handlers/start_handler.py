@@ -176,13 +176,7 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
     """
     builder = InlineKeyboardBuilder()
     cancel_text = get_text('cancel_btn', lang)
-    
-    turbo_text = {
-        'uzl': "Turbo rejim",
-        'uzk': "Турбо режим",
-        'ru': "Турбо режим",
-        'en': "Turbo mode"
-    }.get(lang, "Turbo rejim")
+    turbo_text = get_text('turbo_mode_btn', lang)
     
     if not is_enabled:
         builder.button(
@@ -202,18 +196,8 @@ def get_turbo_mode_inline_kb(lang: str = 'uzl', is_enabled: bool = False, action
         now_icon = EMOJI_ID_CIRC_CHECK if action == 'now' else EMOJI_ID_CIRC_EMPTY
         schedule_icon = EMOJI_ID_CIRC_CHECK if action == 'schedule' else EMOJI_ID_CIRC_EMPTY
         
-        if lang == 'ru':
-            now_text = "Опубликовать сейчас"
-            schedule_text = "По расписанию"
-        elif lang == 'en':
-            now_text = "Publish now"
-            schedule_text = "By schedule"
-        elif lang == 'uzk':
-            now_text = "Ҳозир чоп этиш"
-            schedule_text = "Жадвал бўйича"
-        else:
-            now_text = "Hozir chop etish"
-            schedule_text = "Jadval bo'yicha"
+        now_text = get_text('turbo_now_btn', lang)
+        schedule_text = get_text('turbo_schedule_btn', lang)
             
         builder.button(text=now_text, callback_data="turbo:action:now", icon_custom_emoji_id=now_icon)
         builder.button(text=schedule_text, callback_data="turbo:action:schedule", icon_custom_emoji_id=schedule_icon)
@@ -255,44 +239,7 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
         await state.set_state(PostSending.waiting_for_channel_info)
         await state.update_data(from_post_creation=True)
         
-        need_channel_text = {
-            'uzl': (
-                "<b>❌ Sizda hali ulangan kanallar yo'q!</b>\n\n"
-                "Post yaratish va chop etish uchun avval kamida bitta kanalni botga ulashingiz kerak.\n\n"
-                "<b>📢 Kanal qo'shish yo'riqnomasi:</b>\n"
-                "1. Botni kerakli kanalga <b>admin</b> qiling.\n"
-                "2. Quyidagi usullardan birini bajaring:\n"
-                " • Kanaldan istalgan xabarni shu yerga <b>↪️ forward qiling</b>;\n"
-                " • Yoki kanalning <b>@username</b> yoki <b>ID</b>sini yuboring."
-            ),
-            'uzk': (
-                "<b>❌ Сизда ҳали уланган каналлар йўқ!</b>\n\n"
-                "Пост яратиш ва чоп этиш учун аввал камида битта канални ботга улашингиз керак.\n\n"
-                "<b>📢 Канал қўшиш йўриқномаси:</b>\n"
-                "1. Ботни керакли каналга <b>админ</b> қилинг.\n"
-                "2. Қуйидаги усуллардан бирини бажаринг:\n"
-                " • Каналдан исталган хабарни шу ерга <b>↪️ forward қилинг</b>;\n"
-                " • Ёки каналнинг <b>@username</b> ёки <b>ID</b>сини юборинг."
-            ),
-            'ru': (
-                "<b>❌ У вас еще нет подключенных каналов!</b>\n\n"
-                "Чтобы создавать и публиковать посты, сначала подключите хотя бы один канал к боту.\n\n"
-                "<b>📢 Инструкция по добавлению канала:</b>\n"
-                "1. Добавьте бота в канал в качестве <b>администратора</b>.\n"
-                "2. Выполните одно из действий:\n"
-                " • Перешлите (<b>forward</b>) любое сообщение из канала сюда;\n"
-                " • Или отправьте <b>@username</b> или <b>ID</b> канала."
-            ),
-            'en': (
-                "<b>❌ You have no connected channels yet!</b>\n\n"
-                "To create and publish posts, you must connect at least one channel to the bot first.\n\n"
-                "<b>📢 How to add a channel:</b>\n"
-                "1. Add the bot to your channel as an <b>administrator</b>.\n"
-                "2. Do one of the following:\n"
-                " • <b>Forward</b> any message from your channel here;\n"
-                " • Or send the channel's <b>@username</b> or <b>ID</b>."
-            )
-        }.get(lang, "<b>❌ Sizda hali ulangan kanallar yo'q!</b>\n\nPost yaratish uchun avval kanal ulang.")
+        need_channel_text = get_text('need_channel_instruction_msg', lang)
 
         builder = InlineKeyboardBuilder()
         cancel_text = get_text('cancel_btn', lang)
@@ -545,11 +492,6 @@ async def cancel_action(event: types.Message | types.CallbackQuery, state: FSMCo
 async def handle_exit_turbo_mode(message: types.Message, state: FSMContext, bot: Bot):
     await state.clear()
     lang = await get_user_language(message.from_user.id)
-    exit_text = {
-        'uzl': "Turbo rejimdan chiqildi.",
-        'uzk': "Турбо режимдан чиқилди.",
-        'ru': "Вы вышли из турбо режима.",
-        'en': "Exited Turbo mode."
-    }.get(lang, "Turbo rejimdan chiqildi.")
+    exit_text = get_text('exit_turbo_mode_msg', lang)
     await message.answer(exit_text)
     await show_main_menu(message, state, bot)
