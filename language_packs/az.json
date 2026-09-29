@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Xoş gəlmisiniz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nBu, adminlər üçün yaradılmış <b>ən müasir və mükəmməl</b> botdur <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nDüymələrdən birini seçin <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
+    "welcome_msg": "<b>Xoş gəlmisiniz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nBu, adminlər üçün yaradılmış <b>ən müasir və mükəmməl</b> botdur <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nDüymələrdən birini seçin :",
     "new_post_btn": "✍️ Post Yarat",
     "edit_post_btn": "✏️ Redaktə Et",
     "statistic_btn": "📊 Statistika",

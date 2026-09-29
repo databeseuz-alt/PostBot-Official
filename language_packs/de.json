@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Willkommen , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nDies ist der <b>modernste und perfekteste</b> Bot für Administratoren <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nWähle einen der Buttons <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
+    "welcome_msg": "<b>Willkommen , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nDies ist der <b>modernste und perfekteste</b> Bot für Administratoren <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nWähle einen der Buttons :",
     "new_post_btn": "✍️ Beitrag Erstellen",
     "edit_post_btn": "✏️ Bearbeiten",
     "statistic_btn": "📊 Statistiken",

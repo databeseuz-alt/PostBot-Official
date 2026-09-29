@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Welcome , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nThis is the <b>most modern and perfect</b> bot created for admins <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nChoose one of the buttons <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
+    "welcome_msg": "<b>Welcome , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nThis is the <b>most modern and perfect</b> bot created for admins <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nChoose one of the buttons :",
     "donate_msg": "<b>💰 Support the Bot</b>\n\nTo support the bot, please donate. Choose one of the amounts below:",
     "donate_thanks_msg": "<b>✅ Thank you!</b>\n\nYour donation request has been sent. We will contact you soon.",
     "donate_error_msg": "<b>❌ Error</b>\n\nSomething went wrong. Please try again or contact @admin",
