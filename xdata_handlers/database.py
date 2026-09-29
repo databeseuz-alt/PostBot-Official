@@ -364,6 +364,29 @@ async def remove_user_channel(user_id: int, channel_id: int) -> bool:
         try:
             sp = get_supabase()
             sp.table('channels').delete().eq('user_id', user_id).eq('channel_id', channel_id).execute()
+
+            # Kanal o'chirilganda foydalanuvchining barcha to'plamlaridan ham tozalash
+            try:
+                res = sp.table('bot_settings').select('interface_settings').eq('user_id', user_id).execute()
+                if res.data:
+                    interface_settings = res.data[0].get('interface_settings') or {}
+                    bundles = interface_settings.get('channel_bundles') or []
+                    updated = False
+                    for b in bundles:
+                        ch_ids = list(b.get('channel_ids', []))
+                        if channel_id in ch_ids:
+                            ch_ids.remove(channel_id)
+                            b['channel_ids'] = ch_ids
+                            updated = True
+                    if updated:
+                        interface_settings['channel_bundles'] = bundles
+                        sp.table('bot_settings').upsert({
+                            'user_id': user_id,
+                            'interface_settings': interface_settings
+                        }, on_conflict='user_id').execute()
+            except Exception as e_bundle:
+                logger.error(f"remove_user_channel cleanup bundles error: {e_bundle}")
+
             return True
         except Exception as e:
             logger.error(f"remove_user_channel error: {e}")
