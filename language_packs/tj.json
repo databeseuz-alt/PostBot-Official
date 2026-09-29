@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Хуш омадед , {nickname}</b> 👋\n\nИн бот барои админҳо <b>бештар замонавӣ ва мукаммал</b> аст 😉\n\nЯке аз тугмаҳоро интихоб кунед 👇",
+    "welcome_msg": "<b>Хуш омадед , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nИн бот барои админҳо <b>бештар замонавӣ ва мукаммал</b> аст <tg-emoji emoji-id=\"5933613451044720529\">🙂</tg-emoji>\n\nЯке аз тугмаҳоро интихоб кунед 👇",
     "new_post_btn": "✍️ Эҷоди пост",
     "edit_post_btn": "✏️ Таҳрир",
     "statistic_btn": "📊 Омор",
@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ Канали {channel_name}</b> муваффақона илова шуд!.",
     "delete_channel_btn": "🗑 Тоза кардани канал",
     "delete_channel_success_msg": "Канал муваффақона тоза шуд ✅",
-    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Каналро интихоб кунед:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Каналро интихоб кунед:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nЧӣ кор карданро бо ин канал мехоҳед?",
     "channel_label_msg": "Канал",
     "need_channel_msg": "<b>❌ Каналҳои пайвастшуда нест</b>\n\nБарои дидани каналҳоятон канали кам карда илова кунед",

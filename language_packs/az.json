@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Xoş gəlmisiniz , {nickname}</b> 👋\n\nBu, adminlər üçün yaradılmış <b>ən müasir və mükəmməl</b> botdur 😉\n\nDüymələrdən birini seçin 👇",
+    "welcome_msg": "<b>Xoş gəlmisiniz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nBu, adminlər üçün yaradılmış <b>ən müasir və mükəmməl</b> botdur <tg-emoji emoji-id=\"5933613451044720529\">🙂</tg-emoji>\n\nDüymələrdən birini seçin 👇",
     "new_post_btn": "✍️ Post Yarat",
     "edit_post_btn": "✏️ Redaktə Et",
     "statistic_btn": "📊 Statistika",
@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanalı uğurla əlavə edildi!.",
     "delete_channel_btn": "🗑 Kanalı sil",
     "delete_channel_success_msg": "Kanal uğurla silindi ✅",
-    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanalı seçin:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Kanalı seçin:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nBu kanal ilə nə etmək istəyirsiniz?",
     "channel_label_msg": "Kanal",
     "need_channel_msg": "<b>❌ Heç bir kanal qoşulmayıb</b>\n\nKanallarınızı görmək üçün ən az bir kanal əlavə edin",

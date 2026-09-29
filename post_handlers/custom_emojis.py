@@ -9,6 +9,8 @@ EMOJI_SAVE = "5843843420468024653"         # ⭐️ Saqlash tugmasi
 EMOJI_SETTINGS = "5877260593903177342"     # ⚙️ Sozlamalar
 EMOJI_EDIT = "5879841310902324730"         # ✏️ Tahrirlash tugmasi
 EMOJI_CREATE = "5877214659227946561"       # ✍️ Yangi yaratish
+EMOJI_WAVE = "6023985511482268644"         # 👋 Xush kelibsiz (start)
+EMOJI_SMILE = "5933613451044720529"        # 🙂 Start xabari
 
 # HTML custom emoji tags for message texts
 HTML_EMOJI_BUNDLE = '<tg-emoji emoji-id="5877332341331857066">📁</tg-emoji>'
@@ -19,6 +21,8 @@ HTML_EMOJI_SAVE = '<tg-emoji emoji-id="5843843420468024653">⭐️</tg-emoji>'
 HTML_EMOJI_SETTINGS = '<tg-emoji emoji-id="5877260593903177342">⚙️</tg-emoji>'
 HTML_EMOJI_EDIT = '<tg-emoji emoji-id="5879841310902324730">✏️</tg-emoji>'
 HTML_EMOJI_CREATE = '<tg-emoji emoji-id="5877214659227946561">✍️</tg-emoji>'
+HTML_EMOJI_WAVE = '<tg-emoji emoji-id="6023985511482268644">👋</tg-emoji>'
+HTML_EMOJI_SMILE = '<tg-emoji emoji-id="5933613451044720529">🙂</tg-emoji>'
 
 def clean_btn_text(text: str) -> str:
     """Tugma matnidan boshidagi standart emojilarni olib tashlaydi (icon_custom_emoji_id berilganda)."""

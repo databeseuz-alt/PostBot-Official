@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Добро пожаловать , {nickname}</b> 👋\n\nЭто <b>самый современный и совершенный</b> бот, созданный для админов 😉\n\nВыберите одну из кнопок 👇",
+    "welcome_msg": "<b>Добро пожаловать , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nЭто <b>самый современный и совершенный</b> бот, созданный для админов <tg-emoji emoji-id=\"5933613451044720529\">🙂</tg-emoji>\n\nВыберите одну из кнопок 👇",
     "new_post_btn": "✍️ Создать пост",
     "edit_post_btn": "✏️ Редактировать",
     "statistic_btn": "📊 Статистика",
@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ Канал {channel_name}</b> успешно добавлен!.",
     "delete_channel_btn": "🗑 Удалить канал",
     "delete_channel_success_msg": "Канал успешно удалён ✅",
-    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Выберите канал:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Выберите канал:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nЧто вы хотите сделать с этим каналом?",
     "channel_label_msg": "Канал",
     "need_channel_msg": "<b>❌ Нет подключённых каналов</b>\n\nДобавьте хотя бы один канал, чтобы видеть его здесь",

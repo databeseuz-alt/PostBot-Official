@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Hoş geldiniz , {nickname}</b> 👋\n\nBu, yöneticiler için oluşturulmuş <b>en modern ve mükemmel</b> bot 😉\n\nButonlardan birini seçin 👇",
+    "welcome_msg": "<b>Hoş geldiniz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nBu, yöneticiler için oluşturulmuş <b>en modern ve mükemmel</b> bot <tg-emoji emoji-id=\"5933613451044720529\">🙂</tg-emoji>\n\nButonlardan birini seçin 👇",
     "new_post_btn": "✍️ Gönderi Oluştur",
     "edit_post_btn": "✏️ Düzenle",
     "statistic_btn": "📊 İstatistikler",
@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanalı başarıyla eklendi!.",
     "delete_channel_btn": "🗑 Kanalı Sil",
     "delete_channel_success_msg": "Kanal başarıyla silindi ✅",
-    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanalı seçin:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Kanalı seçin:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nBu kanal ile ne yapmak istiyorsunuz?",
     "channel_label_msg": "Kanal",
     "need_channel_msg": "<b>❌ Bağlı kanal yok</b>\n\nKanallarınızı görmek için en az bir kanal ekleyin",
