@@ -265,13 +265,8 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
         builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
         builder.adjust(1, 1)
         
-        if isinstance(event, types.CallbackQuery):
-            try:
-                await event.message.edit_text(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-            except Exception:
-                await event.message.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-        else:
-            await event.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        target_msg = event.message if isinstance(event, types.CallbackQuery) else event
+        await target_msg.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
         return
 
     user_settings = await get_user_post_settings(user.id)
@@ -283,13 +278,8 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     # Inline Turbo rejim tugmasi bilan kontent so'rash xabari
     turbo_kb = get_turbo_mode_inline_kb(lang, is_enabled=False, action='now')
-    if isinstance(event, types.CallbackQuery):
-        try:
-            content_message = await event.message.edit_text(content_text, reply_markup=turbo_kb)
-        except Exception:
-            content_message = await event.message.answer(content_text, reply_markup=turbo_kb)
-    else:
-        content_message = await event.answer(content_text, reply_markup=turbo_kb)
+    target_msg = event.message if isinstance(event, types.CallbackQuery) else event
+    content_message = await target_msg.answer(content_text, reply_markup=turbo_kb)
 
     await state.update_data(
         content_message_id=content_message.message_id,
@@ -392,12 +382,8 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
 
     if isinstance(event, types.CallbackQuery):
         await event.answer()
-        try:
-            await event.message.edit_text(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
-        except Exception:
-            await event.message.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
-    else:
-        await event.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
+    target_msg = event.message if isinstance(event, types.CallbackQuery) else event
+    await target_msg.answer(prompt_text, parse_mode="HTML", reply_markup=builder.as_markup())
 
 @start_router.message(LocalizedText('statistic_btn'))
 @start_router.callback_query(F.data == "main:statistic")

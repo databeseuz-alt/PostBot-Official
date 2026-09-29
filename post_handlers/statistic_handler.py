@@ -594,25 +594,12 @@ async def handle_generate_statistics(event: types.Message | types.CallbackQuery,
             callback_data="cancel_action"
         )
         builder.adjust(1, 1)
-        if isinstance(event, types.CallbackQuery):
-            try:
-                await event.message.edit_text(
-                    get_text('statistics_no_channel_msg', lang),
-                    reply_markup=builder.as_markup(),
-                    parse_mode="HTML"
-                )
-            except Exception:
-                await event.message.answer(
-                    get_text('statistics_no_channel_msg', lang),
-                    reply_markup=builder.as_markup(),
-                    parse_mode="HTML"
-                )
-        else:
-            await message.answer(
-                get_text('statistics_no_channel_msg', lang),
-                reply_markup=builder.as_markup(),
-                parse_mode="HTML"
-            )
+        target_msg = event.message if isinstance(event, types.CallbackQuery) else event
+        await target_msg.answer(
+            get_text('statistics_no_channel_msg', lang),
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
+        )
         return
 
     builder = InlineKeyboardBuilder()
@@ -634,17 +621,12 @@ async def handle_generate_statistics(event: types.Message | types.CallbackQuery,
     builder.adjust(1)
     
     choose_text = f"{HTML_EMOJI_CHANNEL} <b>Qaysi kanal statistikasini ko'rmoqchisiz?</b>\nIltimos, kanalni tanlang:"
-    if isinstance(event, types.CallbackQuery):
-        try:
-            await event.message.edit_text(choose_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-        except Exception:
-            await event.message.answer(choose_text, reply_markup=builder.as_markup(), parse_mode="HTML")
-    else:
-        await message.answer(
-            choose_text,
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML"
-        )
+    target_msg = event.message if isinstance(event, types.CallbackQuery) else event
+    await target_msg.answer(
+        choose_text,
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
+    )
     return
 
 @statistic_router.callback_query(StatChannelSelectCallback.filter())
