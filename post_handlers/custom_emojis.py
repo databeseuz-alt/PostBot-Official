@@ -2,6 +2,8 @@ import re
 
 # Telegram Premium Custom Emoji IDs
 EMOJI_BUNDLE = "5877332341331857066"       # 📁 To'plamlar
+EMOJI_ADD_BUNDLE = "6021672250686576456"   # 📁+ To'plam qo'shish
+EMOJI_RENAME_BUNDLE = "6021859047404214713"# 📁? To'plamni nomlash / qayta nomlash
 EMOJI_ADD_CHANNEL = "5771868281212245617"  # 📢 Yangi kanal qo'shish (add channel)
 EMOJI_CHANNEL = "5771695636411847302"      # 📢 Oddiy kanal (channel display)
 EMOJI_DELETE = "5841541824803509441"       # 🗑 O'chirish tugmasi
@@ -19,6 +21,8 @@ EMOJI_SMILE = "5458394638505223612"        # Alias
 
 # HTML custom emoji tags for message texts
 HTML_EMOJI_BUNDLE = '<tg-emoji emoji-id="5877332341331857066">📁</tg-emoji>'
+HTML_EMOJI_ADD_BUNDLE = '<tg-emoji emoji-id="6021672250686576456">📁</tg-emoji>'
+HTML_EMOJI_RENAME_BUNDLE = '<tg-emoji emoji-id="6021859047404214713">📁</tg-emoji>'
 HTML_EMOJI_ADD_CHANNEL = '<tg-emoji emoji-id="5771868281212245617">📢</tg-emoji>'
 HTML_EMOJI_CHANNEL = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
 HTML_EMOJI_DELETE = '<tg-emoji emoji-id="5841541824803509441">🗑</tg-emoji>'

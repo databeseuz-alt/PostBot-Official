@@ -39,8 +39,9 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
 
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT, EMOJI_CLOSE,
-    HTML_EMOJI_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
+    EMOJI_BUNDLE, EMOJI_ADD_BUNDLE, EMOJI_RENAME_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL,
+    EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT, EMOJI_CLOSE,
+    HTML_EMOJI_BUNDLE, HTML_EMOJI_ADD_BUNDLE, HTML_EMOJI_RENAME_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
 )
 
 async def get_my_channels_keyboard(user_id: int):
@@ -78,7 +79,7 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_b
         builder.button(
             text=clean_btn_text(get_text('add_to_bundle_btn', lang)),
             callback_data=f"channel:add_to_bundle:{channel_id}",
-            icon_custom_emoji_id=EMOJI_BUNDLE
+            icon_custom_emoji_id=EMOJI_ADD_BUNDLE
         )
     if has_bundles_to_remove:
         builder.button(
@@ -243,7 +244,7 @@ async def handle_channel_add_to_bundle(callback: types.CallbackQuery):
         builder.button(
             text=clean_btn_text(get_text('create_bundle_btn', lang)),
             callback_data="bundle:create",
-            icon_custom_emoji_id=EMOJI_CREATE
+            icon_custom_emoji_id=EMOJI_ADD_BUNDLE
         )
         builder.button(
             text=get_text('back_btn', lang),
@@ -457,7 +458,7 @@ async def get_bundles_list_keyboard(user_id: int, lang: str):
     builder.button(
         text=clean_btn_text(get_text('create_bundle_btn', lang)),
         callback_data="bundle:create",
-        icon_custom_emoji_id=EMOJI_CREATE
+        icon_custom_emoji_id=EMOJI_ADD_BUNDLE
     )
     builder.button(
         text=get_text('back_btn', lang),
@@ -577,7 +578,7 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
     builder.button(
         text=clean_btn_text(get_text('add_channels_to_bundle_btn', lang)),
         callback_data=f"bundle:edit_channels:{bundle_id}",
-        icon_custom_emoji_id=EMOJI_ADD_CHANNEL
+        icon_custom_emoji_id=EMOJI_ADD_BUNDLE
     )
     if has_channels:
         builder.button(
@@ -588,7 +589,7 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
     builder.button(
         text=clean_btn_text(get_text('rename_bundle_btn', lang)),
         callback_data=f"bundle:rename:{bundle_id}",
-        icon_custom_emoji_id=EMOJI_EDIT
+        icon_custom_emoji_id=EMOJI_RENAME_BUNDLE
     )
     builder.button(
         text=clean_btn_text(get_text('share_bundle_btn', lang)),
@@ -957,7 +958,7 @@ async def handle_bundle_rename_input(message: types.Message, state: FSMContext):
             builder.button(
                 text=clean_btn_text(get_text('add_channels_to_bundle_btn', lang)),
                 callback_data=f"bundle:edit_channels:{bundle_id}",
-                icon_custom_emoji_id=EMOJI_ADD_CHANNEL
+                icon_custom_emoji_id=EMOJI_ADD_BUNDLE
             )
             if has_channels:
                 builder.button(
@@ -968,7 +969,7 @@ async def handle_bundle_rename_input(message: types.Message, state: FSMContext):
             builder.button(
                 text=clean_btn_text(get_text('rename_bundle_btn', lang)),
                 callback_data=f"bundle:rename:{bundle_id}",
-                icon_custom_emoji_id=EMOJI_EDIT
+                icon_custom_emoji_id=EMOJI_RENAME_BUNDLE
             )
             builder.button(
                 text=clean_btn_text(get_text('share_bundle_btn', lang)),
