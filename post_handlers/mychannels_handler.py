@@ -3,7 +3,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-from aiogram import F, Router, types
+from aiogram import F, Router, types, Bot
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
@@ -17,7 +17,10 @@ from xdata_handlers.database import (
     get_user_channel_bundles,
     get_user_channel_bundle_by_id,
     save_user_channel_bundle,
-    delete_user_channel_bundle
+    delete_user_channel_bundle,
+    remove_channel_from_bundle,
+    rename_user_channel_bundle,
+    clone_shared_bundle_to_user
 )
 from post_handlers.send_handler import cmd_add_channel
 from xdata_handlers.translator import get_text
@@ -28,6 +31,7 @@ class BundleCreation(StatesGroup):
     waiting_for_name = State()
     selecting_channels = State()
     editing_channels = State()
+    waiting_for_rename = State()
 
 class MyChannelsCallback(CallbackData, prefix="my_channels"):
     action: str
@@ -35,7 +39,7 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
 
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE,
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT,
     HTML_EMOJI_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
 )
 
@@ -51,7 +55,7 @@ async def get_my_channels_keyboard(user_id: int):
         icon_custom_emoji_id=EMOJI_ADD_CHANNEL
     )
     builder.button(
-        text=clean_btn_text(get_text('bundles_btn', lang)),
+        text=clean_btn_text(get_text('existing_bundles_btn', lang)),
         callback_data="bundle:list",
         icon_custom_emoji_id=EMOJI_BUNDLE
     )
@@ -83,7 +87,7 @@ async def get_my_channels_keyboard(user_id: int):
 
     return builder.as_markup()
 
-def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_bundle: bool = True):
+def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_bundle: bool = True, has_bundles_to_remove: bool = False):
     """Tanlangan kanalni boshqarish uchun inline klaviatura yaratadi."""
     builder = InlineKeyboardBuilder()
     if can_add_to_bundle:
@@ -92,6 +96,17 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_b
             callback_data=f"channel:add_to_bundle:{channel_id}",
             icon_custom_emoji_id=EMOJI_BUNDLE
         )
+    if has_bundles_to_remove:
+        builder.button(
+            text=clean_btn_text(get_text('remove_from_bundle_btn', lang)),
+            callback_data=f"channel:remove_from_bundle:{channel_id}",
+            icon_custom_emoji_id=EMOJI_DELETE
+        )
+    builder.button(
+        text=clean_btn_text(get_text('existing_bundles_btn', lang)),
+        callback_data="bundle:list",
+        icon_custom_emoji_id=EMOJI_BUNDLE
+    )
     builder.button(
         text=clean_btn_text(get_text('delete_channel_btn', lang)),
         callback_data=MyChannelsCallback(action="delete", channel_id=channel_id).pack(),
@@ -229,8 +244,16 @@ async def handle_select_channel(callback: types.CallbackQuery, callback_data: My
     else:
         bundle_info = f"\n\n" + get_text('channel_not_in_any_bundle', lang)
 
+    can_add = any(callback_data.channel_id not in b.get('channel_ids', []) for b in bundles) if bundles else True
+    has_remove = len(belonging_bundles) > 0
+
     text = get_text('channel_action_msg', lang).format(channel_name=safe_channel_name) + bundle_info
-    reply_markup = get_channel_manage_keyboard(callback_data.channel_id, lang, can_add_to_bundle=True)
+    reply_markup = get_channel_manage_keyboard(
+        callback_data.channel_id,
+        lang,
+        can_add_to_bundle=can_add,
+        has_bundles_to_remove=has_remove
+    )
 
     try:
         await callback.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
@@ -330,6 +353,80 @@ async def handle_channel_assign_bundle(callback: types.CallbackQuery):
     await callback.message.answer(success_msg, parse_mode="HTML")
 
     # Qayta kanal menyusini ko'rsatish
+    await handle_select_channel(callback, MyChannelsCallback(action="select", channel_id=channel_id))
+
+@mychannels_router.callback_query(F.data.startswith("channel:remove_from_bundle:"))
+async def handle_channel_remove_from_bundle(callback: types.CallbackQuery):
+    """Kanalni to'plamdan chiqarish."""
+    channel_id = int(callback.data.split(":", 2)[2])
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    bundles = await get_user_channel_bundles(user_id)
+    belonging = [b for b in bundles if channel_id in b.get('channel_ids', [])]
+
+    if not belonging:
+        await callback.answer(get_text('bundle_no_channels_to_remove', lang), show_alert=True)
+        return
+
+    user_channels = await get_user_channels(user_id)
+    ch = next((c for c in user_channels if c['channel_id'] == channel_id), None)
+    ch_name = ch['channel_name'] if ch else "Kanal"
+
+    if len(belonging) == 1:
+        target_b = belonging[0]
+        await remove_channel_from_bundle(user_id, target_b['id'], channel_id)
+        msg = get_text('channel_removed_from_bundle_success', lang).format(
+            channel_name=html.escape(ch_name),
+            bundle_name=html.escape(target_b['name'])
+        )
+        await callback.answer(get_text('bundle_channels_updated_success', lang))
+        await callback.message.answer(msg, parse_mode="HTML")
+        await handle_select_channel(callback, MyChannelsCallback(action="select", channel_id=channel_id))
+        return
+
+    builder = InlineKeyboardBuilder()
+    for b in belonging:
+        builder.button(
+            text=f"{b['name']}",
+            callback_data=f"channel:do_remove_from_bundle:{channel_id}:{b['id']}",
+            icon_custom_emoji_id=EMOJI_BUNDLE
+        )
+    builder.button(
+        text=get_text('back_btn', lang),
+        callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
+    )
+    builder.adjust(1)
+    text = get_text('choose_bundle_to_remove', lang)
+    try:
+        await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.answer()
+
+@mychannels_router.callback_query(F.data.startswith("channel:do_remove_from_bundle:"))
+async def handle_channel_do_remove_from_bundle(callback: types.CallbackQuery):
+    """Tanlangan to'plamdan kanalni chiqarish."""
+    parts = callback.data.split(":")
+    channel_id = int(parts[2])
+    bundle_id = parts[3]
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+
+    bundle = await get_user_channel_bundle_by_id(user_id, bundle_id)
+    b_name = bundle['name'] if bundle else "To'plam"
+
+    await remove_channel_from_bundle(user_id, bundle_id, channel_id)
+
+    user_channels = await get_user_channels(user_id)
+    ch = next((c for c in user_channels if c['channel_id'] == channel_id), None)
+    ch_name = ch['channel_name'] if ch else "Kanal"
+
+    msg = get_text('channel_removed_from_bundle_success', lang).format(
+        channel_name=html.escape(ch_name),
+        bundle_name=html.escape(b_name)
+    )
+    await callback.answer(get_text('bundle_channels_updated_success', lang))
+    await callback.message.answer(msg, parse_mode="HTML")
     await handle_select_channel(callback, MyChannelsCallback(action="select", channel_id=channel_id))
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "delete"))
@@ -505,11 +602,28 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
         channel_list=channel_list_str
     )
 
+    has_channels = bool(bundle.get('channel_ids'))
     builder = InlineKeyboardBuilder()
     builder.button(
         text=clean_btn_text(get_text('add_channels_to_bundle_btn', lang)),
         callback_data=f"bundle:edit_channels:{bundle_id}",
         icon_custom_emoji_id=EMOJI_ADD_CHANNEL
+    )
+    if has_channels:
+        builder.button(
+            text=clean_btn_text(get_text('remove_from_bundle_btn', lang)),
+            callback_data=f"bundle:remove_channels_menu:{bundle_id}",
+            icon_custom_emoji_id=EMOJI_DELETE
+        )
+    builder.button(
+        text=clean_btn_text(get_text('rename_bundle_btn', lang)),
+        callback_data=f"bundle:rename:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_EDIT
+    )
+    builder.button(
+        text=clean_btn_text(get_text('share_bundle_btn', lang)),
+        callback_data=f"bundle:share:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_BUNDLE
     )
     builder.button(
         text=clean_btn_text(get_text('delete_bundle_btn', lang)),
@@ -520,7 +634,8 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
         text=get_text('back_btn', lang),
         callback_data="bundle:list"
     )
-    builder.adjust(1)
+    sizes = [2, 2, 1, 1] if has_channels else [1, 2, 1, 1]
+    builder.adjust(*sizes)
 
     try:
         await callback.message.edit_text(text, reply_markup=builder.as_markup(), parse_mode="HTML")

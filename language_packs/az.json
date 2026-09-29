@@ -260,5 +260,20 @@
     "bundle_channels_updated_success": "✅ Toplu kanalları uğurla yeniləndi!",
     "bundle_no_channels_yet": "<i>Bu topluda hələ kanal yoxdur.</i>",
     "bundle_channel_already_in_all": "ℹ️ Bu kanal artıq bütün mövcud toplulara əlavə edilib!",
-    "channel_not_in_any_bundle": "⚠️ Bu kanal hələ heç bir topluya daxil edilməyib."
+    "channel_not_in_any_bundle": "⚠️ Bu kanal hələ heç bir topluya daxil edilməyib.",
+    "existing_bundles_btn": "📁 Existing bundles",
+    "remove_from_bundle_btn": "➖ Remove from bundle",
+    "rename_bundle_btn": "✏️ Rename bundle",
+    "share_bundle_btn": "🔗 Share bundle",
+    "choose_bundle_to_remove": "📁 <b>Remove from which bundle?</b>\n\nSelect the bundle to remove the channel from:",
+    "channel_removed_from_bundle_success": "✅ Channel <b>{channel_name}</b> removed from bundle <b>«{bundle_name}»</b>!",
+    "bundle_enter_new_name": "✏️ <b>Enter new name for the bundle:</b>\n<i>(Maximum 40 characters)</i>",
+    "bundle_renamed_success": "✅ Bundle successfully renamed to <b>«{new_name}»</b>!",
+    "bundle_share_card": "📁 <b>Bundle «{bundle_name}»</b>\n\nChannels: <b>{count}</b>\n{channel_list}\n\n🔗 <b>Share link:</b>\n{share_link}",
+    "bundle_share_forward_btn": "🚀 Share via Telegram",
+    "bundle_shared_import_prompt": "📁 <b>You received a shared bundle «{bundle_name}»!</b>\n\nChannels: <b>{count}</b>\n{channel_list}\n\nDo you want to save this bundle to your account?",
+    "bundle_import_save_btn": "⭐️ Save bundle",
+    "bundle_imported_success": "✅ Bundle <b>«{bundle_name}»</b> successfully saved!",
+    "bundle_select_channel_to_remove": "➖ <b>Select channel to remove from bundle:</b>",
+    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove."
 }

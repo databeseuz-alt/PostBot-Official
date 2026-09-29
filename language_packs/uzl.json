@@ -323,5 +323,20 @@
     "bundle_channels_updated_success": "✅ To'plam kanallari muvaffaqiyatli yangilandi!",
     "bundle_no_channels_yet": "<i>Ushbu to'plamda hali kanallar yo'q.</i>",
     "bundle_channel_already_in_all": "ℹ️ Ushbu kanal barcha mavjud to'plamlarga qo'shilgan!",
-    "channel_not_in_any_bundle": "⚠️ Ushbu kanal birorta ham to'plamga kiritilmagan."
+    "channel_not_in_any_bundle": "⚠️ Ushbu kanal birorta ham to'plamga kiritilmagan.",
+    "existing_bundles_btn": "📁 Mavjud to'plamlar",
+    "remove_from_bundle_btn": "➖ To'plamdan chiqarish",
+    "rename_bundle_btn": "✏️ Qayta nomlash",
+    "share_bundle_btn": "🔗 To'plamni ulashish",
+    "choose_bundle_to_remove": "📁 <b>Qaysi to'plamdan chiqarilsin?</b>\n\nKanalni chiqarmoqchi bo'lgan to'plamni tanlang:",
+    "channel_removed_from_bundle_success": "✅ <b>{channel_name}</b> kanali <b>«{bundle_name}»</b> to'plamidan chiqarildi!",
+    "bundle_enter_new_name": "✏️ <b>To'plam uchun yangi nom kiriting:</b>\n<i>(Maksimal 40 ta belgi)</i>",
+    "bundle_renamed_success": "✅ To'plam nomi muvaffaqiyatli <b>«{new_name}»</b> ga o'zgartirildi!",
+    "bundle_share_card": "📁 <b>«{bundle_name}» to'plami</b>\n\nKanallar soni: <b>{count}</b> ta\n{channel_list}\n\n🔗 <b>Ulashish havolasi:</b>\n{share_link}",
+    "bundle_share_forward_btn": "🚀 Telegram orqali ulashish",
+    "bundle_shared_import_prompt": "📁 <b>Sizga «{bundle_name}» to'plami ulashildi!</b>\n\nKanallar soni: <b>{count}</b> ta\n{channel_list}\n\nUshbu to'plamni o'zingizga saqlab olishni xohlaysizmi?",
+    "bundle_import_save_btn": "⭐️ To'plamni saqlash",
+    "bundle_imported_success": "✅ <b>«{bundle_name}»</b> to'plami muvaffaqiyatli saqlandi!",
+    "bundle_select_channel_to_remove": "➖ <b>To'plamdan chiqarish uchun kanalni tanlang:</b>",
+    "bundle_no_channels_to_remove": "ℹ️ Ushbu to'plamda chiqarish uchun kanallar yo'q."
 }

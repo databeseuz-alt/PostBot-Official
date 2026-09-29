@@ -891,6 +891,77 @@ async def delete_user_channel_bundle(user_id: int, bundle_id: str) -> bool:
             return False
     return await asyncio.to_thread(_sync)
 
+async def remove_channel_from_bundle(user_id: int, bundle_id: str, channel_id: int) -> bool:
+    """To'plamdan bitta kanalni chiqarib tashlaydi."""
+    def _sync():
+        try:
+            sp = get_supabase()
+            res = sp.table('bot_settings').select('interface_settings').eq('user_id', user_id).execute()
+            if not res.data:
+                return False
+            interface_settings = res.data[0].get('interface_settings') or {}
+            bundles = interface_settings.get('channel_bundles') or []
+            updated = False
+            for b in bundles:
+                if b.get('id') == bundle_id:
+                    ch_ids = list(b.get('channel_ids', []))
+                    if channel_id in ch_ids:
+                        ch_ids.remove(channel_id)
+                        b['channel_ids'] = ch_ids
+                        updated = True
+                    break
+            if updated:
+                interface_settings['channel_bundles'] = bundles
+                sp.table('bot_settings').upsert({
+                    'user_id': user_id,
+                    'interface_settings': interface_settings
+                }, on_conflict='user_id').execute()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"remove_channel_from_bundle error: {e}")
+            return False
+    return await asyncio.to_thread(_sync)
+
+async def rename_user_channel_bundle(user_id: int, bundle_id: str, new_name: str) -> bool:
+    """To'plam nomini o'zgartiradi."""
+    def _sync():
+        try:
+            sp = get_supabase()
+            res = sp.table('bot_settings').select('interface_settings').eq('user_id', user_id).execute()
+            if not res.data:
+                return False
+            interface_settings = res.data[0].get('interface_settings') or {}
+            bundles = interface_settings.get('channel_bundles') or []
+            updated = False
+            for b in bundles:
+                if b.get('id') == bundle_id:
+                    b['name'] = new_name.strip()
+                    updated = True
+                    break
+            if updated:
+                interface_settings['channel_bundles'] = bundles
+                sp.table('bot_settings').upsert({
+                    'user_id': user_id,
+                    'interface_settings': interface_settings
+                }, on_conflict='user_id').execute()
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"rename_user_channel_bundle error: {e}")
+            return False
+    return await asyncio.to_thread(_sync)
+
+async def clone_shared_bundle_to_user(user_id: int, owner_id: int, bundle_id: str) -> Optional[Dict]:
+    """Boshqa foydalanuvchi ulashgan to'plamni o'z profiliga nusxalaydi."""
+    source_bundle = await get_user_channel_bundle_by_id(owner_id, bundle_id)
+    if not source_bundle:
+        return None
+    new_name = source_bundle.get('name', "Ulashilgan to'plam")
+    channel_ids = list(source_bundle.get('channel_ids', []))
+    return await save_user_channel_bundle(user_id, new_name, channel_ids)
+
+
 # ==================== SCHEDULED & SENT POSTS (SEND_POSTS) ====================
 
 async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int, channel_name: str, repeat_interval: str = None) -> Optional[int]:

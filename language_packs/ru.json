@@ -306,5 +306,20 @@
     "bundle_channels_updated_success": "✅ Каналы набора успешно обновлены!",
     "bundle_no_channels_yet": "<i>В этом наборе пока нет каналов.</i>",
     "bundle_channel_already_in_all": "ℹ️ Этот канал уже добавлен во все доступные наборы!",
-    "channel_not_in_any_bundle": "⚠️ Этот канал пока не входит ни в один набор."
+    "channel_not_in_any_bundle": "⚠️ Этот канал пока не входит ни в один набор.",
+    "existing_bundles_btn": "📁 Существующие наборы",
+    "remove_from_bundle_btn": "➖ Удалить из набора",
+    "rename_bundle_btn": "✏️ Переименовать",
+    "share_bundle_btn": "🔗 Поделиться набором",
+    "choose_bundle_to_remove": "📁 <b>Из какого набора удалить?</b>\n\nВыберите набор, из которого нужно удалить канал:",
+    "channel_removed_from_bundle_success": "✅ Канал <b>{channel_name}</b> удален из набора <b>«{bundle_name}»</b>!",
+    "bundle_enter_new_name": "✏️ <b>Введите новое название набора:</b>\n<i>(Максимум 40 символов)</i>",
+    "bundle_renamed_success": "✅ Название набора успешно изменено на <b>«{new_name}»</b>!",
+    "bundle_share_card": "📁 <b>Набор «{bundle_name}»</b>\n\nКоличество каналов: <b>{count}</b>\n{channel_list}\n\n🔗 <b>Ссылка для общего доступа:</b>\n{share_link}",
+    "bundle_share_forward_btn": "🚀 Поделиться в Telegram",
+    "bundle_shared_import_prompt": "📁 <b>Вам открыли доступ к набору «{bundle_name}»!</b>\n\nКоличество каналов: <b>{count}</b>\n{channel_list}\n\nХотите сохранить этот набор себе?",
+    "bundle_import_save_btn": "⭐️ Сохранить набор",
+    "bundle_imported_success": "✅ Набор <b>«{bundle_name}»</b> успешно сохранен!",
+    "bundle_select_channel_to_remove": "➖ <b>Выберите канал для удаления из набора:</b>",
+    "bundle_no_channels_to_remove": "ℹ️ В этом наборе нет каналов для удаления."
 }

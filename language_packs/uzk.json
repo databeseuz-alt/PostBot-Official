@@ -267,5 +267,20 @@
     "bundle_channels_updated_success": "✅ Тўплам каналлари муваффақиятли янгиланди!",
     "bundle_no_channels_yet": "<i>Ушбу тўпламда ҳали каналлар йўқ.</i>",
     "bundle_channel_already_in_all": "ℹ️ Ушбу канал барча мавжуд тўпламларга қўшилган!",
-    "channel_not_in_any_bundle": "⚠️ Ушбу канал бирорта ҳам тўпламга киритилмаган."
+    "channel_not_in_any_bundle": "⚠️ Ушбу канал бирорта ҳам тўпламга киритилмаган.",
+    "existing_bundles_btn": "📁 Мавжуд тўпламлар",
+    "remove_from_bundle_btn": "➖ Тўпламдан чиқариш",
+    "rename_bundle_btn": "✏️ Қайта номлаш",
+    "share_bundle_btn": "🔗 Тўпламни улашиш",
+    "choose_bundle_to_remove": "📁 <b>Қайси тўпламдан чиқарилсин?</b>\n\nКанални чиқармоқчи бўлган тўпламни танланг:",
+    "channel_removed_from_bundle_success": "✅ <b>{channel_name}</b> канали <b>«{bundle_name}»</b> тўпламидан чиқарилди!",
+    "bundle_enter_new_name": "✏️ <b>Тўплам учун янги ном киритинг:</b>\n<i>(Максимал 40 та белги)</i>",
+    "bundle_renamed_success": "✅ Тўплам номи муваффақиятли <b>«{new_name}»</b> га ўзгартирилди!",
+    "bundle_share_card": "📁 <b>«{bundle_name}» тўплами</b>\n\nКаналлар сони: <b>{count}</b> та\n{channel_list}\n\n🔗 <b>Улашиш ҳаволаси:</b>\n{share_link}",
+    "bundle_share_forward_btn": "🚀 Telegram орқали улашиш",
+    "bundle_shared_import_prompt": "📁 <b>Сизга «{bundle_name}» тўплами улашилди!</b>\n\nКаналлар сони: <b>{count}</b> та\n{channel_list}\n\nУшбу тўпламни ўзингизга сақлаб олишни хоҳлайсизми?",
+    "bundle_import_save_btn": "⭐️ Тўпламни сақлаш",
+    "bundle_imported_success": "✅ <b>«{bundle_name}»</b> тўплами муваффақиятли сақланди!",
+    "bundle_select_channel_to_remove": "➖ <b>Тўпламдан чиқариш учун канални танланг:</b>",
+    "bundle_no_channels_to_remove": "ℹ️ Ушбу тўпламда чиқариш учун каналлар йўқ."
 }
