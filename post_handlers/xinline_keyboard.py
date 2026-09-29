@@ -245,16 +245,16 @@ def get_post_save_edit_keyboard(post_code: str, lang: str = 'uzl'):
     builder.adjust(2)
     return builder.as_markup()
 
-def get_send_timing_keyboard(post_code: str, channel_id: int, lang: str = 'uzl'):
-    """Kanal tanlagandan keyin: Hozir yuborish yoki Rejalashtirish."""
+def get_send_timing_keyboard(post_code: str, channel_id: int = 0, lang: str = 'uzl', bundle_id: str = None):
+    """Kanal yoki to'plam tanlagandan keyin: Hozir yuborish yoki Rejalashtirish."""
     builder = InlineKeyboardBuilder()
     builder.button(
         text=get_text('send_now_btn', lang),
-        callback_data=PostSendCallbackFactory(action="confirm_prompt", post_code=post_code, channel_id=channel_id).pack()
+        callback_data=PostSendCallbackFactory(action="confirm_prompt", post_code=post_code, channel_id=channel_id, bundle_id=bundle_id).pack()
     )
     builder.button(
         text=get_text('schedule_btn', lang),
-        callback_data=PostSendCallbackFactory(action="schedule_for_channel", post_code=post_code, channel_id=channel_id).pack()
+        callback_data=PostSendCallbackFactory(action="schedule_for_channel", post_code=post_code, channel_id=channel_id, bundle_id=bundle_id).pack()
     )
     builder.adjust(2)
     return builder.as_markup()
@@ -273,9 +273,24 @@ def get_edit_send_keyboard(post_code: str, lang: str = 'uzl'):
     builder.adjust(2)
     return builder.as_markup()
 
-def get_channel_list_keyboard(channels: list[dict], post_code: str):
-    """Foydalanuvchi kanallari ro'yxatini post yuborish uchun yaratadi."""
+def get_channel_list_keyboard(channels: list[dict], post_code: str, bundles: list[dict] = None):
+    """Foydalanuvchi kanallari va to'plamlari ro'yxatini post yuborish uchun yaratadi."""
     builder = InlineKeyboardBuilder()
+
+    bundle_buttons_count = 0
+    if bundles:
+        for b in bundles:
+            ch_count = len(b.get('channel_ids', []))
+            builder.button(
+                text=f"📁 {b['name']} ({ch_count})",
+                callback_data=PostSendCallbackFactory(
+                    action="select_bundle",
+                    post_code=post_code,
+                    bundle_id=b.get('id')
+                ).pack()
+            )
+            bundle_buttons_count += 1
+
     for channel in channels:
         builder.button(
             text=channel['channel_name'],
@@ -285,10 +300,20 @@ def get_channel_list_keyboard(channels: list[dict], post_code: str):
                 channel_id=channel['channel_id']
             ).pack()
         )
-    builder.adjust(3)
+
+    if bundle_buttons_count > 0:
+        sizes = [1] * bundle_buttons_count
+        channel_count = len(channels)
+        sizes.extend([3] * (channel_count // 3))
+        if channel_count % 3 != 0:
+            sizes.append(channel_count % 3)
+        builder.adjust(*sizes)
+    else:
+        builder.adjust(3)
+
     return builder.as_markup()
 
-def get_send_confirmation_keyboard(post_code: str, channel_id: int, lang: str = 'uzl'):
+def get_send_confirmation_keyboard(post_code: str, channel_id: int = 0, lang: str = 'uzl', bundle_id: str = None):
     """Postni yuborishni tasdiqlash klaviaturasini yaratadi."""
     builder = InlineKeyboardBuilder()
     builder.button(text=get_text('no_btn', lang),
@@ -299,7 +324,8 @@ def get_send_confirmation_keyboard(post_code: str, channel_id: int, lang: str = 
         callback_data=PostSendCallbackFactory(
             action="confirm_send",
             post_code=post_code,
-            channel_id=channel_id
+            channel_id=channel_id,
+            bundle_id=bundle_id
         ).pack()
     )
     builder.adjust(2)

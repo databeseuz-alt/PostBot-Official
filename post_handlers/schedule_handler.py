@@ -143,9 +143,10 @@ def get_repeat_change_keyboard(lang: str) -> types.InlineKeyboardMarkup:
 
 @schedule_router.callback_query(PostSendCallbackFactory.filter(F.action == "schedule_for_channel"))
 async def start_scheduling_for_channel(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, state: FSMContext):
-    """Kanal tanlagandan keyin rejalashtirishni boshlaydi: tez vaqt tugmalari ko'rsatiladi."""
+    """Kanal yoki to'plam tanlagandan keyin rejalashtirishni boshlaydi: tez vaqt tugmalari ko'rsatiladi."""
     post_code = callback_data.post_code
     channel_id = callback_data.channel_id
+    bundle_id = callback_data.bundle_id
 
     # post_code None bo'lsa, state dan olishga urinib ko'rish
     if not post_code:
@@ -159,7 +160,21 @@ async def start_scheduling_for_channel(callback: types.CallbackQuery, callback_d
         await callback.answer()
         return
 
-    await state.update_data(schedule_post_code=post_code, schedule_channel_id=channel_id)
+    if bundle_id:
+        from xdata_handlers.database import get_user_channel_bundle_by_id
+        bundle = await get_user_channel_bundle_by_id(callback.from_user.id, bundle_id)
+        if bundle:
+            await state.update_data(
+                schedule_post_code=post_code,
+                schedule_bundle_id=bundle_id,
+                schedule_bundle_name=bundle.get('name'),
+                schedule_channel_ids=bundle.get('channel_ids', [])
+            )
+        else:
+            await state.update_data(schedule_post_code=post_code, schedule_channel_id=channel_id)
+    else:
+        await state.update_data(schedule_post_code=post_code, schedule_channel_id=channel_id)
+
     await state.set_state(ScheduleManage.waiting_for_custom_time)
 
     lang = await get_user_language(callback.from_user.id)
@@ -354,9 +369,53 @@ async def handle_repeat_choice(callback: types.CallbackQuery, state: FSMContext,
 async def _finalize_schedule(message: types.Message, state: FSMContext, post_code: str, scheduled_time: datetime, display_time: str, lang: str, bot: Bot = None, repeat: str = None):
     """Rejalashtirishni yakunlaydi va bazaga yozadi."""
     data = await state.get_data()
+    schedule_channel_ids = data.get('schedule_channel_ids')
+    user_id = message.from_user.id if message.from_user else message.chat.id
+
+    if schedule_channel_ids:
+        bundle_name = data.get('schedule_bundle_name') or "To'plam"
+        success_count = 0
+        for ch_id in schedule_channel_ids:
+            ch_name = await get_channel_name(user_id, ch_id)
+            post_id = await add_scheduled_post(
+                user_id, post_code, scheduled_time,
+                channel_id=ch_id, channel_name=ch_name,
+                repeat_interval=repeat
+            )
+            if post_id:
+                success_count += 1
+                if bot:
+                    schedule_post_job(bot, post_id, user_id, post_code, ch_id, scheduled_time)
+
+        if success_count > 0:
+            repeat_suffix = ""
+            if repeat == "daily":
+                repeat_suffix = "\n🔁 " + get_text('repeat_daily_note', lang)
+            elif repeat == "weekly":
+                repeat_suffix = "\n🔁 " + get_text('repeat_weekly_note', lang)
+
+            import html
+            safe_bname = html.escape(bundle_name)
+            confirmation_text = (
+                f"✅ <b>Post «{safe_bname}» to'plamidagi {success_count} ta kanal uchun rejalashtirildi!</b>\n"
+                f"📅 <b>Vaqt:</b> {display_time}{repeat_suffix}"
+            )
+            await message.answer(confirmation_text, parse_mode="HTML")
+
+            bot_info = await bot.get_me()
+            final_message = get_text('post_saved_msg', lang).format(
+                post_code=post_code,
+                bot_username=bot_info.username
+            )
+            inline_kb = await get_post_management_keyboard(post_code, lang)
+            await message.answer(final_message, reply_markup=inline_kb, parse_mode="HTML")
+            await state.clear()
+        else:
+            await message.answer(get_text('save_error', lang))
+        return
+
     channel_id = data.get('schedule_channel_id') or data.get('selected_channel_id')
     channel_name = data.get('selected_channel_name')
-    user_id = message.from_user.id if message.from_user else message.chat.id
 
     if not channel_id:
         await message.answer(get_text('unknown_error', lang))

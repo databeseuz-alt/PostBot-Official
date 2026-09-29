@@ -448,7 +448,9 @@ async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot
         return True
         
     user_channels = await get_user_channels(user_id)
-    
+    from xdata_handlers.database import get_user_channel_bundles
+    bundles = await get_user_channel_bundles(user_id)
+
     await state.set_state(PostSending.choosing_channel_to_send)
     await state.update_data(
         post_code=post_code,
@@ -456,14 +458,14 @@ async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot
         turbo_action=turbo_action,
         schedule_post_code=post_code
     )
-    
+
     if not user_channels:
         await message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=get_add_channel_with_post_keyboard(post_code)
         )
-    elif turbo_action == 'now' and len(user_channels) == 1:
-        # Foydalanuvchida 1 ta kanal bo'lsa va turbo_action == 'now' bo'lsa:
+    elif turbo_action == 'now' and len(user_channels) == 1 and not bundles:
+        # Foydalanuvchida 1 ta kanal bo'lsa va to'plam bo'lmasa, turbo_action == 'now':
         # 3 sekund kutilish va bekor qilish tugmasi bilan kanalga yuboriladi!
         ch = user_channels[0]
         from post_handlers.send_handler import start_turbo_countdown_and_send
@@ -477,8 +479,8 @@ async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot
             state=state
         )
         return True
-    elif turbo_action == 'schedule' and len(user_channels) == 1:
-        # 1 ta kanal bo'lsa, to'g'ridan-to'g'ri jadval vaqtini so'raymiz
+    elif turbo_action == 'schedule' and len(user_channels) == 1 and not bundles:
+        # 1 ta kanal bo'lsa va to'plam bo'lmasa, to'g'ridan-to'g'ri jadval vaqtini so'raymiz
         from post_handlers.schedule_handler import ScheduleManage, get_schedule_quick_keyboard
         ch = user_channels[0]
         await state.update_data(schedule_post_code=post_code, schedule_channel_id=ch['channel_id'])
@@ -488,10 +490,10 @@ async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot
         return True
     else:
         turbo_title = get_text('turbo_choose_channel_now', lang) if turbo_action == 'now' else get_text('turbo_choose_channel_schedule', lang)
-        
+
         await message.answer(
             turbo_title,
-            reply_markup=get_channel_list_keyboard(user_channels, post_code),
+            reply_markup=get_channel_list_keyboard(user_channels, post_code, bundles=bundles),
             parse_mode="HTML"
         )
     return True

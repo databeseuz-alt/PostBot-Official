@@ -13,7 +13,7 @@ from aiogram.fsm.state import State, StatesGroup
 
 from xdata_handlers.database import (
     get_user_channels, add_user_channel, get_post_from_db, get_user_language, 
-    save_sent_post, get_user_bot_settings
+    save_sent_post, get_user_bot_settings, get_user_channel_bundles, get_user_channel_bundle_by_id
 )
 from post_handlers.post_handler import validate_and_fix_html
 from post_handlers.xinline_keyboard import (
@@ -234,9 +234,10 @@ async def start_sending_handler(callback: types.CallbackQuery, callback_data: Po
             reply_markup=get_add_channel_with_post_keyboard(post_code)
         )
     else:
+        bundles = await get_user_channel_bundles(user_id)
         await callback.message.answer(
             get_text('choose_channel_msg', lang),
-            reply_markup=get_channel_list_keyboard(user_channels, post_code)
+            reply_markup=get_channel_list_keyboard(user_channels, post_code, bundles=bundles)
         )
 
     await callback.answer()
