@@ -6,7 +6,7 @@ from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE,
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE, EMOJI_CLOSE,
     clean_btn_text
 )
 
@@ -598,7 +598,11 @@ def get_done_inline_keyboard(lang: str = 'uzl'):
 def get_cancel_inline_kb(lang: str = 'uzl'):
     """Jarayonni bekor qilish uchun inline klaviatura."""
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+    builder.button(
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
     builder.button(text=get_text('ai_assistant_btn', lang), callback_data="ai_assistant")
     builder.adjust(2)
     return builder.as_markup()
@@ -710,6 +714,6 @@ def get_auto_signature_back_kb(lang: str = 'uzl'):
 def get_auto_signature_cancel_kb(lang: str = 'uzl'):
     """Yangi imzo qo'shishni bekor qilish tugmasi"""
     builder = InlineKeyboardBuilder()
-    builder.button(text="❌ Bekor qilish", callback_data="auto_sig_cancel_new")
+    builder.button(text="Bekor qilish", callback_data="auto_sig_cancel_new", icon_custom_emoji_id=EMOJI_CLOSE)
     return builder.as_markup()
     
