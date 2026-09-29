@@ -484,7 +484,8 @@ async def handle_unknown_message(event: types.Message, state: FSMContext, bot: B
         PostCreation.waiting_for_paid_price,
         "BundleCreation:waiting_for_name",
         "BundleCreation:selecting_channels",
-        "BundleCreation:editing_channels"
+        "BundleCreation:editing_channels",
+        "BundleCreation:waiting_for_rename"
     ),
     LocalizedText('cancel_btn')
 )
