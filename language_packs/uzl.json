@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Xush kelibsiz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nbu adminlar uchun yaratilgan <b>eng zamonaviy va mukammal </b> bot hisoblanadi <tg-emoji emoji-id=\"5933613451044720529\">🙂</tg-emoji>\n\ntugmalardan birini tanlang 👇",
+    "welcome_msg": "<b>Xush kelibsiz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nbu adminlar uchun yaratilgan <b>eng zamonaviy va mukammal </b> bot hisoblanadi <tg-emoji emoji-id=\"5458394638505223612\"><tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\ntugmalardan birini tanlang <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
     "donate_msg": "<b>💰 Botni qo'llab quvvatlash</b>\n\nBotni qo'llab quvvatlash uchun donat qiling.donat qilish uchun pastki tugmalardan birortasini tanlang:",
     "donate_thanks_msg": "<b>✅ Rahmat!</b>\n\nSizning donat so'rovingiz yuborildi. Tez orada siz bilan bog'lanamiz.",
     "donate_error_msg": "<b>❌ Xatolik</b>\n\nNimadir xato ketdi. Iltimos qayta urinib ko'ring yoki @admin ga yozing",

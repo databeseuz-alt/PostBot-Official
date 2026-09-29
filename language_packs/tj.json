@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Хуш омадед , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nИн бот барои админҳо <b>бештар замонавӣ ва мукаммал</b> аст <tg-emoji emoji-id=\"5933613451044720529\">🙂</tg-emoji>\n\nЯке аз тугмаҳоро интихоб кунед 👇",
+    "welcome_msg": "<b>Хуш омадед , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nИн бот барои админҳо <b>бештар замонавӣ ва мукаммал</b> аст <tg-emoji emoji-id=\"5458394638505223612\"><tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nЯке аз тугмаҳоро интихоб кунед <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
     "new_post_btn": "✍️ Эҷоди пост",
     "edit_post_btn": "✏️ Таҳрир",
     "statistic_btn": "📊 Омор",
