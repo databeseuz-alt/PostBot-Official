@@ -14,57 +14,41 @@ from aiogram.filters import Command
 
 lang_router = Router()
 
+def get_language_keyboard() -> types.InlineKeyboardMarkup:
+    """8 ta til uchun 2 qatorli (4x2) inline klaviatura."""
+    builder = InlineKeyboardBuilder()
+    languages = [
+        ("🇺🇿 O'zbek", "lang:uzl"),
+        ("🇺🇿 Ўзбек", "lang:uzk"),
+        ("🇷🇺 Русский", "lang:ru"),
+        ("🇬🇧 English", "lang:en"),
+        ("🇰🇿 Қазақ", "lang:kz"),
+        ("🇹🇷 Türkçe", "lang:tr"),
+        ("🇹🇯 Tojik", "lang:tj"),
+        ("🇰🇬 Кыргыз", "lang:kg")
+    ]
+
+    for text, callback_data in languages:
+        builder.button(text=text, callback_data=callback_data)
+
+    builder.adjust(4, 4)
+    return builder.as_markup()
+
 @lang_router.message(Command("language"))
 async def language_command_handler(message: types.Message):
     """/language buyrug'i uchun handler"""
     lang = await get_user_language(message.from_user.id)
-
-    builder = InlineKeyboardBuilder()
-    languages = [
-        ("🇺🇿 O'zbek", "lang:uzl"), ("🇺🇿 Ўзбек", "lang:uzk"),
-        ("🇹🇯 Tojik", "lang:tj"), ("🇹🇲 Turkman", "lang:tk"),
-        ("🇬🇧 English", "lang:en"), ("🇷🇺 Русский", "lang:ru"),
-        ("🇰🇿 Қазақ", "lang:kz"), ("🇦🇿 Azərca", "lang:az"),
-        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg"),
-        ("🇸🇦 العربية", "lang:ar"), ("🇪🇸 Español", "lang:es"),
-        ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
-        ("🇮🇹 Italiano", "lang:it")
-    ]
-
-    for text, callback_data in languages:
-        builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
-
-    builder.adjust(2)
-
     await message.answer(
         get_text('choose_language', lang),
-        reply_markup=builder.as_markup()
+        reply_markup=get_language_keyboard()
     )
 
 @lang_router.message(LocalizedText('btn_language_settings'))
 async def language_settings_handler(message: types.Message):
     lang = await get_user_language(message.from_user.id)
-
-    builder = InlineKeyboardBuilder()
-    languages = [
-        ("🇺🇿 O'zbek", "lang:uzl"), ("🇺🇿 Ўзбек", "lang:uzk"),
-        ("🇹🇯 Tojik", "lang:tj"), ("🇹🇲 Turkman", "lang:tk"),
-        ("🇬🇧 English", "lang:en"), ("🇷🇺 Русский", "lang:ru"),
-        ("🇰🇿 Қазақ", "lang:kz"), ("🇦🇿 Azərca", "lang:az"),
-        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg"),
-        ("🇸🇦 العربية", "lang:ar"), ("🇪🇸 Español", "lang:es"),
-        ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
-        ("🇮🇹 Italiano", "lang:it")
-    ]
-
-    for text, callback_data in languages:
-        builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
-
-    builder.adjust(2)
-
     await message.answer(
         get_text('choose_language', lang),
-        reply_markup=builder.as_markup()
+        reply_markup=get_language_keyboard()
     )
 
 @lang_router.callback_query(F.data.startswith("lang:"))

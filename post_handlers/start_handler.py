@@ -26,29 +26,18 @@ async def check_user_has_language(user_id: int) -> bool:
         return True
     return False
 
-async def show_language_selection(message: types.Message):
+async def show_language_selection(event: types.Message | types.CallbackQuery):
     """Yangi foydalanuvchilar uchun til tanlash menyusi"""
-    builder = InlineKeyboardBuilder()
-    languages = [
-        ("🇺🇿 O'zbek", "lang:uzl"), ("🇺🇿 Ўзбек", "lang:uzk"),
-        ("🇹🇯 Tojik", "lang:tj"), ("🇹🇲 Turkman", "lang:tk"),
-        ("🇬🇧 English", "lang:en"), ("🇷🇺 Русский", "lang:ru"),
-        ("🇰🇿 Қазақ", "lang:kz"), ("🇦🇿 Azərca", "lang:az"),
-        ("🇹🇷 Türkçe", "lang:tr"), ("🇰🇬 Кыргыз", "lang:kg"),
-        ("🇸🇦 العربية", "lang:ar"), ("🇪🇸 Español", "lang:es"),
-        ("🇫🇷 Français", "lang:fr"), ("🇩🇪 Deutsch", "lang:de"),
-        ("🇮🇹 Italiano", "lang:it")
-    ]
-
-    for text, callback_data in languages:
-        builder.add(InlineKeyboardButton(text=text, callback_data=callback_data))
-
-    builder.adjust(2)
-
-    await message.answer(
-        "🌐 Iltimos, o'z tilingizni tanlang:\nПожалуйста, выберите ваш язык:\nPlease select your language:",
-        reply_markup=builder.as_markup()
-    )
+    from post_handlers.lang_handler import get_language_keyboard
+    keyboard = get_language_keyboard()
+    text = "🌐 Iltimos, o'z tilingizni tanlang:\nПожалуйста, выберите ваш язык:\nPlease select your language:"
+    if isinstance(event, types.CallbackQuery):
+        try:
+            await event.message.edit_text(text, reply_markup=keyboard)
+        except Exception:
+            await event.message.answer(text, reply_markup=keyboard)
+    else:
+        await event.answer(text, reply_markup=keyboard)
 
 async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     await state.clear()
@@ -78,17 +67,12 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
 async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
     user = event.from_user
 
-    # Tilni avtomatik ravishda uzl (O'zbek Lotin) qilib belgilaymiz
-    from xdata_handlers.database import set_user_language, get_user_language
+    from xdata_handlers.database import get_user_language
     
     current_lang = await get_user_language(user.id)
     if not current_lang:
-        await set_user_language(
-            user_id=user.id,
-            nickname=user.full_name,
-            username=user.username,
-            language="uzl"
-        )
+        await show_language_selection(event)
+        return
 
     is_member, text, keyboard = await check_user_membership(event.from_user, bot)
 
@@ -415,6 +399,10 @@ async def set_language_from_start(callback: types.CallbackQuery, state: FSMConte
         is_member, text, keyboard = await check_user_membership(callback.from_user, bot)
 
         if not is_member:
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
             await callback.message.answer(text, reply_markup=keyboard)
             return
 

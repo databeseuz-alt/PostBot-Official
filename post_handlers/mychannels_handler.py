@@ -182,25 +182,31 @@ async def handle_select_channel(callback: types.CallbackQuery, callback_data: My
     await callback.answer()
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "delete"))
-async def handle_delete_channel(callback: types.CallbackQuery, callback_data: MyChannelsCallback):
+async def handle_delete_channel(callback: types.CallbackQuery, callback_data: MyChannelsCallback, state: FSMContext):
     """Kanalni o'chirish tugmasi bosilganda uni bazadan o'chiradi."""
     success = await remove_user_channel(callback.from_user.id, callback_data.channel_id)
     lang = await get_user_language(callback.from_user.id)
 
     if success:
-        await callback.answer(get_text('delete_channel_success_msg', lang), show_alert=True)
-        
-        # Tekshirish - agar kanallar qolgan bo'lsa ro'yxatini ko'rsat, yo'qsa need_channel_msg
-        remaining_channels = await get_user_channels(callback.from_user.id)
-        if not remaining_channels:
-            # Barcha kanallar o'chirildi
-            await callback.message.edit_text(get_text('need_channel_msg', lang))
-        else:
-            keyboard = await get_my_channels_keyboard(callback.from_user.id)
-            await callback.message.edit_text(
-                get_text('choose_channel_msg', lang),
-                reply_markup=keyboard
-            )
+        await callback.answer()
+        try:
+            await callback.message.delete()
+        except Exception:
+            pass
+
+        # 1. Yangi xabarda kanal o'chirildi xabari
+        await callback.message.answer(get_text('delete_channel_success_msg', lang), parse_mode="HTML")
+
+        # 2. Ortidan bosh menyuga qaytarish
+        await state.clear()
+        user = callback.from_user
+        from xdata_handlers.database import add_or_update_user
+        await add_or_update_user(user_id=user.id, nickname=user.full_name, username=user.username)
+        from post_handlers.xreply_keyboard import get_main_menu
+        safe_nickname = html.escape(user.full_name)
+        start_text = get_text('welcome_msg', lang).format(nickname=safe_nickname)
+        main_menu_keyboard = await get_main_menu(lang=lang, user_id=user.id)
+        await callback.message.answer(start_text, reply_markup=main_menu_keyboard)
     else:
         await callback.answer(get_text('delete_channel_error_msg', lang), show_alert=True)
 
