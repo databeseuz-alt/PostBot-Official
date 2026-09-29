@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanaly üstünlikli goşuldy!.",
     "delete_channel_btn": "🗑 Kanaly pozuň",
     "delete_channel_success_msg": "Kanal üstünlikli pozuldy ✅",
-    "choose_channel_msg": "<b>📢 Kanaly saýlaň:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanaly saýlaň:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nBu kanal bilen näme etmäge isleyärsiňiz?",
     "channel_label_msg": "Kanal",
     "need_channel_msg": "<b>❌ Birikdirilen kanallar ýok</b>\n\nKanallaryňyzy görmek üçin azyndan bir kanal goşiň",

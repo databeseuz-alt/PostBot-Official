@@ -59,7 +59,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanali muvaffaqiyatli qo'shildi!.",
     "delete_channel_btn": "🗑 Kanani o'chirish",
     "delete_channel_success_msg": "Kanal muvaffaqiyatli o'chirildi ✅",
-    "choose_channel_msg": "<b>📢 Kanalni tanlang :</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanalni tanlang :</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nUshbu kanal bilan nima  qilmoqchisiz ?",
     "channel_label_msg": "Kanal",
     "need_channel_msg": "<b>❌ Ulangan kanallar yo'q</b>\n\nBu yerda kanallaringizni ko'rish uchun kamida bitta kanal qo'shing",

@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ Канали {channel_name}</b> муваффақона илова шуд!.",
     "delete_channel_btn": "🗑 Тоза кардани канал",
     "delete_channel_success_msg": "Канал муваффақона тоза шуд ✅",
-    "choose_channel_msg": "<b>📢 Каналро интихоб кунед:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Каналро интихоб кунед:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nЧӣ кор карданро бо ин канал мехоҳед?",
     "channel_label_msg": "Канал",
     "need_channel_msg": "<b>❌ Каналҳои пайвастшуда нест</b>\n\nБарои дидани каналҳоятон канали кам карда илова кунед",

@@ -57,7 +57,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> канали муваффақиятли қошилди!.",
     "delete_channel_btn": "🗑 Канални учириш",
     "delete_channel_success_msg": "Канал муваффақиятли учирилди ✅",
-    "choose_channel_msg": "<b>📢 Канални танланг :</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Канални танланг :</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nУшбу канал билан нима  қилмоқчисиз ?",
     "channel_label_msg": "Канал",
     "need_channel_msg": "<b>❌ Уланган каналлар йук</b>\n\nБу ерда каналларингизни кориш учун камида битта канал қошинг",

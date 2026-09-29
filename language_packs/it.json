@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ Canale {channel_name} aggiunto con successo!.</b>",
     "delete_channel_btn": "🗑 Elimina Canale",
     "delete_channel_success_msg": "Canale eliminato con successo ✅",
-    "choose_channel_msg": "<b>📢 Scegli un canale:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Scegli un canale:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nCosa vuoi fare con questo canale?",
     "channel_label_msg": "Canale",
     "need_channel_msg": "<b>❌ Nessun canale collegato</b>\n\nAggiungi almeno un canale per vedere i tuoi canali qui",

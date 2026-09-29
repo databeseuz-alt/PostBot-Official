@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> арнасы сəтті қосылды!.",
     "delete_channel_btn": "🗑 Арнаны жою",
     "delete_channel_success_msg": "Арна сəтті жойылды ✅",
-    "choose_channel_msg": "<b>📢 Арнаны таңдаңыз:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Арнаны таңдаңыз:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nОсы арнамен не істегіңіз келеді?",
     "channel_label_msg": "Арна",
     "need_channel_msg": "<b>❌ Қосылған арналар жоқ</b>\n\nАрналарыңызды көру үшін кем дегенде бір арна қосыңыз",

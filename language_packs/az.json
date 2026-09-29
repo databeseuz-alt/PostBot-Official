@@ -50,7 +50,7 @@
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanalı uğurla əlavə edildi!.",
     "delete_channel_btn": "🗑 Kanalı sil",
     "delete_channel_success_msg": "Kanal uğurla silindi ✅",
-    "choose_channel_msg": "<b>📢 Kanalı seçin:</b>",
+    "choose_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanalı seçin:</b>",
     "channel_action_msg": "<b>📢 {channel_name}</b>\n\nBu kanal ilə nə etmək istəyirsiniz?",
     "channel_label_msg": "Kanal",
     "need_channel_msg": "<b>❌ Heç bir kanal qoşulmayıb</b>\n\nKanallarınızı görmək üçün ən az bir kanal əlavə edin",
