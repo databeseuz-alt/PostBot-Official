@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Hoş geldiniz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nBu, yöneticiler için oluşturulmuş <b>en modern ve mükemmel</b> bot <tg-emoji emoji-id=\"5458394638505223612\"><tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nButonlardan birini seçin <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
+    "welcome_msg": "<b>Hoş geldiniz , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nBu, yöneticiler için oluşturulmuş <b>en modern ve mükemmel</b> bot <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nButonlardan birini seçin <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
     "new_post_btn": "✍️ Gönderi Oluştur",
     "edit_post_btn": "✏️ Düzenle",
     "statistic_btn": "📊 İstatistikler",

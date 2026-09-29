@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>أهلا وسهلا , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nهذا هو <b>الأكثر حداثة وكمال</b> bot تم إنشاؤه للمسؤولين <tg-emoji emoji-id=\"5458394638505223612\"><tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nاختر أحد الأزرار <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
+    "welcome_msg": "<b>أهلا وسهلا , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nهذا هو <b>الأكثر حداثة وكمال</b> bot تم إنشاؤه للمسؤولين <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nاختر أحد الأزرار <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
     "new_post_btn": "✍️ إنشاء منشور",
     "edit_post_btn": "✏️ تعديل",
     "statistic_btn": "📊 الإحصائيات",

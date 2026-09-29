@@ -1,5 +1,5 @@
 {
-    "welcome_msg": "<b>Bienvenido , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nEste es el bot <b>más moderno y perfecto</b> creado para administradores <tg-emoji emoji-id=\"5458394638505223612\"><tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nElige uno de los botones <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
+    "welcome_msg": "<b>Bienvenido , {nickname}</b> <tg-emoji emoji-id=\"6023985511482268644\">👋</tg-emoji>\n\nEste es el bot <b>más moderno y perfecto</b> creado para administradores <tg-emoji emoji-id=\"5458394638505223612\">😉</tg-emoji>\n\nElige uno de los botones <tg-emoji emoji-id=\"6023566962624306038\">👇</tg-emoji>",
     "new_post_btn": "✍️ Crear Publicación",
     "edit_post_btn": "✏️ Editar",
     "statistic_btn": "📊 Estadísticas",
