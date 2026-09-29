@@ -300,5 +300,6 @@
     "exit_turbo_mode_msg": "Turbo rejimdan chiqildi.",
     "need_channel_instruction_msg": "<b>❌ Sizda hali ulangan kanallar yo'q!</b>\n\nPost yaratish va chop etish uchun avval kamida bitta kanalni botga ulashingiz kerak.\n\n<b>📢 Kanal qo'shish yo'riqnomasi:</b>\n1. Botni kerakli kanalga <b>admin</b> qiling.\n2. Quyidagi usullardan birini bajaring:\n • Kanaldan istalgan xabarni shu yerga <b>↪️ forward qiling</b>;\n • Yoki kanalning <b>@username</b> yoki <b>ID</b>sini yuboring.",
     "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Hozir chop etiladi):",
-    "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Jadval bo'yicha):"
+    "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Jadval bo'yicha):",
+    "turbo_edit_btn": "Tahrirlash"
 }

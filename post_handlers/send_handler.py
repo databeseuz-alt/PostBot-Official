@@ -31,7 +31,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
     builder = InlineKeyboardBuilder()
     main_menu_text = get_text('turbo_main_menu_btn', lang)
-    edit_text = get_text('edit_post_btn', lang)
+    edit_text = get_text('turbo_edit_btn', lang)
     builder.button(
         text=main_menu_text,
         callback_data="turbo:exit_to_main_menu",
@@ -40,12 +40,14 @@ def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
     if post_code:
         builder.button(
             text=edit_text,
-            callback_data=f"edit_select:{post_code}"
+            callback_data=f"edit_select:{post_code}",
+            icon_custom_emoji_id="6026080811277621020"
         )
     else:
         builder.button(
             text=edit_text,
-            callback_data="main:edit_post"
+            callback_data="main:edit_post",
+            icon_custom_emoji_id="6026080811277621020"
         )
     builder.adjust(2)
     return builder.as_markup()
