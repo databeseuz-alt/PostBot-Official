@@ -276,5 +276,6 @@
     "bundle_imported_success": "✅ Bundle <b>«{bundle_name}»</b> successfully saved!",
     "bundle_select_channel_to_remove": "➖ <b>Select channel to remove from bundle:</b>",
     "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove.",
-    "home_screen_btn": "🏠 Startbildschirm"
+    "home_screen_btn": "🏠 Hauptmenü",
+    "main_menu_btn": "🏠 Hauptmenü"
 }

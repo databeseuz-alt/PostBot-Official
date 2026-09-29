@@ -322,5 +322,6 @@
     "bundle_imported_success": "✅ Набор <b>«{bundle_name}»</b> успешно сохранен!",
     "bundle_select_channel_to_remove": "➖ <b>Выберите канал для удаления из набора:</b>",
     "bundle_no_channels_to_remove": "ℹ️ В этом наборе нет каналов для удаления.",
-    "home_screen_btn": "🏠 Главный экран"
+    "home_screen_btn": "🏠 Главное меню",
+    "main_menu_btn": "🏠 Главное меню"
 }

@@ -39,7 +39,7 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
 
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_ADD_BUNDLE, EMOJI_RENAME_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL,
+    EMOJI_MAIN_MENU, EMOJI_BUNDLE, EMOJI_ADD_BUNDLE, EMOJI_RENAME_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL,
     EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT, EMOJI_CLOSE, EMOJI_BACK,
     HTML_EMOJI_BUNDLE, HTML_EMOJI_ADD_BUNDLE, HTML_EMOJI_RENAME_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
 )
@@ -114,14 +114,19 @@ async def cmd_my_channels(message: types.Message):
     lang = await get_user_language(user_id)
 
     if not user_channels:
-        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - faqat yangi kanal tugmasi
+        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - orqaga va yangi kanal tugmalari
         builder = InlineKeyboardBuilder()
+        builder.button(
+            text=clean_btn_text(get_text('back_btn', lang)),
+            callback_data="cancel_action",
+            icon_custom_emoji_id=EMOJI_BACK
+        )
         builder.button(
             text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data=MyChannelsCallback(action="add_new").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.adjust(1)
+        builder.adjust(2)
         await message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=builder.as_markup(),
@@ -145,11 +150,16 @@ async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMConte
     if not user_channels:
         builder = InlineKeyboardBuilder()
         builder.button(
+            text=clean_btn_text(get_text('back_btn', lang)),
+            callback_data="cancel_action",
+            icon_custom_emoji_id=EMOJI_BACK
+        )
+        builder.button(
             text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data=MyChannelsCallback(action="add_new").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.adjust(1)
+        builder.adjust(2)
         await callback.message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=builder.as_markup(),
@@ -174,13 +184,14 @@ async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContex
 
     builder = InlineKeyboardBuilder()
     builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
+    )
+    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=MyChannelsCallback(action="back_to_list").pack(),
         icon_custom_emoji_id=EMOJI_BACK
-    )
-    builder.button(
-        text=get_text('home_screen_btn', lang),
-        callback_data="cancel_action"
     )
     builder.adjust(2)
 
@@ -437,11 +448,16 @@ async def handle_back_to_list(callback: types.CallbackQuery):
     if not user_channels:
         builder = InlineKeyboardBuilder()
         builder.button(
+            text=clean_btn_text(get_text('back_btn', lang)),
+            callback_data="cancel_action",
+            icon_custom_emoji_id=EMOJI_BACK
+        )
+        builder.button(
             text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data=MyChannelsCallback(action="add_new").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.adjust(1)
+        builder.adjust(2)
         try:
             await callback.message.edit_text(
                 get_text('need_channel_msg', lang),

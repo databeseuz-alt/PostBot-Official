@@ -23,7 +23,7 @@ from xdata_handlers.database import (
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_BACK, EMOJI_STATISTIC, HTML_EMOJI_CHANNEL, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_MAIN_MENU, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_BACK, EMOJI_STATISTIC, HTML_EMOJI_CHANNEL, clean_btn_text
 
 import html as _html
 
@@ -589,16 +589,16 @@ async def handle_generate_statistics(event: types.Message | types.CallbackQuery,
         # Kanal yo'q bo'lsa - klaviatura bilan xabar yuborish
         builder = InlineKeyboardBuilder()
         builder.button(
+            text=clean_btn_text(get_text('back_btn', lang)),
+            callback_data="cancel_action",
+            icon_custom_emoji_id=EMOJI_BACK
+        )
+        builder.button(
             text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data=AddChannelFromStatsCallback(action="add").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.button(
-            text=clean_btn_text(get_text('cancel_btn', lang)),
-            callback_data="cancel_action",
-            icon_custom_emoji_id=EMOJI_CLOSE
-        )
-        builder.adjust(1, 1)
+        builder.adjust(2)
         target_msg = event.message if isinstance(event, types.CallbackQuery) else event
         await target_msg.answer(
             get_text('statistics_no_channel_msg', lang),
@@ -690,13 +690,14 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
 
     builder = InlineKeyboardBuilder()
     builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
+    )
+    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:statistic",
         icon_custom_emoji_id=EMOJI_BACK
-    )
-    builder.button(
-        text=get_text('home_screen_btn', lang),
-        callback_data="cancel_action"
     )
     builder.adjust(2)
 

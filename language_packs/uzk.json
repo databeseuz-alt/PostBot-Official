@@ -283,5 +283,6 @@
     "bundle_imported_success": "✅ <b>«{bundle_name}»</b> тўплами муваффақиятли сақланди!",
     "bundle_select_channel_to_remove": "➖ <b>Тўпламдан чиқариш учун канални танланг:</b>",
     "bundle_no_channels_to_remove": "ℹ️ Ушбу тўпламда чиқариш учун каналлар йўқ.",
-    "home_screen_btn": "🏠 Бош экран"
+    "home_screen_btn": "🏠 Бош меню",
+    "main_menu_btn": "🏠 Бош меню"
 }

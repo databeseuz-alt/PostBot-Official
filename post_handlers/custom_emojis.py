@@ -1,6 +1,7 @@
 import re
 
 # Telegram Premium Custom Emoji IDs
+EMOJI_MAIN_MENU = "6042137469204303531"      # 🏠 Bosh menyu
 EMOJI_BUNDLE = "5877332341331857066"       # 📁 To'plamlar
 EMOJI_ADD_BUNDLE = "6021672250686576456"   # 📁+ To'plam qo'shish
 EMOJI_RENAME_BUNDLE = "6021859047404214713"# 📁? To'plamni nomlash / qayta nomlash
@@ -22,6 +23,7 @@ EMOJI_DOWN = "6023566962624306038"         # 👇 Pastga ko'rsatish
 EMOJI_SMILE = "5458394638505223612"        # Alias
 
 # HTML custom emoji tags for message texts
+HTML_EMOJI_MAIN_MENU = '<tg-emoji emoji-id="6042137469204303531">🏠</tg-emoji>'
 HTML_EMOJI_BACK = '<tg-emoji emoji-id="5877629862306385808">◀️</tg-emoji>'
 HTML_EMOJI_ARROW_RIGHT = '<tg-emoji emoji-id="5807829874877930085">➡️</tg-emoji>'
 HTML_EMOJI_BUNDLE = '<tg-emoji emoji-id="5877332341331857066">📁</tg-emoji>'

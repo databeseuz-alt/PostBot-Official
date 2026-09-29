@@ -15,7 +15,7 @@ from post_handlers.post_handler import PostCreation
 from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_SAVE, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_BACK, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_MAIN_MENU, EMOJI_SAVE, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, EMOJI_BACK, clean_btn_text
 
 start_router = Router()
 logger = logging.getLogger(__name__)
@@ -263,16 +263,16 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
         builder = InlineKeyboardBuilder()
         builder.button(
+            text=clean_btn_text(get_text('back_btn', lang)),
+            callback_data="cancel_action",
+            icon_custom_emoji_id=EMOJI_BACK
+        )
+        builder.button(
             text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data="post:add_channel",
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.button(
-            text=clean_btn_text(get_text('cancel_btn', lang)),
-            callback_data="cancel_action",
-            icon_custom_emoji_id=EMOJI_CLOSE
-        )
-        builder.adjust(1, 1)
+        builder.adjust(2)
         
         target_msg = event.message if isinstance(event, types.CallbackQuery) else event
         await target_msg.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
@@ -309,13 +309,14 @@ async def handle_post_add_channel(callback: types.CallbackQuery, state: FSMConte
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('back_btn', lang)),
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
         callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_BACK
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     builder.button(
-        text=get_text('home_screen_btn', lang),
-        callback_data="cancel_action"
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data="main:new_post",
+        icon_custom_emoji_id=EMOJI_BACK
     )
     builder.adjust(2)
 

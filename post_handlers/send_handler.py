@@ -26,7 +26,7 @@ from post_handlers.xinline_keyboard import (
 from xdata_handlers.translator import get_text, safe_format, get_text_formatted
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
-from post_handlers.custom_emojis import EMOJI_CLOSE, EMOJI_BACK, HTML_EMOJI_ARROW_RIGHT, HTML_EMOJI_BUNDLE, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_MAIN_MENU, EMOJI_CLOSE, EMOJI_BACK, HTML_EMOJI_ARROW_RIGHT, HTML_EMOJI_BUNDLE, clean_btn_text
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
@@ -36,7 +36,7 @@ def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
     builder.button(
         text=main_menu_text,
         callback_data="turbo:exit_to_main_menu",
-        icon_custom_emoji_id="6042137469204303531"
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     if post_code:
         builder.button(
@@ -96,13 +96,14 @@ async def cmd_add_channel(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     builder = InlineKeyboardBuilder()
     builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
+    )
+    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:my_channels",
         icon_custom_emoji_id=EMOJI_BACK
-    )
-    builder.button(
-        text=get_text('home_screen_btn', lang),
-        callback_data="cancel_action"
     )
     builder.adjust(2)
     await message.answer(
@@ -265,13 +266,14 @@ async def redirect_to_add_channel_with_post(callback: types.CallbackQuery, callb
 
     builder = InlineKeyboardBuilder()
     builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
+    )
+    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=f"send_post:{post_code}",
         icon_custom_emoji_id=EMOJI_BACK
-    )
-    builder.button(
-        text=get_text('home_screen_btn', lang),
-        callback_data="cancel_action"
     )
     builder.adjust(2)
 

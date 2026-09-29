@@ -339,5 +339,6 @@
     "bundle_imported_success": "✅ <b>«{bundle_name}»</b> to'plami muvaffaqiyatli saqlandi!",
     "bundle_select_channel_to_remove": "➖ <b>To'plamdan chiqarish uchun kanalni tanlang:</b>",
     "bundle_no_channels_to_remove": "ℹ️ Ushbu to'plamda chiqarish uchun kanallar yo'q.",
-    "home_screen_btn": "🏠 Bosh ekran"
+    "home_screen_btn": "🏠 Bosh menyu",
+    "main_menu_btn": "🏠 Bosh menyu"
 }
