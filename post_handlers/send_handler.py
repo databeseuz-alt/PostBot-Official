@@ -935,6 +935,9 @@ async def execute_send_post(
         else:
             channel_link = safe_channel_title
 
+        if suppress_user_message:
+            return
+
         if not is_turbo and state:
             state_data = await state.get_data()
             is_turbo = state_data.get('turbo_mode', False) or state_data.get('turbo_enabled', False)
@@ -1025,16 +1028,48 @@ async def execute_send_post(
 async def confirm_send_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, bot: Bot, state: FSMContext):
     """Postni yuborishni tasdiqlash (normal rejimda 'Ha' tugmasi)."""
     post_code = callback_data.post_code or (await state.get_data()).get("post_code")
-    channel_id = callback_data.channel_id
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
     data = await state.get_data()
-    channel_name = data.get('selected_channel_name', '')
+    bundle_id = callback_data.bundle_id or data.get('selected_bundle_id')
+
     try:
         await callback.message.delete()
     except Exception:
         pass
-    await execute_send_post(bot, user_id, post_code, channel_id, channel_name, lang, state)
+
+    if bundle_id:
+        bundle = await get_user_channel_bundle_by_id(user_id, bundle_id)
+        channel_ids = bundle.get('channel_ids', []) if bundle else []
+        bundle_name = bundle.get('name', "To'plam") if bundle else "To'plam"
+
+        for ch_id in channel_ids:
+            await execute_send_post(
+                bot=bot,
+                user_id=user_id,
+                post_code=post_code,
+                channel_id=ch_id,
+                channel_name="",
+                lang=lang,
+                state=state,
+                is_turbo=False,
+                suppress_user_message=True
+            )
+
+        safe_bname = html.escape(bundle_name)
+        await bot.send_message(
+            user_id,
+            f"✅ <b>Post «{safe_bname}» to'plamidagi barcha ({len(channel_ids)} ta) kanallarga muvaffaqiyatli yuborildi!</b>",
+            reply_markup=get_post_done_menu(lang),
+            parse_mode="HTML"
+        )
+        if state:
+            await state.clear()
+    else:
+        channel_id = callback_data.channel_id
+        channel_name = data.get('selected_channel_name', '')
+        await execute_send_post(bot, user_id, post_code, channel_id, channel_name, lang, state)
+
     await callback.answer()
 
 @send_router.callback_query(F.data == "turbo:exit_to_main_menu")
