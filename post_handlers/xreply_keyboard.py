@@ -13,10 +13,11 @@ def get_main_menu(lang: str, user_id: int = 0):
     builder = InlineKeyboardBuilder()
     builder.button(text=get_text('new_post_btn', lang), callback_data="main:new_post")
     builder.button(text=get_text('edit_post_btn', lang), callback_data="main:edit_post")
-    builder.button(text=get_text('statistic_btn', lang), callback_data="main:statistic")
+    builder.button(text=get_text('my_channels_btn', lang), callback_data="main:my_channels")
     builder.button(text=get_text('schedule_list_btn', lang), callback_data="main:schedule_list")
+    builder.button(text=get_text('statistic_btn', lang), callback_data="main:statistic")
 
-    builder.adjust(2, 2)
+    builder.adjust(2, 2, 1)
     markup = builder.as_markup()
     return AwaitableInlineKeyboardMarkup(inline_keyboard=markup.inline_keyboard)
 
