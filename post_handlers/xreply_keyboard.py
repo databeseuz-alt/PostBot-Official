@@ -88,12 +88,7 @@ def get_post_done_menu(lang: str):
 
 def get_turbo_done_menu(lang: str):
     builder = ReplyKeyboardBuilder()
-    exit_text = {
-        'uzl': "❌ Turbo rejimdan chiqish",
-        'uzk': "❌ Турбо режимдан чиқиш",
-        'ru': "❌ Выйти из турбо режима",
-        'en': "❌ Exit Turbo mode"
-    }.get(lang, "❌ Turbo rejimdan chiqish")
+    exit_text = get_text('exit_turbo_mode_btn', lang)
     back_text = get_text('back_btn', lang)
     builder.add(KeyboardButton(text=exit_text))
     builder.add(KeyboardButton(text=back_text))

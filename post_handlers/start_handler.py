@@ -286,13 +286,7 @@ async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
     lang = await get_user_language(callback.from_user.id)
 
     if turbo_enabled:
-        alert_text = {
-            'uzl': "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.",
-            'uzk': "Тезкор постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у тўғридан-тўғри каналга кетади.",
-            'ru': "Режим быстрой публикации уже активен.\nПросто отправьте ваш контент — он сразу отправится в канал.",
-            'en': "Fast posting mode is already active.\nJust send your content — it goes directly to the channel."
-        }.get(lang, "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.")
-        await callback.answer(alert_text, show_alert=True)
+        await callback.answer(get_text('turbo_already_active_now', lang), show_alert=True)
         return
 
     turbo_action = data.get('turbo_action', 'now')
@@ -317,21 +311,8 @@ async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMCo
 
     # Agar tugma allaqachon faol bo'lsa va ustiga bosilsa
     if turbo_enabled and current_action == action:
-        if action == 'now':
-            alert_text = {
-                'uzl': "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.",
-                'uzk': "Тезкор постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у тўғридан-тўғри каналга кетади.",
-                'ru': "Режим быстрой публикации уже активен.\nПросто отправьте ваш контент — он сразу отправится в канал.",
-                'en': "Fast posting mode is already active.\nJust send your content — it goes directly to the channel."
-            }.get(lang, "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.")
-        else:
-            alert_text = {
-                'uzl': "Jadval bo'yicha postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u belgilangan jadval bo'yicha kanalga ketadi.",
-                'uzk': "Жадвал бўйича постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у белгиланган жадвал бўйича каналга кетади.",
-                'ru': "Режим публикации по расписанию уже активен.\nПросто отправьте ваш контент — он отправится по расписанию.",
-                'en': "Scheduled posting mode is already active.\nJust send your content — it will be posted by schedule."
-            }.get(lang, "Jadval bo'yicha postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u belgilangan jadval bo'yicha kanalga ketadi.")
-        await callback.answer(alert_text, show_alert=True)
+        alert_key = 'turbo_already_active_now' if action == 'now' else 'turbo_already_active_schedule'
+        await callback.answer(get_text(alert_key, lang), show_alert=True)
         return
 
     await state.set_state(PostCreation.waiting_for_content)

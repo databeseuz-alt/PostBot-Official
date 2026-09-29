@@ -29,12 +29,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def get_turbo_success_keyboard(lang: str = 'uzl'):
     builder = InlineKeyboardBuilder()
-    main_menu_text = {
-        'uzl': "Bosh menyu",
-        'uzk': "Бош меню",
-        'ru': "Главное меню",
-        'en': "Main menu"
-    }.get(lang, "Bosh menyu")
+    main_menu_text = get_text('turbo_main_menu_btn', lang)
     builder.button(
         text=main_menu_text,
         callback_data="turbo:exit_to_main_menu",
@@ -383,12 +378,7 @@ async def start_turbo_countdown_and_send(
 ):
     """Turbo rejimda 3 sekund kutiladi, bekor qilish imkoni beriladi va kanalga yuboriladi."""
     sparkle_emoji = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
-    waiting_text = {
-        'uzl': f"{sparkle_emoji} <b>Turbo rejim ishga tushirilmoqda. Kuting!</b>",
-        'uzk': f"{sparkle_emoji} <b>Турбо режим ишга туширилмоқда. Кутинг!</b>",
-        'ru': f"{sparkle_emoji} <b>Запуск турбо режима. Подождите!</b>",
-        'en': f"{sparkle_emoji} <b>Starting Turbo mode. Please wait!</b>"
-    }.get(lang, f"{sparkle_emoji} <b>Turbo rejim ishga tushirilmoqda. Kuting!</b>")
+    waiting_text = get_text_formatted('turbo_starting_msg', lang, sparkle=sparkle_emoji)
 
     waiting_msg = None
     try:
@@ -414,12 +404,7 @@ async def start_turbo_countdown_and_send(
         active_turbo_cancels.pop(post_code, None)
 
     if cancelled:
-        cancel_text = {
-            'uzl': "❌ <b>Turbo yuborish bekor qilindi.</b>",
-            'uzk': "❌ <b>Турбо юбориш бекор қилинди.</b>",
-            'ru': "❌ <b>Турбо отправка отменена.</b>",
-            'en': "❌ <b>Turbo sending cancelled.</b>"
-        }.get(lang, "❌ <b>Turbo yuborish bekor qilindi.</b>")
+        cancel_text = get_text('turbo_cancelled_msg', lang)
         if waiting_msg:
             try:
                 await waiting_msg.edit_text(cancel_text, parse_mode="HTML")
@@ -813,38 +798,15 @@ async def execute_send_post(
             channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
             bullet = '<tg-emoji emoji-id="6203760464397078712">🫙</tg-emoji>'
 
-            if lang == 'ru':
-                success_text = (
-                    f"{sparkle} <b>Готово, {post_link} отправлен!</b>\n"
-                    f"{channel_emoji} <b>Канал :</b> {channel_link}\n\n"
-                    f"<b>Что делаем:</b>\n"
-                    f"{bullet} Отправляйте новые посты\n"
-                    f"{bullet} Чтобы выйти из турбо режима, нажмите кнопку Главное меню"
-                )
-            elif lang == 'en':
-                success_text = (
-                    f"{sparkle} <b>Done, {post_link} has been sent!</b>\n"
-                    f"{channel_emoji} <b>Channel :</b> {channel_link}\n\n"
-                    f"<b>What's next:</b>\n"
-                    f"{bullet} Send new posts\n"
-                    f"{bullet} Press Main menu button to exit Turbo mode"
-                )
-            elif lang == 'uzk':
-                success_text = (
-                    f"{sparkle} <b>Тайёр {post_link} юборилди!</b>\n"
-                    f"{channel_emoji} <b>Канал :</b> {channel_link}\n\n"
-                    f"<b>Нима қиламиз:</b>\n"
-                    f"{bullet} Янги постларни юборинг\n"
-                    f"{bullet} Турбо режимдан чиқиш учун Бош меню тугмасини босинг"
-                )
-            else:
-                success_text = (
-                    f"{sparkle} <b>Tayyor {post_link} yuborildi!</b>\n"
-                    f"{channel_emoji} <b>Kanal :</b> {channel_link}\n\n"
-                    f"<b>Nima qilamiz:</b>\n"
-                    f"{bullet} Yangi postlarni yuboring\n"
-                    f"{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing"
-                )
+            success_text = get_text_formatted(
+                'turbo_success_msg',
+                lang,
+                sparkle=sparkle,
+                post_link=post_link,
+                channel_emoji=channel_emoji,
+                channel_link=channel_link,
+                bullet=bullet
+            )
 
             await bot.send_message(
                 user_id,
