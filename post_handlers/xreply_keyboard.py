@@ -2,7 +2,7 @@ from aiogram import types
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, KeyboardButton, InlineKeyboardBuilder, InlineKeyboardButton
 from aiogram.types import ReplyKeyboardMarkup
 from xdata_handlers.translator import get_text
-from post_handlers.custom_emojis import EMOJI_CREATE, EMOJI_CHANNEL, EMOJI_EDIT, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_CREATE, EMOJI_CHANNEL, EMOJI_EDIT, EMOJI_STATISTIC, clean_btn_text
 
 class AwaitableInlineKeyboardMarkup(types.InlineKeyboardMarkup):
     def __await__(self):
@@ -18,16 +18,20 @@ def get_main_menu(lang: str, user_id: int = 0):
         icon_custom_emoji_id=EMOJI_CREATE
     )
     builder.button(
+        text=clean_btn_text(get_text('edit_post_btn', lang)),
+        callback_data="main:edit_post",
+        icon_custom_emoji_id=EMOJI_EDIT
+    )
+    builder.button(
         text=clean_btn_text(get_text('my_channels_btn', lang)),
         callback_data="main:my_channels",
         icon_custom_emoji_id=EMOJI_CHANNEL
     )
     builder.button(
-        text=clean_btn_text(get_text('edit_post_btn', lang)),
-        callback_data="main:edit_post",
-        icon_custom_emoji_id=EMOJI_EDIT
+        text=clean_btn_text(get_text('statistic_btn', lang)),
+        callback_data="main:statistic",
+        icon_custom_emoji_id=EMOJI_STATISTIC
     )
-    builder.button(text=get_text('statistic_btn', lang), callback_data="main:statistic")
     builder.adjust(2)
     markup = builder.as_markup()
     return AwaitableInlineKeyboardMarkup(inline_keyboard=markup.inline_keyboard)
