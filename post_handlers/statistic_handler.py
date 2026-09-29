@@ -23,7 +23,7 @@ from xdata_handlers.database import (
 )
 from post_handlers.xreply_keyboard import get_main_menu
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_CHANNEL, HTML_EMOJI_CHANNEL, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, HTML_EMOJI_CHANNEL, clean_btn_text
 
 import html as _html
 
@@ -587,7 +587,7 @@ async def handle_generate_statistics(event: types.Message | types.CallbackQuery,
         builder.button(
             text=clean_btn_text(get_text('add_channel_btn', lang)),
             callback_data=AddChannelFromStatsCallback(action="add").pack(),
-            icon_custom_emoji_id=EMOJI_CHANNEL
+            icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
         builder.button(
             text=get_text('back_btn', lang),

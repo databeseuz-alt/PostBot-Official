@@ -6,7 +6,7 @@ from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE,
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE,
     clean_btn_text
 )
 
@@ -349,7 +349,7 @@ def get_add_channel_prompt_keyboard(lang: str = 'uzl'):
     builder.button(
         text=clean_btn_text(get_text('add_channel_btn', lang)),
         callback_data="add_channel_redirect",
-        icon_custom_emoji_id=EMOJI_CHANNEL
+        icon_custom_emoji_id=EMOJI_ADD_CHANNEL
     )
     return builder.as_markup()
 
@@ -359,7 +359,7 @@ def get_add_channel_with_post_keyboard(post_code: str, lang: str = 'uzl'):
     builder.button(
         text=clean_btn_text(get_text('add_channel_post_btn', lang)),
         callback_data=PostSendCallbackFactory(action="add_channel_with_post", post_code=post_code).pack(),
-        icon_custom_emoji_id=EMOJI_CHANNEL
+        icon_custom_emoji_id=EMOJI_ADD_CHANNEL
     )
     return builder.as_markup()
 
@@ -394,7 +394,7 @@ def create_settings_main_keyboard(lang: str = 'uzl', timezone_str: str = "Tashke
     # Row 4: Post Shablonlari
     builder.row(InlineKeyboardButton(text="📂 Post Shablonlari", callback_data="settings_templates"))
     # Row 5: Yangi kanal / guruh
-    builder.row(InlineKeyboardButton(text="Yangi kanal / guruh", callback_data="settings_add_channel", icon_custom_emoji_id=EMOJI_CHANNEL))
+    builder.row(InlineKeyboardButton(text="Yangi kanal / guruh", callback_data="settings_add_channel", icon_custom_emoji_id=EMOJI_ADD_CHANNEL))
     
     return builder.as_markup()
 

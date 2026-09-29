@@ -35,7 +35,7 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
 
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE,
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE,
     HTML_EMOJI_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
 )
 
@@ -48,7 +48,7 @@ async def get_my_channels_keyboard(user_id: int):
     builder.button(
         text=clean_btn_text(get_text('add_new_channel_btn', lang)),
         callback_data=MyChannelsCallback(action="add_new").pack(),
-        icon_custom_emoji_id=EMOJI_CHANNEL
+        icon_custom_emoji_id=EMOJI_ADD_CHANNEL
     )
     builder.button(
         text=clean_btn_text(get_text('bundles_btn', lang)),
@@ -118,7 +118,7 @@ async def cmd_my_channels(message: types.Message):
         builder.button(
             text=clean_btn_text(get_text('add_channel_btn', lang)),
             callback_data=MyChannelsCallback(action="add_new").pack(),
-            icon_custom_emoji_id=EMOJI_CHANNEL
+            icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
         builder.button(
             text=clean_btn_text(get_text('bundles_btn', lang)),
@@ -509,7 +509,7 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
     builder.button(
         text=clean_btn_text(get_text('add_channels_to_bundle_btn', lang)),
         callback_data=f"bundle:edit_channels:{bundle_id}",
-        icon_custom_emoji_id=EMOJI_CHANNEL
+        icon_custom_emoji_id=EMOJI_ADD_CHANNEL
     )
     builder.button(
         text=clean_btn_text(get_text('delete_bundle_btn', lang)),
