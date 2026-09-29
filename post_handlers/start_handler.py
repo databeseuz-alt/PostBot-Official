@@ -276,6 +276,24 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     await state.set_state(PostCreation.waiting_for_content)
 
+@start_router.callback_query(F.data == "post:add_channel")
+async def handle_post_add_channel(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    lang = await get_user_language(callback.from_user.id)
+    from post_handlers.send_handler import PostSending
+    await state.clear()
+    await state.set_state(PostSending.waiting_for_channel_info)
+    await state.update_data(from_post_creation=True)
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+
+    add_channel_text = get_text('add_channel_msg', lang)
+    try:
+        await callback.message.edit_text(add_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(add_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+
 @start_router.callback_query(F.data == "turbo:toggle")
 async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
