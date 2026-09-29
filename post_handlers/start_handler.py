@@ -15,7 +15,7 @@ from post_handlers.post_handler import PostCreation
 from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
-from post_handlers.custom_emojis import EMOJI_SAVE, clean_btn_text
+from post_handlers.custom_emojis import EMOJI_SAVE, EMOJI_ADD_CHANNEL, EMOJI_CLOSE, clean_btn_text
 
 start_router = Router()
 logger = logging.getLogger(__name__)
@@ -261,8 +261,16 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
         need_channel_text = get_text('need_channel_msg', lang)
 
         builder = InlineKeyboardBuilder()
-        builder.button(text=get_text('add_channel_btn', lang), callback_data="post:add_channel")
-        builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+        builder.button(
+            text=clean_btn_text(get_text('add_new_channel_btn', lang)),
+            callback_data="post:add_channel",
+            icon_custom_emoji_id=EMOJI_ADD_CHANNEL
+        )
+        builder.button(
+            text=clean_btn_text(get_text('cancel_btn', lang)),
+            callback_data="cancel_action",
+            icon_custom_emoji_id=EMOJI_CLOSE
+        )
         builder.adjust(1, 1)
         
         target_msg = event.message if isinstance(event, types.CallbackQuery) else event
@@ -377,7 +385,11 @@ async def start_post_editing_process(event: types.Message | types.CallbackQuery,
                 callback_data=f"edit_select:{post.get('code')}"
             )
         
-    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+    builder.button(
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
     builder.adjust(1)
 
     if isinstance(event, types.CallbackQuery):

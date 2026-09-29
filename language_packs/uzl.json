@@ -53,7 +53,7 @@
     "btn_added_msg": "<b>tugma qo'shildi ✅</b>",
     "btn_edited_msg": "<b>Tugma tahrirlandi ✅</b>",
     "btn_deleted_msg": "<b>Tugma o'chirildi ✅</b>",
-    "add_channel_btn": "➕ Kanal qo'shish",
+    "add_channel_btn": "➕ Yangi kanal qo'shish",
     "add_new_channel_btn": "➕ Yangi kanal qo'shish",
     "add_channel_msg": "<b>📢 Kanal qo'shish bo'limi :</b>\n\n1. Botni kerakli kanalga <b>admin</b> qiling.\n2. Quyidagi usullardan birini bajaring:\n - Kanaldan istalgan xabarni shu yerga <b>↪️ forward qiling.</b>\n - Kanalning <b>@username</b> yoki <b>ID</b>sini yuboring.",
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanali muvaffaqiyatli qo'shildi!.",

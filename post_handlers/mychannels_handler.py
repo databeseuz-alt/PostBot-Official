@@ -39,7 +39,7 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
 
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.custom_emojis import (
-    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT,
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_ADD_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE, EMOJI_EDIT, EMOJI_CLOSE,
     HTML_EMOJI_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
 )
 
@@ -181,7 +181,11 @@ async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContex
     await state.set_state(PostSending.waiting_for_channel_info)
 
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+    builder.button(
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
 
     add_channel_text = get_text('add_channel_msg', lang)
     try:
@@ -480,8 +484,9 @@ def get_bundle_channels_keyboard(user_channels: list, selected_ids: set, lang: s
         icon_custom_emoji_id=EMOJI_SAVE
     )
     builder.button(
-        text=get_text('cancel_btn', lang),
-        callback_data="bundle:cancel"
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="bundle:cancel",
+        icon_custom_emoji_id=EMOJI_CLOSE
     )
     sizes = [1] * len(user_channels) + [2]
     builder.adjust(*sizes)
@@ -714,7 +719,11 @@ async def handle_bundle_create(callback: types.CallbackQuery, state: FSMContext)
     await state.update_data(bundle_name="", selected_channel_ids=[])
 
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('cancel_btn', lang), callback_data="bundle:cancel")
+    builder.button(
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data="bundle:cancel",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
 
     prompt_text = get_text('bundle_enter_name', lang)
     try:
@@ -898,8 +907,9 @@ async def handle_bundle_rename_start(callback: types.CallbackQuery, state: FSMCo
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=get_text('cancel_btn', lang),
-        callback_data=f"bundle:view:{bundle_id}"
+        text=clean_btn_text(get_text('cancel_btn', lang)),
+        callback_data=f"bundle:view:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_CLOSE
     )
 
     prompt = get_text('bundle_enter_new_name', lang)
