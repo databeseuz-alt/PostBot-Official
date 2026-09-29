@@ -335,13 +335,24 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 @start_router.callback_query(F.data == "turbo:toggle")
 async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    turbo_enabled = not data.get('turbo_enabled', False)
+    turbo_enabled = data.get('turbo_enabled', False)
+    lang = await get_user_language(callback.from_user.id)
+
+    if turbo_enabled:
+        alert_text = {
+            'uzl': "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.",
+            'uzk': "Тезкор постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у тўғридан-тўғри каналга кетади.",
+            'ru': "Режим быстрой публикации уже активен.\nПросто отправьте ваш контент — он сразу отправится в канал.",
+            'en': "Fast posting mode is already active.\nJust send your content — it goes directly to the channel."
+        }.get(lang, "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.")
+        await callback.answer(alert_text, show_alert=True)
+        return
+
     turbo_action = data.get('turbo_action', 'now')
     await state.set_state(PostCreation.waiting_for_content)
-    await state.update_data(turbo_enabled=turbo_enabled, turbo_action=turbo_action)
-    lang = await get_user_language(callback.from_user.id)
+    await state.update_data(turbo_enabled=True, turbo_action=turbo_action)
     
-    new_kb = get_turbo_mode_inline_kb(lang, is_enabled=turbo_enabled, action=turbo_action)
+    new_kb = get_turbo_mode_inline_kb(lang, is_enabled=True, action=turbo_action)
     try:
         await callback.message.edit_reply_markup(reply_markup=new_kb)
     except Exception:
@@ -352,9 +363,32 @@ async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
 @start_router.callback_query(F.data.startswith("turbo:action:"))
 async def handle_turbo_action_change(callback: types.CallbackQuery, state: FSMContext):
     action = callback.data.split(":")[2]  # 'now' or 'schedule'
+    data = await state.get_data()
+    current_action = data.get('turbo_action', 'now')
+    turbo_enabled = data.get('turbo_enabled', False)
+    lang = await get_user_language(callback.from_user.id)
+
+    # Agar tugma allaqachon faol bo'lsa va ustiga bosilsa
+    if turbo_enabled and current_action == action:
+        if action == 'now':
+            alert_text = {
+                'uzl': "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.",
+                'uzk': "Тезкор постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у тўғридан-тўғри каналга кетади.",
+                'ru': "Режим быстрой публикации уже активен.\nПросто отправьте ваш контент — он сразу отправится в канал.",
+                'en': "Fast posting mode is already active.\nJust send your content — it goes directly to the channel."
+            }.get(lang, "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.")
+        else:
+            alert_text = {
+                'uzl': "Jadval bo'yicha postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u belgilangan jadval bo'yicha kanalga ketadi.",
+                'uzk': "Жадвал бўйича постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у белгиланган жадвал бўйича каналга кетади.",
+                'ru': "Режим публикации по расписанию уже активен.\nПросто отправьте ваш контент — он отправится по расписанию.",
+                'en': "Scheduled posting mode is already active.\nJust send your content — it will be posted by schedule."
+            }.get(lang, "Jadval bo'yicha postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u belgilangan jadval bo'yicha kanalga ketadi.")
+        await callback.answer(alert_text, show_alert=True)
+        return
+
     await state.set_state(PostCreation.waiting_for_content)
     await state.update_data(turbo_action=action, turbo_enabled=True)
-    lang = await get_user_language(callback.from_user.id)
     
     new_kb = get_turbo_mode_inline_kb(lang, is_enabled=True, action=action)
     try:
