@@ -26,6 +26,7 @@ from post_handlers.xinline_keyboard import (
 from xdata_handlers.translator import get_text, safe_format, get_text_formatted
 from post_handlers.localize_filter import LocalizedText
 from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
+from post_handlers.custom_emojis import EMOJI_CLOSE, clean_btn_text
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
@@ -93,9 +94,21 @@ async def cmd_add_channel(message: types.Message, state: FSMContext):
     await state.clear()
     await state.set_state(PostSending.waiting_for_channel_info)
     lang = await get_user_language(message.from_user.id)
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data="main:my_channels",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
+    builder.button(
+        text=get_text('home_screen_btn', lang),
+        callback_data="cancel_action"
+    )
+    builder.adjust(2)
     await message.answer(
         get_text('add_channel_msg', lang),
-        reply_markup=ReplyKeyboardRemove()
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
 
 async def _add_channel_to_db(message: types.Message, state: FSMContext, bot: Bot, chat_info: types.Chat):
@@ -250,9 +263,22 @@ async def redirect_to_add_channel_with_post(callback: types.CallbackQuery, callb
 
     await state.set_state(PostSending.waiting_for_channel_info)
 
+    builder = InlineKeyboardBuilder()
+    builder.button(
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data=f"send_post:{post_code}",
+        icon_custom_emoji_id=EMOJI_CLOSE
+    )
+    builder.button(
+        text=get_text('home_screen_btn', lang),
+        callback_data="cancel_action"
+    )
+    builder.adjust(2)
+
     await callback.message.edit_text(
         get_text('add_channel_msg', lang),
-        reply_markup=None
+        reply_markup=builder.as_markup(),
+        parse_mode="HTML"
     )
 
     await state.update_data(
