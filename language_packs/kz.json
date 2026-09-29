@@ -239,5 +239,18 @@
     "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (publish now):",
     "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (by schedule):",
     "turbo_edit_btn": "Өңдеу",
-    "my_channels_btn": "📢 Менің арналарым"
+    "my_channels_btn": "📢 Менің арналарым",
+    "bundles_btn": "📁 Channel bundles",
+    "bundles_title": "📁 <b>Channel Bundles</b>\n\nGroup your channels into bundles to send posts to multiple channels at once.",
+    "no_bundles_msg": "📁 <b>Channel Bundles</b>\n\nYou don't have any bundles yet.\nClick the button below to create a bundle.",
+    "create_bundle_btn": "➕ New bundle",
+    "bundle_need_min_channels": "⚠️ You need at least 2 connected channels to create a bundle!",
+    "bundle_enter_name": "✏️ <b>Enter a name for the bundle:</b>\n\nFor example: <i>My channels</i>, <i>News</i>",
+    "bundle_select_channels": "🔘 <b>Select channels for «{bundle_name}»:</b>\n\nCheck channels and click «💾 Save»:",
+    "bundle_created_success": "✅ Bundle <b>«{bundle_name}»</b> saved successfully! ({count} channels)",
+    "bundle_deleted_success": "🗑 Bundle deleted successfully!",
+    "bundle_details": "📁 <b>Bundle:</b> {bundle_name}\n\n📢 <b>Channels ({count}):</b>\n{channel_list}",
+    "delete_bundle_btn": "🗑 Delete bundle",
+    "save_bundle_btn": "💾 Save",
+    "bundle_no_channels_selected": "⚠️ Please select at least one channel!"
 }

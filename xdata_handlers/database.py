@@ -794,6 +794,103 @@ async def set_user_timezone(user_id: int, timezone_str: str) -> bool:
             return False
     return await asyncio.to_thread(_sync)
 
+# ==================== KANALLAR TO'PLAMI (CHANNEL BUNDLES) ====================
+
+async def get_user_channel_bundles(user_id: int) -> List[Dict]:
+    """Foydalanuvchining barcha kanallar to'plamini qaytaradi."""
+    def _sync():
+        try:
+            sp = get_supabase()
+            res = sp.table('bot_settings').select('interface_settings').eq('user_id', user_id).execute()
+            if not res.data:
+                return []
+            interface_settings = res.data[0].get('interface_settings') or {}
+            return interface_settings.get('channel_bundles') or []
+        except Exception as e:
+            logger.error(f"get_user_channel_bundles error: {e}")
+            return []
+    return await asyncio.to_thread(_sync)
+
+async def get_user_channel_bundle_by_id(user_id: int, bundle_id: str) -> Optional[Dict]:
+    """ID bo'yicha bitta to'plamni qaytaradi."""
+    bundles = await get_user_channel_bundles(user_id)
+    for b in bundles:
+        if b.get('id') == bundle_id:
+            return b
+    return None
+
+async def save_user_channel_bundle(user_id: int, bundle_name: str, channel_ids: List[int], bundle_id: str = None) -> Optional[Dict]:
+    """To'plamni yaratadi yoki yangilaydi."""
+    def _sync():
+        try:
+            sp = get_supabase()
+            res = sp.table('bot_settings').select('interface_settings').eq('user_id', user_id).execute()
+            interface_settings = {}
+            if res.data:
+                interface_settings = res.data[0].get('interface_settings') or {}
+            bundles = interface_settings.get('channel_bundles') or []
+
+            nonlocal bundle_id
+            if not bundle_id:
+                bundle_id = f"bnd_{secrets.token_hex(4)}"
+                new_bundle = {
+                    'id': bundle_id,
+                    'name': bundle_name.strip(),
+                    'channel_ids': channel_ids,
+                    'created_at': datetime.now().isoformat()
+                }
+                bundles.append(new_bundle)
+            else:
+                updated = False
+                for b in bundles:
+                    if b.get('id') == bundle_id:
+                        b['name'] = bundle_name.strip()
+                        b['channel_ids'] = channel_ids
+                        updated = True
+                        break
+                if not updated:
+                    new_bundle = {
+                        'id': bundle_id,
+                        'name': bundle_name.strip(),
+                        'channel_ids': channel_ids,
+                        'created_at': datetime.now().isoformat()
+                    }
+                    bundles.append(new_bundle)
+
+            interface_settings['channel_bundles'] = bundles
+            sp.table('bot_settings').upsert({
+                'user_id': user_id,
+                'interface_settings': interface_settings
+            }, on_conflict='user_id').execute()
+
+            return next((b for b in bundles if b.get('id') == bundle_id), None)
+        except Exception as e:
+            logger.error(f"save_user_channel_bundle error: {e}")
+            return None
+    return await asyncio.to_thread(_sync)
+
+async def delete_user_channel_bundle(user_id: int, bundle_id: str) -> bool:
+    """To'plamni o'chiradi."""
+    def _sync():
+        try:
+            sp = get_supabase()
+            res = sp.table('bot_settings').select('interface_settings').eq('user_id', user_id).execute()
+            if not res.data:
+                return False
+            interface_settings = res.data[0].get('interface_settings') or {}
+            bundles = interface_settings.get('channel_bundles') or []
+            new_bundles = [b for b in bundles if b.get('id') != bundle_id]
+            interface_settings['channel_bundles'] = new_bundles
+            sp.table('bot_settings').upsert({
+                'user_id': user_id,
+                'interface_settings': interface_settings
+            }, on_conflict='user_id').execute()
+            return True
+        except Exception as e:
+            logger.error(f"delete_user_channel_bundle error: {e}")
+            return False
+    return await asyncio.to_thread(_sync)
+
 # ==================== SCHEDULED & SENT POSTS (SEND_POSTS) ====================
 
 async def add_scheduled_post(user_id: int, post_code: str, scheduled_time: datetime, channel_id: int, channel_name: str, repeat_interval: str = None) -> Optional[int]:

@@ -302,5 +302,18 @@
     "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Hozir chop etiladi):",
     "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Jadval bo'yicha):",
     "turbo_edit_btn": "Tahrirlash",
-    "my_channels_btn": "📢 Mening kanallarim"
+    "my_channels_btn": "📢 Mening kanallarim",
+    "bundles_btn": "📁 To'plamlar",
+    "bundles_title": "📁 <b>Kanallar to'plami</b>\n\nBu yerda kanallaringizni to'plamlarga birlashtirib, postlarni bir vaqtning o'zida bir nechta kanalga yuborishingiz mumkin.",
+    "no_bundles_msg": "📁 <b>Kanallar to'plami</b>\n\nSizda hali yaratilgan to'plamlar mavjud emas.\nTo'plam yaratish uchun pastdagi tugmani bosing.",
+    "create_bundle_btn": "➕ Yangi to'plam",
+    "bundle_need_min_channels": "⚠️ To'plam yaratish uchun kamida 2 ta ulangan kanal bo'lishi kerak!",
+    "bundle_enter_name": "✏️ <b>To'plam nomini kiriting:</b>\n\nMasalan: <i>Sport kanallarim</i>, <i>Yangiliklar</i>",
+    "bundle_select_channels": "🔘 <b>«{bundle_name}» to'plami uchun kanallarni tanlang:</b>\n\nKerakli kanallarni belgilang va «💾 Saqlash» tugmasini bosing:",
+    "bundle_created_success": "✅ <b>«{bundle_name}»</b> to'plami muvaffaqiyatli saqlindi! ({count} ta kanal)",
+    "bundle_deleted_success": "🗑 To'plam muvaffaqiyatli o'chirildi!",
+    "bundle_details": "📁 <b>To'plam:</b> {bundle_name}\n\n📢 <b>Ulangan kanallar ({count} ta):</b>\n{channel_list}",
+    "delete_bundle_btn": "🗑 To'plamni o'chirish",
+    "save_bundle_btn": "💾 Saqlash",
+    "bundle_no_channels_selected": "⚠️ Iltimos, kamida bitta kanalni tanlang!"
 }

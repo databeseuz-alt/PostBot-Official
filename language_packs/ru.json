@@ -285,5 +285,18 @@
     "turbo_choose_channel_now": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Турбо режим:</b> Выберите канал (публикация сейчас):",
     "turbo_choose_channel_schedule": "<tg-emoji emoji-id=\"5321513296342328913\">🟨</tg-emoji> <b>Турбо режим:</b> Выберите канал (по расписанию):",
     "turbo_edit_btn": "Редактировать",
-    "my_channels_btn": "📢 Мои каналы"
+    "my_channels_btn": "📢 Мои каналы",
+    "bundles_btn": "📁 Наборы каналов",
+    "bundles_title": "📁 <b>Наборы каналов</b>\n\nЗдесь вы можете объединять каналы в наборы и отправлять посты во все каналы одновременно.",
+    "no_bundles_msg": "📁 <b>Наборы каналов</b>\n\nУ вас пока нет созданных наборов.\nНажмите кнопку ниже, чтобы создать набор.",
+    "create_bundle_btn": "➕ Создать набор",
+    "bundle_need_min_channels": "⚠️ Для создания набора необходимо подключить минимум 2 канала!",
+    "bundle_enter_name": "✏️ <b>Введите название набора:</b>\n\nНапример: <i>Мои новости</i>, <i>Спорт</i>",
+    "bundle_select_channels": "🔘 <b>Выберите каналы для набора «{bundle_name}»:</b>\n\nОтметьте каналы и нажмите «💾 Сохранить»:",
+    "bundle_created_success": "✅ Набор <b>«{bundle_name}»</b> успешно сохранён! ({count} каналов)",
+    "bundle_deleted_success": "🗑 Набор успешно удалён!",
+    "bundle_details": "📁 <b>Набор:</b> {bundle_name}\n\n📢 <b>Каналы ({count}):</b>\n{channel_list}",
+    "delete_bundle_btn": "🗑 Удалить набор",
+    "save_bundle_btn": "💾 Сохранить",
+    "bundle_no_channels_selected": "⚠️ Пожалуйста, выберите хотя бы один канал!"
 }

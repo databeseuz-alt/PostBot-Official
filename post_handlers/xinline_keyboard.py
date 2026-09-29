@@ -63,6 +63,7 @@ class PostSendCallbackFactory(CallbackData, prefix="post_send"):
     action: str
     post_code: Optional[str] = None
     channel_id: Optional[int] = None
+    bundle_id: Optional[str] = None
 
 class EditSendCallbackFactory(CallbackData, prefix="edit_send"):
     action: str
