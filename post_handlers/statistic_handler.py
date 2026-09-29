@@ -36,11 +36,10 @@ class StatChannelSelectCallback(CallbackData, prefix="stat_ch_sel"):
     channel_id: str
 
 
-def get_stats_actions_keyboard() -> types.InlineKeyboardMarkup:
-    """Statistika rasmi ostidagi qo'shimcha tahlil tugmalari."""
+def get_stats_actions_keyboard(lang: str = 'uzl') -> types.InlineKeyboardMarkup:
+    """Statistika rasmi ostidagi tugmalar."""
     builder = InlineKeyboardBuilder()
-    builder.button(text="📋 Postlar hisoboti", callback_data="stats_posts_report")
-    builder.button(text="⏰ Eng yaxshi vaqt", callback_data="stats_best_time")
+    builder.button(text=get_text('back_btn', lang), callback_data="cancel_action")
     builder.adjust(1)
     return builder.as_markup()
 
@@ -614,81 +613,35 @@ async def handle_generate_statistics(event: types.Message | types.CallbackQuery,
             )
         return
 
+    builder = InlineKeyboardBuilder()
     if len(user_channels) > 1:
-        builder = InlineKeyboardBuilder()
         builder.button(
             text="📊 Barcha kanallar",
             callback_data=StatChannelSelectCallback(channel_id="all").pack()
         )
-        for ch in user_channels:
-            builder.button(
-                text=ch.get('channel_name', 'Kanal'),
-                callback_data=StatChannelSelectCallback(channel_id=str(ch.get('channel_id'))).pack()
-            )
+    for ch in user_channels:
         builder.button(
-            text=get_text('back_btn', lang),
-            callback_data="cancel_action"
+            text=ch.get('channel_name', 'Kanal'),
+            callback_data=StatChannelSelectCallback(channel_id=str(ch.get('channel_id'))).pack()
         )
-        builder.adjust(1)
-        
-        choose_text = "📊 Qaysi kanal statistikasini ko'rmoqchisiz? Iltimos, kanalni tanlang:"
-        if isinstance(event, types.CallbackQuery):
-            try:
-                await event.message.edit_text(choose_text, reply_markup=builder.as_markup())
-            except Exception:
-                await event.message.answer(choose_text, reply_markup=builder.as_markup())
-        else:
-            await message.answer(
-                choose_text,
-                reply_markup=builder.as_markup()
-            )
-        return
-
-    # Agar bitta kanal bo'lsa
+    builder.button(
+        text=get_text('back_btn', lang),
+        callback_data="cancel_action"
+    )
+    builder.adjust(1)
+    
+    choose_text = "📊 Qaysi kanal statistikasini ko'rmoqchisiz? Iltimos, kanalni tanlang:"
     if isinstance(event, types.CallbackQuery):
         try:
-            await event.message.delete()
+            await event.message.edit_text(choose_text, reply_markup=builder.as_markup())
         except Exception:
-            pass
-
-    # Yuklanayotgan xabar
-    loading_msg = await message.answer(get_text('generating_statistics_msg', lang))
-
-    try:
-        # Bot username ni olish
-        bot_info = await bot.get_me()
-        bot_username = bot_info.username or "PostBot_Bot"
-
-        # Statistika rasmini yaratish (faqat bitta kanal bo'lganda)
-        img_buffer = await generate_channel_statistics_image(user_id, lang, bot_username, bot)
-
-        # Yuklanish xabarini o'chirish
-        await loading_msg.delete()
-
-        # Rasmni yuborish
-        img_buffer.seek(0)
-        input_file = BufferedInputFile(
-            file=img_buffer.read(),
-            filename='channel_statistics.png'
-        )
-
-        await message.answer_photo(
-            photo=input_file,
-            caption=get_text('statistics_image_caption', lang),
-            reply_markup=get_stats_actions_keyboard()
-        )
-
-    except Exception as e:
-        logger.error(f"Statistika rasmini yaratishda xatolik: {e}")
-        # Yuklanish xabarini o'chirish
-        try:
-            await loading_msg.delete()
-        except Exception:
-            pass
+            await event.message.answer(choose_text, reply_markup=builder.as_markup())
+    else:
         await message.answer(
-            f"Statistikani yaratishda xatolik yuz berdi: {str(e)}",
-            reply_markup=await get_main_menu(lang, user_id)
+            choose_text,
+            reply_markup=builder.as_markup()
         )
+    return
 
 @statistic_router.callback_query(StatChannelSelectCallback.filter())
 async def handle_stat_channel_selection(callback: types.CallbackQuery, callback_data: StatChannelSelectCallback, bot: Bot):
@@ -720,7 +673,7 @@ async def handle_stat_channel_selection(callback: types.CallbackQuery, callback_
         await callback.message.answer_photo(
             photo=input_file,
             caption=get_text('statistics_image_caption', lang),
-            reply_markup=get_stats_actions_keyboard()
+            reply_markup=get_stats_actions_keyboard(lang)
         )
 
     except Exception as e:
