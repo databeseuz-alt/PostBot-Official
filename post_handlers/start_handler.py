@@ -309,10 +309,15 @@ async def handle_post_add_channel(callback: types.CallbackQuery, state: FSMConte
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('cancel_btn', lang)),
+        text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="cancel_action",
         icon_custom_emoji_id=EMOJI_CLOSE
     )
+    builder.button(
+        text=get_text('home_screen_btn', lang),
+        callback_data="cancel_action"
+    )
+    builder.adjust(2)
 
     add_channel_text = get_text('add_channel_msg', lang)
     try:

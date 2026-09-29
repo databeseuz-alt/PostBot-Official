@@ -53,8 +53,8 @@
     "btn_added_msg": "<b>Button added ✅</b>",
     "btn_edited_msg": "<b>Button edited ✅</b>",
     "btn_deleted_msg": "<b>Button deleted ✅</b>",
-    "add_channel_btn": "📢 Add Channel",
-    "add_new_channel_btn": "📢 Add New Channel",
+    "add_channel_btn": "📢 New Channel",
+    "add_new_channel_btn": "📢 New Channel",
     "add_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Add Channel section:</b>\n\n1. Make the bot <b>admin</b> in the required channel.\n2. Do one of the following:\n - <b>↪️ Forward</b> any message from the channel here.\n - Send the channel's <b>@username</b> or <b>ID</b>.",
     "add_channel_success_msg": "<b>✅ {channel_name}</b> channel added successfully!.",
     "delete_channel_btn": "🗑 Delete Channel",
@@ -171,7 +171,7 @@
     "schedule_accepted_confirmation": "<b>✅ Post scheduled!</b>\n\nYour post will be sent to your channel at {date}.",
     "scheduled_post_sent": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Scheduled post sent</b>\n\nCode: <code>{post_code}</code>\nChannel: {channel_name}",
     "cancel_send_msg": "<b><tg-emoji emoji-id=\"5807692706507399432\">✖️</tg-emoji> Sending cancelled.</b>",
-    "add_channel_post_btn": "📢 Add Channel",
+    "add_channel_post_btn": "📢 New Channel",
     "print_settings_btn": "🖨️ Print Settings",
     "print_settings_title": "🖨️ <b>Print Settings</b>\n\nChoose the required setting:",
     "cr_another_post_btn": "✍️ Create New Post",
@@ -316,7 +316,7 @@
     "bundle_no_channels_yet": "<i>There are no channels in this collection yet.</i>",
     "bundle_channel_already_in_all": "ℹ️ This channel is already in all available collections!",
     "channel_not_in_any_bundle": "⚠️ This channel is not included in any collection yet.",
-    "existing_bundles_btn": "📁 Existing bundles",
+    "existing_bundles_btn": "📁 Bundles",
     "remove_from_bundle_btn": "➖ Remove from bundle",
     "rename_bundle_btn": "✏️ Rename bundle",
     "share_bundle_btn": "🔗 Share bundle",
@@ -330,5 +330,6 @@
     "bundle_import_save_btn": "⭐️ Save bundle",
     "bundle_imported_success": "✅ Bundle <b>«{bundle_name}»</b> successfully saved!",
     "bundle_select_channel_to_remove": "➖ <b>Select channel to remove from bundle:</b>",
-    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove."
+    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove.",
+    "home_screen_btn": "🏠 Home screen"
 }

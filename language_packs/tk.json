@@ -44,8 +44,8 @@
     "btn_added_msg": "<b>Düwme goşuldy ✅</b>",
     "btn_edited_msg": "<b>Düwme redaktirlendi ✅</b>",
     "btn_deleted_msg": "<b>Düwme pozuldy ✅</b>",
-    "add_channel_btn": "📢 Kanal goş",
-    "add_new_channel_btn": "📢 Täze kanal goş",
+    "add_channel_btn": "📢 Täze kanal",
+    "add_new_channel_btn": "📢 Täze kanal",
     "add_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanal goşma bölümi:</b>\n\n1. Boty gerekli kanalda <b>admin</b> ediň.\n2. Aşakdakylardan birini ediň:\n - Kanaldan islendik habary şona <b>↪️ forward</b> ediň.\n - Kanalnyň <b>@ulanyjy_ad</b> ýa-da <b>ID</b>sini iberiň.",
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanaly üstünlikli goşuldy!.",
     "delete_channel_btn": "🗑 Kanaly pozuň",
@@ -162,7 +162,7 @@
     "schedule_accepted_confirmation": "<b>✅ Post meýilleşdirildi!</b>\n\nPostyňyz {date} wagtynda kanalyňyza iberiler.",
     "scheduled_post_sent": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Meýilleşdirilen post iberildi</b>\n\nKod: <code>{post_code}</code>\nKanal: {channel_name}",
     "cancel_send_msg": "<b><tg-emoji emoji-id=\"5807692706507399432\">✖️</tg-emoji> Iberiş bozuldy.</b>",
-    "add_channel_post_btn": "📢 Kanal goş",
+    "add_channel_post_btn": "📢 Täze kanal",
     "print_settings_btn": "🖨️ Çap sazlamalary",
     "print_settings_title": "🖨️ <b>Çap sazlamalary</b>\n\nGerekli sazlamany saýlaň:",
     "cr_another_post_btn": "✍️ Täze post döret",
@@ -261,7 +261,7 @@
     "bundle_no_channels_yet": "<i>Bu ýygyndyda entek kanal ýok.</i>",
     "bundle_channel_already_in_all": "ℹ️ Bu kanal eýýäm ähli elýeterli ýygyndylara goşuldy!",
     "channel_not_in_any_bundle": "⚠️ Bu kanal entek hiç bir ýygynda goşulmadyk.",
-    "existing_bundles_btn": "📁 Existing bundles",
+    "existing_bundles_btn": "📁 Bukjalar",
     "remove_from_bundle_btn": "➖ Remove from bundle",
     "rename_bundle_btn": "✏️ Rename bundle",
     "share_bundle_btn": "🔗 Share bundle",
@@ -275,5 +275,6 @@
     "bundle_import_save_btn": "⭐️ Save bundle",
     "bundle_imported_success": "✅ Bundle <b>«{bundle_name}»</b> successfully saved!",
     "bundle_select_channel_to_remove": "➖ <b>Select channel to remove from bundle:</b>",
-    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove."
+    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove.",
+    "home_screen_btn": "🏠 Baş sahypa"
 }

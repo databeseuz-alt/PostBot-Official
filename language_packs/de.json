@@ -44,8 +44,8 @@
     "btn_added_msg": "<b>Button hinzugefügt ✅</b>",
     "btn_edited_msg": "<b>Button bearbeitet ✅</b>",
     "btn_deleted_msg": "<b>Button gelöscht ✅</b>",
-    "add_channel_btn": "📢 Kanal Hinzufügen",
-    "add_new_channel_btn": "📢 Neuen Kanal Hinzufügen",
+    "add_channel_btn": "📢 Neuer Kanal",
+    "add_new_channel_btn": "📢 Neuer Kanal",
     "add_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanal hinzufügen:</b>\n\n1. Mache den Bot zum <b>Administrator</b> im gewünschten Kanal.\n2. Mache eines der folgenden:\n - <b>↪️ Leite</b> eine beliebige Nachricht vom Kanal hierher weiter.\n - Sende den <b>@Benutzername</b> oder die <b>ID</b> des Kanals.",
     "add_channel_success_msg": "<b>✅ Kanal {channel_name} erfolgreich hinzugefügt!.</b>",
     "delete_channel_btn": "🗑 Kanal Löschen",
@@ -162,7 +162,7 @@
     "schedule_accepted_confirmation": "<b>✅ Beitrag geplant!</b>\n\nDein Beitrag wird um {date} an deinen Kanal gesendet.",
     "scheduled_post_sent": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Geplanter Beitrag gesendet</b>\n\nCode: <code>{post_code}</code>\nKanal: {channel_name}",
     "cancel_send_msg": "<b><tg-emoji emoji-id=\"5807692706507399432\">✖️</tg-emoji> Senden abgebrochen.</b>",
-    "add_channel_post_btn": "📢 Kanal Hinzufügen",
+    "add_channel_post_btn": "📢 Neuer Kanal",
     "print_settings_btn": "🖨️ Druckeinstellungen",
     "print_settings_title": "🖨️ <b>Druckeinstellungen</b>\n\nWähle die gewünschte Einstellung:",
     "cr_another_post_btn": "✍️ Neuen Beitrag Erstellen",
@@ -261,7 +261,7 @@
     "bundle_no_channels_yet": "<i>In dieser Sammlung gibt es noch keine Kanäle.</i>",
     "bundle_channel_already_in_all": "ℹ️ Dieser Kanal ist bereits in allen Sammlungen vorhanden!",
     "channel_not_in_any_bundle": "⚠️ Dieser Kanal gehört noch zu keiner Sammlung.",
-    "existing_bundles_btn": "📁 Existing bundles",
+    "existing_bundles_btn": "📁 Bündel",
     "remove_from_bundle_btn": "➖ Remove from bundle",
     "rename_bundle_btn": "✏️ Rename bundle",
     "share_bundle_btn": "🔗 Share bundle",
@@ -275,5 +275,6 @@
     "bundle_import_save_btn": "⭐️ Save bundle",
     "bundle_imported_success": "✅ Bundle <b>«{bundle_name}»</b> successfully saved!",
     "bundle_select_channel_to_remove": "➖ <b>Select channel to remove from bundle:</b>",
-    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove."
+    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove.",
+    "home_screen_btn": "🏠 Startbildschirm"
 }

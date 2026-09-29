@@ -690,10 +690,15 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('cancel_btn', lang)),
-        callback_data="cancel_action",
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data="main:statistic",
         icon_custom_emoji_id=EMOJI_CLOSE
     )
+    builder.button(
+        text=get_text('home_screen_btn', lang),
+        callback_data="cancel_action"
+    )
+    builder.adjust(2)
 
     add_channel_text = get_text('add_channel_msg', lang)
     try:

@@ -44,8 +44,8 @@
     "btn_added_msg": "<b>Кнопка добавлена ✅</b>",
     "btn_edited_msg": "<b>Кнопка отредактирована ✅</b>",
     "btn_deleted_msg": "<b>Кнопка удалена ✅</b>",
-    "add_channel_btn": "📢 Добавить канал",
-    "add_new_channel_btn": "📢 Добавить новый канал",
+    "add_channel_btn": "📢 Новый канал",
+    "add_new_channel_btn": "📢 Новый канал",
     "add_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Раздел добавления канала:</b>\n\n1. Сделайте бота <b>админом</b> в нужном канале.\n2. Сделайте одно из следующих действий:\n - <b>↪️ Перешлите</b> любое сообщение из канала сюда.\n - Отправьте <b>@username</b> или <b>ID</b> канала.",
     "add_channel_success_msg": "<b>✅ Канал {channel_name}</b> успешно добавлен!.",
     "delete_channel_btn": "🗑 Удалить канал",
@@ -162,7 +162,7 @@
     "schedule_accepted_confirmation": "<b>✅ Пост запланирован!</b>\n\nВаш пост будет отправлен на канал {date}.",
     "scheduled_post_sent": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Запланированный пост отправлен</b>\n\nКод: <code>{post_code}</code>\nКанал: {channel_name}",
     "cancel_send_msg": "<b><tg-emoji emoji-id=\"5807692706507399432\">✖️</tg-emoji> Отправка отменена.</b>",
-    "add_channel_post_btn": "📢 Добавить канал",
+    "add_channel_post_btn": "📢 Новый канал",
     "print_settings_btn": "🖨️ Настройки печати",
     "print_settings_title": "🖨️ <b>Настройки печати</b>\n\nВыберите нужную настройку:",
     "cr_another_post_btn": "✍️ Создать новый пост",
@@ -307,7 +307,7 @@
     "bundle_no_channels_yet": "<i>В этом наборе пока нет каналов.</i>",
     "bundle_channel_already_in_all": "ℹ️ Этот канал уже добавлен во все доступные наборы!",
     "channel_not_in_any_bundle": "⚠️ Этот канал пока не входит ни в один набор.",
-    "existing_bundles_btn": "📁 Существующие наборы",
+    "existing_bundles_btn": "📁 Наборы",
     "remove_from_bundle_btn": "➖ Удалить из набора",
     "rename_bundle_btn": "✏️ Переименовать",
     "share_bundle_btn": "🔗 Поделиться набором",
@@ -321,5 +321,6 @@
     "bundle_import_save_btn": "⭐️ Сохранить набор",
     "bundle_imported_success": "✅ Набор <b>«{bundle_name}»</b> успешно сохранен!",
     "bundle_select_channel_to_remove": "➖ <b>Выберите канал для удаления из набора:</b>",
-    "bundle_no_channels_to_remove": "ℹ️ В этом наборе нет каналов для удаления."
+    "bundle_no_channels_to_remove": "ℹ️ В этом наборе нет каналов для удаления.",
+    "home_screen_btn": "🏠 Главный экран"
 }

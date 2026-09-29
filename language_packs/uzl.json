@@ -53,8 +53,8 @@
     "btn_added_msg": "<b>tugma qo'shildi ✅</b>",
     "btn_edited_msg": "<b>Tugma tahrirlandi ✅</b>",
     "btn_deleted_msg": "<b>Tugma o'chirildi ✅</b>",
-    "add_channel_btn": "📢 Yangi kanal qo'shish",
-    "add_new_channel_btn": "📢 Yangi kanal qo'shish",
+    "add_channel_btn": "📢 Yangi kanal",
+    "add_new_channel_btn": "📢 Yangi kanal",
     "add_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Yangi kanal qo'shish bo'limi :</b>\n\n1. Botni kerakli kanalga <b>admin</b> qiling.\n2. Quyidagi usullardan birini bajaring:\n - Kanaldan istalgan xabarni shu yerga <b>↪️ forward qiling.</b>\n - Kanalning <b>@username</b> yoki <b>ID</b>sini yuboring.",
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanali muvaffaqiyatli qo'shildi!.",
     "delete_channel_btn": "🗑 Kanani o'chirish",
@@ -179,7 +179,7 @@
     "schedule_accepted_confirmation": "<b>✅ Post rejalashtirildi!</b>\n\nPost {date} vaqtida kanalingizga yuboriladi.",
     "scheduled_post_sent": "<b><tg-emoji emoji-id=\"5771695636411847302\">📢</tg-emoji> Rejalashtirilgan post yuborildi</b>\n\nKodi: <code>{post_code}</code>\nKanal: {channel_name}",
     "cancel_send_msg": "<b><tg-emoji emoji-id=\"5807692706507399432\">✖️</tg-emoji> Yuborish bekor qilindi.</b>",
-    "add_channel_post_btn": "📢 Yangi kanal qo'shish",
+    "add_channel_post_btn": "📢 Yangi kanal",
     "print_settings_btn": "🖨️ Chop etish sozlamalari",
     "print_settings_title": "🖨️ <b>Chop etish sozlamalari</b>\n\n kerakli sozlamani tanlang:",
     "cr_another_post_btn": "✍️ Yangi post yaratish",
@@ -324,7 +324,7 @@
     "bundle_no_channels_yet": "<i>Ushbu to'plamda hali kanallar yo'q.</i>",
     "bundle_channel_already_in_all": "ℹ️ Ushbu kanal barcha mavjud to'plamlarga qo'shilgan!",
     "channel_not_in_any_bundle": "⚠️ Ushbu kanal birorta ham to'plamga kiritilmagan.",
-    "existing_bundles_btn": "📁 Mavjud to'plamlar",
+    "existing_bundles_btn": "📁 To'plamlar",
     "remove_from_bundle_btn": "➖ To'plamdan chiqarish",
     "rename_bundle_btn": "✏️ Qayta nomlash",
     "share_bundle_btn": "🔗 To'plamni ulashish",
@@ -338,5 +338,6 @@
     "bundle_import_save_btn": "⭐️ To'plamni saqlash",
     "bundle_imported_success": "✅ <b>«{bundle_name}»</b> to'plami muvaffaqiyatli saqlandi!",
     "bundle_select_channel_to_remove": "➖ <b>To'plamdan chiqarish uchun kanalni tanlang:</b>",
-    "bundle_no_channels_to_remove": "ℹ️ Ushbu to'plamda chiqarish uchun kanallar yo'q."
+    "bundle_no_channels_to_remove": "ℹ️ Ushbu to'plamda chiqarish uchun kanallar yo'q.",
+    "home_screen_btn": "🏠 Bosh ekran"
 }

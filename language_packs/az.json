@@ -44,8 +44,8 @@
     "btn_added_msg": "<b>Düymə əlavə edildi ✅</b>",
     "btn_edited_msg": "<b>Düymə redaktə edildi ✅</b>",
     "btn_deleted_msg": "<b>Düymə silindi ✅</b>",
-    "add_channel_btn": "📢 Kanal əlavə et",
-    "add_new_channel_btn": "📢 Yeni Kanal əlavə et",
+    "add_channel_btn": "📢 Yeni Kanal",
+    "add_new_channel_btn": "📢 Yeni Kanal",
     "add_channel_msg": "<b><tg-emoji emoji-id=\"5771868281212245617\">📢</tg-emoji> Kanal əlavə etmə bölməsi:</b>\n\n1. Botu lazımi kanalda <b>admin</b> edin.\n2. Aşağıdakılardan birini edin:\n - Kanaldan hər hansı bir mesajı buraya <b>↪️ forward</b> edin.\n - Kanalın <b>@istifadəçi adı</b> və ya <b>ID</b>sini göndərin.",
     "add_channel_success_msg": "<b>✅ {channel_name}</b> kanalı uğurla əlavə edildi!.",
     "delete_channel_btn": "🗑 Kanalı sil",
@@ -162,7 +162,7 @@
     "schedule_accepted_confirmation": "<b>✅ Post planlaşdırıldı!</b>\n\nPostunuz {date} vaxtında kanalınıza göndəriləcək.",
     "scheduled_post_sent": "<b>�注 Planlaşdırılmış post göndərildi</b>\n\nKod: <code>{post_code}</code>\nKanal: {channel_name}",
     "cancel_send_msg": "<b><tg-emoji emoji-id=\"5807692706507399432\">✖️</tg-emoji> Göndərmə ləğv edildi.</b>",
-    "add_channel_post_btn": "📢 Kanal əlavə et",
+    "add_channel_post_btn": "📢 Yeni Kanal",
     "print_settings_btn": "🖨️ Çap Ayarları",
     "print_settings_title": "🖨️ <b>Çap Ayarları</b>\n\nLazımi ayarı seçin:",
     "cr_another_post_btn": "✍️ Yeni Post Yarat",
@@ -261,7 +261,7 @@
     "bundle_no_channels_yet": "<i>Bu topluda hələ kanal yoxdur.</i>",
     "bundle_channel_already_in_all": "ℹ️ Bu kanal artıq bütün mövcud toplulara əlavə edilib!",
     "channel_not_in_any_bundle": "⚠️ Bu kanal hələ heç bir topluya daxil edilməyib.",
-    "existing_bundles_btn": "📁 Existing bundles",
+    "existing_bundles_btn": "📁 Dəstlər",
     "remove_from_bundle_btn": "➖ Remove from bundle",
     "rename_bundle_btn": "✏️ Rename bundle",
     "share_bundle_btn": "🔗 Share bundle",
@@ -275,5 +275,6 @@
     "bundle_import_save_btn": "⭐️ Save bundle",
     "bundle_imported_success": "✅ Bundle <b>«{bundle_name}»</b> successfully saved!",
     "bundle_select_channel_to_remove": "➖ <b>Select channel to remove from bundle:</b>",
-    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove."
+    "bundle_no_channels_to_remove": "ℹ️ There are no channels in this bundle to remove.",
+    "home_screen_btn": "🏠 Əsas ekran"
 }

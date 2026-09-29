@@ -114,19 +114,14 @@ async def cmd_my_channels(message: types.Message):
     lang = await get_user_language(user_id)
 
     if not user_channels:
-        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - klaviatura bilan xabar yuborish
+        # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - faqat yangi kanal tugmasi
         builder = InlineKeyboardBuilder()
         builder.button(
             text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data=MyChannelsCallback(action="add_new").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.button(
-            text=clean_btn_text(get_text('existing_bundles_btn', lang)),
-            callback_data="bundle:list",
-            icon_custom_emoji_id=EMOJI_BUNDLE
-        )
-        builder.adjust(2)
+        builder.adjust(1)
         await message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=builder.as_markup(),
@@ -154,12 +149,7 @@ async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMConte
             callback_data=MyChannelsCallback(action="add_new").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
-        builder.button(
-            text=clean_btn_text(get_text('existing_bundles_btn', lang)),
-            callback_data="bundle:list",
-            icon_custom_emoji_id=EMOJI_BUNDLE
-        )
-        builder.adjust(2)
+        builder.adjust(1)
         await callback.message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=builder.as_markup(),
@@ -184,10 +174,15 @@ async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContex
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('cancel_btn', lang)),
-        callback_data="cancel_action",
+        text=clean_btn_text(get_text('back_btn', lang)),
+        callback_data=MyChannelsCallback(action="back_to_list").pack(),
         icon_custom_emoji_id=EMOJI_CLOSE
     )
+    builder.button(
+        text=get_text('home_screen_btn', lang),
+        callback_data="cancel_action"
+    )
+    builder.adjust(2)
 
     add_channel_text = get_text('add_channel_msg', lang)
     try:
@@ -432,13 +427,46 @@ async def handle_delete_channel(callback: types.CallbackQuery, callback_data: My
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "back_to_list"))
 async def handle_back_to_list(callback: types.CallbackQuery):
     """'Ortga' tugmasi bosilganda kanallar ro'yxatiga qaytaradi."""
-    keyboard = await get_my_channels_keyboard(callback.from_user.id)
-    lang = await get_user_language(callback.from_user.id)
-    await callback.message.edit_text(
-        get_text('choose_channel_msg', lang),
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
+    user_id = callback.from_user.id
+    user_channels = await get_user_channels(user_id)
+    lang = await get_user_language(user_id)
+
+    if not user_channels:
+        builder = InlineKeyboardBuilder()
+        builder.button(
+            text=clean_btn_text(get_text('add_new_channel_btn', lang)),
+            callback_data=MyChannelsCallback(action="add_new").pack(),
+            icon_custom_emoji_id=EMOJI_ADD_CHANNEL
+        )
+        builder.adjust(1)
+        try:
+            await callback.message.edit_text(
+                get_text('need_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        except Exception:
+            await callback.message.answer(
+                get_text('need_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        await callback.answer()
+        return
+
+    keyboard = await get_my_channels_keyboard(user_id)
+    try:
+        await callback.message.edit_text(
+            get_text('choose_channel_msg', lang),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+    except Exception:
+        await callback.message.answer(
+            get_text('choose_channel_msg', lang),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
     await callback.answer()
 
 
