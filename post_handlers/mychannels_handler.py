@@ -67,15 +67,8 @@ async def get_my_channels_keyboard(user_id: int):
                 callback_data=MyChannelsCallback(action="select", channel_id=channel['channel_id']).pack(),
                 icon_custom_emoji_id=EMOJI_CHANNEL
             )
-        ch_count = len(user_channels)
-        sizes = [2]
-        sizes.extend([2] * (ch_count // 2))
-        if ch_count % 2 != 0:
-            sizes.append(1)
-        builder.adjust(*sizes)
-    else:
-        builder.adjust(2)
 
+    builder.adjust(2)
     return builder.as_markup()
 
 def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_bundle: bool = True, has_bundles_to_remove: bool = False):

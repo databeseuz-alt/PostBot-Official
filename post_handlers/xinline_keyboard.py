@@ -316,12 +316,12 @@ def get_channel_list_keyboard(channels: list[dict], post_code: str, bundles: lis
     if bundle_buttons_count > 0:
         sizes = [1] * bundle_buttons_count
         channel_count = len(channels)
-        sizes.extend([3] * (channel_count // 3))
-        if channel_count % 3 != 0:
-            sizes.append(channel_count % 3)
+        sizes.extend([2] * (channel_count // 2))
+        if channel_count % 2 != 0:
+            sizes.append(1)
         builder.adjust(*sizes)
     else:
-        builder.adjust(3)
+        builder.adjust(2)
 
     return builder.as_markup()
 
