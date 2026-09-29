@@ -24,6 +24,7 @@ from post_handlers.xinline_keyboard import (
 )
 
 from xdata_handlers.translator import get_text, safe_format, get_text_formatted
+from post_handlers.localize_filter import LocalizedText
 from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
