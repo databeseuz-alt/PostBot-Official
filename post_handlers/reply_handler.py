@@ -34,8 +34,9 @@ async def cancel_post_creation_callback(callback: types.CallbackQuery, state: FS
 
     await state.clear()
 
+    from post_handlers.custom_emojis import HTML_EMOJI_CLOSE
     await callback.message.edit_text(
-        "❌ Post bekor qilindi",
+        f"{HTML_EMOJI_CLOSE} Post bekor qilindi",
         reply_markup=get_main_menu(lang)
     )
     await callback.answer()

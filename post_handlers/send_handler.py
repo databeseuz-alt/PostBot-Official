@@ -1006,16 +1006,19 @@ async def execute_send_post(
         elif 'bot was kicked' in error_text or 'bot was deleted' in error_text or 'user is deactivated' in error_text:
             await bot.send_message(user_id, get_text('bot_kicked_msg', lang))
         elif 'message not found' in error_text:
-            await bot.send_message(user_id, "❌ <b>Xabar topilmadi!</b>\nEski xabarni o'chirib, qayta urinib ko'ring.", parse_mode="HTML")
+            from post_handlers.custom_emojis import HTML_EMOJI_CLOSE
+            await bot.send_message(user_id, f"{HTML_EMOJI_CLOSE} <b>Xabar topilmadi!</b>\nEski xabarni o'chirib, qayta urinib ko'ring.", parse_mode="HTML")
         elif 'peer id invalid' in error_text or 'chat id is invalid' in error_text:
-            await bot.send_message(user_id, "❌ <b>Kanal ID noto'g'ri!</b>\nIltimos, kanalni qayta qo'shing.", parse_mode="HTML")
+            from post_handlers.custom_emojis import HTML_EMOJI_CLOSE
+            await bot.send_message(user_id, f"{HTML_EMOJI_CLOSE} <b>Kanal ID noto'g'ri!</b>\nIltimos, kanalni qayta qo'shing.", parse_mode="HTML")
         elif 'too many messages' in error_text or 'flood control' in error_text:
             await bot.send_message(user_id, "⏳ <b>Kutish vaqti!</b>\n juda ko'p so'rovlar. Iltimos, bir necha soniya kuting.", parse_mode="HTML")
         else:
+            from post_handlers.custom_emojis import HTML_EMOJI_CLOSE
             # Umumiy xatolik - batafsil ma'lumot bilan
             await bot.send_message(
                 user_id, 
-                f"❌ <b>Yuborishda xatolik yuz berdi!</b>\n\n"
+                f"{HTML_EMOJI_CLOSE} <b>Yuborishda xatolik yuz berdi!</b>\n\n"
                 f"<b>Xatolik:</b> {str(e)}\n\n"
                 f"<b>Post kodi:</b> {post_code}\n"
                 f"<b>Kanal ID:</b> {channel_id}\n\n"

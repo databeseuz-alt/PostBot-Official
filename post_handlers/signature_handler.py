@@ -701,8 +701,9 @@ async def handle_cancel_button_in_signature(message: Message, state: FSMContext)
     # Bekor qilish callback sifatida ishlaydi, lekin message ni ham qayta ishlamiz
     lang = await get_user_language(message.from_user.id)
     from post_handlers.xreply_keyboard import get_main_menu
+    from post_handlers.custom_emojis import HTML_EMOJI_CLOSE
     await state.clear()
-    await message.answer("❌ Post bekor qilindi", reply_markup=get_main_menu(lang, message.from_user.id))
+    await message.answer(f"{HTML_EMOJI_CLOSE} Post bekor qilindi", reply_markup=get_main_menu(lang, message.from_user.id))
 
 
 @router.message(AutoSignatureState.enter_text, LocalizedText('edit_content_btn'))
