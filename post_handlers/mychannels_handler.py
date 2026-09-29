@@ -146,9 +146,20 @@ async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMConte
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "add_new"))
 async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContext):
-    """'Yangi kanal qo'shish' tugmasi bosilganda /addchannel jarayonini boshlaydi."""
-    await callback.message.delete()
-    await cmd_add_channel(callback.message, state)
+    """'Yangi kanal qo'shish' tugmasi bosilganda kanal qo'shish jarayonini boshlaydi."""
+    lang = await get_user_language(callback.from_user.id)
+    from post_handlers.send_handler import PostSending
+    await state.clear()
+    await state.set_state(PostSending.waiting_for_channel_info)
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+
+    add_channel_text = get_text('add_channel_msg', lang)
+    try:
+        await callback.message.edit_text(add_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(add_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
     await callback.answer()
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "select"))
