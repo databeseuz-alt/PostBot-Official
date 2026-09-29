@@ -240,7 +240,10 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
     if isinstance(event, types.CallbackQuery):
         await event.answer()
         if not is_member:
-            await event.message.answer(text, reply_markup=keyboard)
+            try:
+                await event.message.edit_text(text, reply_markup=keyboard)
+            except Exception:
+                await event.message.answer(text, reply_markup=keyboard)
             return
     else:
         if not is_member:
@@ -274,8 +277,13 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
         )
         builder.adjust(2)
         
-        target_msg = event.message if isinstance(event, types.CallbackQuery) else event
-        await target_msg.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        if isinstance(event, types.CallbackQuery):
+            try:
+                await event.message.edit_text(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+            except Exception:
+                await event.message.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+        else:
+            await event.answer(need_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
         return
 
     user_settings = await get_user_post_settings(user.id)
@@ -287,8 +295,13 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 
     # Inline Turbo rejim tugmasi bilan kontent so'rash xabari
     turbo_kb = get_turbo_mode_inline_kb(lang, is_enabled=False, action='now')
-    target_msg = event.message if isinstance(event, types.CallbackQuery) else event
-    content_message = await target_msg.answer(content_text, reply_markup=turbo_kb)
+    if isinstance(event, types.CallbackQuery):
+        try:
+            content_message = await event.message.edit_text(content_text, reply_markup=turbo_kb)
+        except Exception:
+            content_message = await event.message.answer(content_text, reply_markup=turbo_kb)
+    else:
+        content_message = await event.answer(content_text, reply_markup=turbo_kb)
 
     await state.update_data(
         content_message_id=content_message.message_id,
@@ -309,14 +322,14 @@ async def handle_post_add_channel(callback: types.CallbackQuery, state: FSMConte
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('main_menu_btn', lang)),
-        callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_MAIN_MENU
-    )
-    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:new_post",
         icon_custom_emoji_id=EMOJI_BACK
+    )
+    builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     builder.adjust(2)
 

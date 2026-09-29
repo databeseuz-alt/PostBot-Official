@@ -96,14 +96,14 @@ async def cmd_add_channel(message: types.Message, state: FSMContext):
     lang = await get_user_language(message.from_user.id)
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('main_menu_btn', lang)),
-        callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_MAIN_MENU
-    )
-    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:my_channels",
         icon_custom_emoji_id=EMOJI_BACK
+    )
+    builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     builder.adjust(2)
     await message.answer(
@@ -266,14 +266,14 @@ async def redirect_to_add_channel_with_post(callback: types.CallbackQuery, callb
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('main_menu_btn', lang)),
-        callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_MAIN_MENU
-    )
-    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=f"send_post:{post_code}",
         icon_custom_emoji_id=EMOJI_BACK
+    )
+    builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     builder.adjust(2)
 

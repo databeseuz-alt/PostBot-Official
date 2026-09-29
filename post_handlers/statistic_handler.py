@@ -690,14 +690,14 @@ async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FS
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('main_menu_btn', lang)),
-        callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_MAIN_MENU
-    )
-    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data="main:statistic",
         icon_custom_emoji_id=EMOJI_BACK
+    )
+    builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     builder.adjust(2)
 

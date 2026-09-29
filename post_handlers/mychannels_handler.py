@@ -160,19 +160,33 @@ async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMConte
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
         builder.adjust(2)
-        await callback.message.answer(
-            get_text('need_channel_msg', lang),
-            reply_markup=builder.as_markup(),
-            parse_mode="HTML"
-        )
+        try:
+            await callback.message.edit_text(
+                get_text('need_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        except Exception:
+            await callback.message.answer(
+                get_text('need_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
         return
 
     keyboard = await get_my_channels_keyboard(user_id)
-    await callback.message.answer(
-        get_text('choose_channel_msg', lang),
-        reply_markup=keyboard,
-        parse_mode="HTML"
-    )
+    try:
+        await callback.message.edit_text(
+            get_text('choose_channel_msg', lang),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+    except Exception:
+        await callback.message.answer(
+            get_text('choose_channel_msg', lang),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "add_new"))
 async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContext):
@@ -184,14 +198,14 @@ async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContex
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=clean_btn_text(get_text('main_menu_btn', lang)),
-        callback_data="cancel_action",
-        icon_custom_emoji_id=EMOJI_MAIN_MENU
-    )
-    builder.button(
         text=clean_btn_text(get_text('back_btn', lang)),
         callback_data=MyChannelsCallback(action="back_to_list").pack(),
         icon_custom_emoji_id=EMOJI_BACK
+    )
+    builder.button(
+        text=clean_btn_text(get_text('main_menu_btn', lang)),
+        callback_data="cancel_action",
+        icon_custom_emoji_id=EMOJI_MAIN_MENU
     )
     builder.adjust(2)
 
