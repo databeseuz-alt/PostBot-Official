@@ -487,12 +487,7 @@ async def process_turbo_mode_if_enabled(message: Message, state: FSMContext, bot
         await message.answer(text, reply_markup=get_schedule_quick_keyboard(lang), parse_mode="HTML")
         return True
     else:
-        turbo_title = {
-            'uzl': '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Hozir chop etiladi):' if turbo_action == 'now' else '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang (Jadval bo\'yicha):',
-            'uzk': '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Турбо режим:</b> Канални танланг (Ҳозир чоп этилади):' if turbo_action == 'now' else '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Турбо режим:</b> Канални танланг (Жадвал бўйича):',
-            'ru': '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Турбо режим:</b> Выберите канал (публикация сейчас):' if turbo_action == 'now' else '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Турбо режим:</b> Выберите канал (по расписанию):',
-            'en': '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (publish now):' if turbo_action == 'now' else '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo mode:</b> Select channel (by schedule):'
-        }.get(lang, '<tg-emoji emoji-id="5321513296342328913">🟨</tg-emoji> <b>Turbo rejim:</b> Kanalni tanlang:')
+        turbo_title = get_text('turbo_choose_channel_now', lang) if turbo_action == 'now' else get_text('turbo_choose_channel_schedule', lang)
         
         await message.answer(
             turbo_title,
