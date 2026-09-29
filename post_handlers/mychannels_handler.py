@@ -27,6 +27,7 @@ mychannels_router = Router()
 class BundleCreation(StatesGroup):
     waiting_for_name = State()
     selecting_channels = State()
+    editing_channels = State()
 
 class MyChannelsCallback(CallbackData, prefix="my_channels"):
     action: str
@@ -75,9 +76,14 @@ async def get_my_channels_keyboard(user_id: int):
 
     return builder.as_markup()
 
-def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl'):
+def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_bundle: bool = True):
     """Tanlangan kanalni boshqarish uchun inline klaviatura yaratadi."""
     builder = InlineKeyboardBuilder()
+    if can_add_to_bundle:
+        builder.button(
+            text=get_text('add_to_bundle_btn', lang),
+            callback_data=f"channel:add_to_bundle:{channel_id}"
+        )
     builder.button(
         text=get_text('delete_channel_btn', lang),
         callback_data=MyChannelsCallback(action="delete", channel_id=channel_id).pack()
@@ -105,10 +111,14 @@ async def cmd_my_channels(message: types.Message):
             callback_data=MyChannelsCallback(action="add_new").pack()
         )
         builder.button(
+            text=get_text('bundles_btn', lang),
+            callback_data="bundle:list"
+        )
+        builder.button(
             text=get_text('back_btn', lang),
             callback_data="cancel_action"
         )
-        builder.adjust(1, 1)
+        builder.adjust(2, 1)
         await message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=builder.as_markup()
@@ -135,10 +145,14 @@ async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMConte
             callback_data=MyChannelsCallback(action="add_new").pack()
         )
         builder.button(
+            text=get_text('bundles_btn', lang),
+            callback_data="bundle:list"
+        )
+        builder.button(
             text=get_text('back_btn', lang),
             callback_data="cancel_action"
         )
-        builder.adjust(1, 1)
+        builder.adjust(2, 1)
         try:
             await callback.message.edit_text(
                 get_text('need_channel_msg', lang),
@@ -188,21 +202,119 @@ async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContex
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "select"))
 async def handle_select_channel(callback: types.CallbackQuery, callback_data: MyChannelsCallback):
     """Foydalanuvchi biror kanalni tanlaganda, boshqaruv menyusini ko'rsatadi."""
-    channel_name = callback.message.reply_markup.inline_keyboard[0][0].text
-    for row in callback.message.reply_markup.inline_keyboard:
-        for button in row:
-            if button.callback_data == callback.data:
-                channel_name = button.text
-                break
-
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    user_channels = await get_user_channels(user_id)
+    ch = next((c for c in user_channels if c['channel_id'] == callback_data.channel_id), None)
+    channel_name = ch['channel_name'] if ch else "Kanal"
     safe_channel_name = html.escape(channel_name)
-    lang = await get_user_language(callback.from_user.id)
 
-    await callback.message.edit_text(
-        get_text('channel_action_msg', lang).format(channel_name=safe_channel_name),
-        reply_markup=get_channel_manage_keyboard(callback_data.channel_id, lang)
-    )
+    bundles = await get_user_channel_bundles(user_id)
+    belonging_bundles = [b for b in bundles if callback_data.channel_id in b.get('channel_ids', [])]
+
+    if belonging_bundles:
+        b_names = ", ".join([html.escape(b['name']) for b in belonging_bundles])
+        bundle_info = f"\n\n📁 <b>To'plamlar:</b> {b_names}"
+    else:
+        bundle_info = f"\n\n" + get_text('channel_not_in_any_bundle', lang)
+
+    text = get_text('channel_action_msg', lang).format(channel_name=safe_channel_name) + bundle_info
+    reply_markup = get_channel_manage_keyboard(callback_data.channel_id, lang, can_add_to_bundle=True)
+
+    try:
+        await callback.message.edit_text(text, reply_markup=reply_markup, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(text, reply_markup=reply_markup, parse_mode="HTML")
     await callback.answer()
+
+@mychannels_router.callback_query(F.data.startswith("channel:add_to_bundle:"))
+async def handle_channel_add_to_bundle(callback: types.CallbackQuery):
+    """Kanalni biror to'plamga qo'shish."""
+    channel_id = int(callback.data.split(":", 2)[2])
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    bundles = await get_user_channel_bundles(user_id)
+
+    if not bundles:
+        builder = InlineKeyboardBuilder()
+        builder.button(text=get_text('create_bundle_btn', lang), callback_data="bundle:create")
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
+        )
+        builder.adjust(1)
+        try:
+            await callback.message.edit_text(
+                get_text('no_bundles_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        except Exception:
+            await callback.message.answer(
+                get_text('no_bundles_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        await callback.answer()
+        return
+
+    available_bundles = [b for b in bundles if channel_id not in b.get('channel_ids', [])]
+
+    if not available_bundles:
+        await callback.answer(get_text('bundle_channel_already_in_all', lang), show_alert=True)
+        return
+
+    builder = InlineKeyboardBuilder()
+    for b in available_bundles:
+        builder.button(
+            text=f"📁 {b['name']}",
+            callback_data=f"channel:assign_bundle:{channel_id}:{b['id']}"
+        )
+    builder.button(
+        text=get_text('back_btn', lang),
+        callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
+    )
+    builder.adjust(1)
+
+    choose_text = get_text('choose_bundle_to_add', lang)
+    try:
+        await callback.message.edit_text(choose_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(choose_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    await callback.answer()
+
+@mychannels_router.callback_query(F.data.startswith("channel:assign_bundle:"))
+async def handle_channel_assign_bundle(callback: types.CallbackQuery):
+    """Kanalni tanlangan to'plamga biriktirish."""
+    parts = callback.data.split(":")
+    channel_id = int(parts[2])
+    bundle_id = parts[3]
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+
+    bundle = await get_user_channel_bundle_by_id(user_id, bundle_id)
+    if not bundle:
+        await callback.answer(get_text('unknown_error', lang), show_alert=True)
+        return
+
+    channel_ids = list(bundle.get('channel_ids', []))
+    if channel_id not in channel_ids:
+        channel_ids.append(channel_id)
+        await save_user_channel_bundle(user_id, bundle['name'], channel_ids, bundle_id=bundle_id)
+
+    user_channels = await get_user_channels(user_id)
+    ch = next((c for c in user_channels if c['channel_id'] == channel_id), None)
+    ch_name = ch['channel_name'] if ch else "Kanal"
+
+    success_msg = get_text('channel_added_to_bundle_success', lang).format(
+        channel_name=html.escape(ch_name),
+        bundle_name=html.escape(bundle['name'])
+    )
+    await callback.answer(get_text('bundle_channels_updated_success', lang))
+    await callback.message.answer(success_msg, parse_mode="HTML")
+
+    # Qayta kanal menyusini ko'rsatish
+    await handle_select_channel(callback, MyChannelsCallback(action="select", channel_id=channel_id))
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "delete"))
 async def handle_delete_channel(callback: types.CallbackQuery, callback_data: MyChannelsCallback, state: FSMContext):
@@ -322,9 +434,34 @@ async def handle_bundle_back_to_channels(callback: types.CallbackQuery, state: F
         await callback.message.answer(get_text('choose_channel_msg', lang), reply_markup=keyboard, parse_mode="HTML")
     await callback.answer()
 
+def get_bundle_channels_edit_keyboard(user_channels: list, selected_ids: set, bundle_id: str, lang: str):
+    """To'plamdagi kanallarni tahrirlash/qo'shish klaviaturasi."""
+    builder = InlineKeyboardBuilder()
+    for ch in user_channels:
+        cid = ch['channel_id']
+        is_sel = cid in selected_ids
+        mark = "✅" if is_sel else "◻️"
+        builder.button(
+            text=f"{mark} {ch['channel_name']}",
+            callback_data=f"bundle:toggle_edit:{bundle_id}:{cid}"
+        )
+    builder.button(
+        text=get_text('save_bundle_btn', lang),
+        callback_data=f"bundle:save_edited:{bundle_id}"
+    )
+    builder.button(
+        text=get_text('back_btn', lang),
+        callback_data=f"bundle:view:{bundle_id}"
+    )
+    sizes = [1] * len(user_channels) + [2]
+    builder.adjust(*sizes)
+    return builder.as_markup()
+
 @mychannels_router.callback_query(F.data.startswith("bundle:view:"))
-async def handle_bundle_view(callback: types.CallbackQuery):
+async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = None):
     """To'plam tafsilotlarini ko'rsatish."""
+    if state:
+        await state.clear()
     bundle_id = callback.data.split(":", 2)[2]
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
@@ -337,7 +474,7 @@ async def handle_bundle_view(callback: types.CallbackQuery):
     user_channels = await get_user_channels(user_id)
     ch_map = {ch['channel_id']: ch['channel_name'] for ch in user_channels}
     channel_lines = [f"• {html.escape(ch_map.get(cid, str(cid)))}" for cid in bundle.get('channel_ids', [])]
-    channel_list_str = "\n".join(channel_lines) if channel_lines else "-"
+    channel_list_str = "\n".join(channel_lines) if channel_lines else get_text('bundle_no_channels_yet', lang)
 
     text = get_text('bundle_details', lang).format(
         bundle_name=html.escape(bundle.get('name', '')),
@@ -346,6 +483,10 @@ async def handle_bundle_view(callback: types.CallbackQuery):
     )
 
     builder = InlineKeyboardBuilder()
+    builder.button(
+        text=get_text('add_channels_to_bundle_btn', lang),
+        callback_data=f"bundle:edit_channels:{bundle_id}"
+    )
     builder.button(
         text=get_text('delete_bundle_btn', lang),
         callback_data=f"bundle:delete:{bundle_id}"
@@ -361,6 +502,84 @@ async def handle_bundle_view(callback: types.CallbackQuery):
     except Exception:
         await callback.message.answer(text, reply_markup=builder.as_markup(), parse_mode="HTML")
     await callback.answer()
+
+@mychannels_router.callback_query(F.data.startswith("bundle:edit_channels:"))
+async def handle_bundle_edit_channels(callback: types.CallbackQuery, state: FSMContext):
+    """To'plam ichida mavjud kanallarni qo'shish/tahrirlash."""
+    bundle_id = callback.data.split(":", 2)[2]
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    user_channels = await get_user_channels(user_id)
+
+    if not user_channels:
+        await callback.answer(get_text('need_channel_msg', lang), show_alert=True)
+        return
+
+    bundle = await get_user_channel_bundle_by_id(user_id, bundle_id)
+    if not bundle:
+        await callback.answer(get_text('unknown_error', lang), show_alert=True)
+        return
+
+    selected_ids = list(bundle.get('channel_ids', []))
+    await state.set_state(BundleCreation.editing_channels)
+    await state.update_data(
+        editing_bundle_id=bundle_id,
+        editing_bundle_name=bundle.get('name', "To'plam"),
+        selected_channel_ids=selected_ids
+    )
+
+    kb = get_bundle_channels_edit_keyboard(user_channels, set(selected_ids), bundle_id, lang)
+    prompt_text = get_text('bundle_select_channels', lang).format(bundle_name=html.escape(bundle.get('name', '')))
+
+    try:
+        await callback.message.edit_text(prompt_text, reply_markup=kb, parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(prompt_text, reply_markup=kb, parse_mode="HTML")
+    await callback.answer()
+
+@mychannels_router.callback_query(BundleCreation.editing_channels, F.data.startswith("bundle:toggle_edit:"))
+async def handle_bundle_toggle_edit(callback: types.CallbackQuery, state: FSMContext):
+    """To'plamni tahrirlashda kanalni tanlash yoki bekor qilish."""
+    parts = callback.data.split(":")
+    bundle_id = parts[2]
+    channel_id = int(parts[3])
+
+    data = await state.get_data()
+    selected_set = set(data.get('selected_channel_ids', []))
+
+    if channel_id in selected_set:
+        selected_set.remove(channel_id)
+    else:
+        selected_set.add(channel_id)
+
+    await state.update_data(selected_channel_ids=list(selected_set))
+    user_channels = await get_user_channels(callback.from_user.id)
+    lang = await get_user_language(callback.from_user.id)
+
+    kb = get_bundle_channels_edit_keyboard(user_channels, selected_set, bundle_id, lang)
+    try:
+        await callback.message.edit_reply_markup(reply_markup=kb)
+    except Exception:
+        pass
+    await callback.answer()
+
+@mychannels_router.callback_query(BundleCreation.editing_channels, F.data.startswith("bundle:save_edited:"))
+async def handle_bundle_save_edited(callback: types.CallbackQuery, state: FSMContext):
+    """To'plam kanallarini yangilab saqlash."""
+    bundle_id = callback.data.split(":", 2)[2]
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    data = await state.get_data()
+    selected = data.get('selected_channel_ids', [])
+    bundle_name = data.get('editing_bundle_name', "To'plam")
+
+    await save_user_channel_bundle(user_id, bundle_name, selected, bundle_id=bundle_id)
+    await state.clear()
+    await callback.answer(get_text('bundle_channels_updated_success', lang))
+
+    # Return to bundle view
+    callback.data = f"bundle:view:{bundle_id}"
+    await handle_bundle_view(callback, state)
 
 @mychannels_router.callback_query(F.data.startswith("bundle:delete:"))
 async def handle_bundle_delete(callback: types.CallbackQuery):
@@ -384,12 +603,8 @@ async def handle_bundle_create(callback: types.CallbackQuery, state: FSMContext)
     """Yangi to'plam yaratishni boshlash (nom so'rash)."""
     user_id = callback.from_user.id
     lang = await get_user_language(user_id)
-    user_channels = await get_user_channels(user_id)
 
-    if len(user_channels) < 2:
-        await callback.answer(get_text('bundle_need_min_channels', lang), show_alert=True)
-        return
-
+    # 1 ta kanal bo'lsa ham yoki kanal bo'lmasa ham to'plam yaratish mumkin!
     await state.set_state(BundleCreation.waiting_for_name)
     await state.update_data(bundle_name="", selected_channel_ids=[])
 
@@ -415,6 +630,20 @@ async def handle_bundle_name_input(message: types.Message, state: FSMContext):
         return
 
     user_channels = await get_user_channels(user_id)
+
+    if not user_channels:
+        # Kanal bo'lmasa ham to'plam darhol yaratiladi!
+        await save_user_channel_bundle(user_id, name, [])
+        await state.clear()
+        success_text = get_text('bundle_created_success', lang).format(
+            bundle_name=html.escape(name),
+            count=0
+        )
+        await message.answer(success_text, parse_mode="HTML")
+        kb = await get_bundles_list_keyboard(user_id, lang)
+        await message.answer(get_text('bundles_title', lang), reply_markup=kb, parse_mode="HTML")
+        return
+
     await state.set_state(BundleCreation.selecting_channels)
     await state.update_data(bundle_name=name, selected_channel_ids=[])
 
@@ -453,10 +682,6 @@ async def handle_bundle_save(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
     selected = data.get('selected_channel_ids', [])
     bundle_name = data.get('bundle_name', "To'plam")
-
-    if not selected:
-        await callback.answer(get_text('bundle_no_channels_selected', lang), show_alert=True)
-        return
 
     await save_user_channel_bundle(user_id, bundle_name, selected)
     await state.clear()
