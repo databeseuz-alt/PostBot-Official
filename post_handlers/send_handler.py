@@ -28,14 +28,26 @@ from post_handlers.localize_filter import LocalizedText
 from post_handlers.xreply_keyboard import get_post_done_menu, get_turbo_done_menu, get_save_cancel_kb, get_save_cancelled_kb, get_cancel_only_kb
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-def get_turbo_success_keyboard(lang: str = 'uzl'):
+def get_turbo_success_keyboard(lang: str = 'uzl', post_code: str = None):
     builder = InlineKeyboardBuilder()
     main_menu_text = get_text('turbo_main_menu_btn', lang)
+    edit_text = get_text('edit_post_btn', lang)
     builder.button(
         text=main_menu_text,
         callback_data="turbo:exit_to_main_menu",
         icon_custom_emoji_id="6042137469204303531"
     )
+    if post_code:
+        builder.button(
+            text=edit_text,
+            callback_data=f"edit_select:{post_code}"
+        )
+    else:
+        builder.button(
+            text=edit_text,
+            callback_data="main:edit_post"
+        )
+    builder.adjust(2)
     return builder.as_markup()
 
 def validate_html_content(content: str) -> str:
@@ -377,7 +389,7 @@ async def start_turbo_countdown_and_send(
     lang: str,
     state: FSMContext = None
 ):
-    """Turbo rejimda 3 sekund kutiladi, bekor qilish imkoni beriladi va kanalga yuboriladi."""
+    """Turbo rejimda 3 sekund kutiladi va kanalga yuboriladi."""
     sparkle_emoji = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
     waiting_text = get_text_formatted('turbo_starting_msg', lang, sparkle=sparkle_emoji)
 
@@ -386,34 +398,14 @@ async def start_turbo_countdown_and_send(
         waiting_msg = await bot.send_message(
             chat_id=user_id,
             text=waiting_text,
-            reply_markup=get_turbo_cancel_keyboard(post_code, lang),
             parse_mode="HTML"
         )
     except Exception as e:
         logger.error(f"Error sending turbo waiting message: {e}")
 
-    cancel_event = asyncio.Event()
-    active_turbo_cancels[post_code] = cancel_event
+    await asyncio.sleep(3.0)
 
-    cancelled = False
-    try:
-        await asyncio.wait_for(cancel_event.wait(), timeout=3.0)
-        cancelled = True
-    except asyncio.TimeoutError:
-        cancelled = False
-    finally:
-        active_turbo_cancels.pop(post_code, None)
-
-    if cancelled:
-        cancel_text = get_text('turbo_cancelled_msg', lang)
-        if waiting_msg:
-            try:
-                await waiting_msg.edit_text(cancel_text, parse_mode="HTML")
-            except Exception:
-                pass
-        return
-
-    # Bekor qilinmadi - kutish xabarini o'chirib, postni kanalga yuboramiz
+    # Kutish xabarini o'chirib, postni kanalga yuboramiz
     if waiting_msg:
         try:
             await waiting_msg.delete()
@@ -812,7 +804,7 @@ async def execute_send_post(
             await bot.send_message(
                 user_id,
                 success_text,
-                reply_markup=get_turbo_success_keyboard(lang),
+                reply_markup=get_turbo_success_keyboard(lang, post_code=post_code),
                 parse_mode="HTML",
                 disable_web_page_preview=True
             )

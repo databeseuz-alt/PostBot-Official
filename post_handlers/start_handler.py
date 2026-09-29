@@ -282,18 +282,14 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
 @start_router.callback_query(F.data == "turbo:toggle")
 async def handle_turbo_toggle(callback: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    turbo_enabled = data.get('turbo_enabled', False)
+    turbo_enabled = not data.get('turbo_enabled', False)
+    turbo_action = data.get('turbo_action', 'now')
     lang = await get_user_language(callback.from_user.id)
 
-    if turbo_enabled:
-        await callback.answer(get_text('turbo_already_active_now', lang), show_alert=True)
-        return
-
-    turbo_action = data.get('turbo_action', 'now')
     await state.set_state(PostCreation.waiting_for_content)
-    await state.update_data(turbo_enabled=True, turbo_action=turbo_action)
+    await state.update_data(turbo_enabled=turbo_enabled, turbo_action=turbo_action)
     
-    new_kb = get_turbo_mode_inline_kb(lang, is_enabled=True, action=turbo_action)
+    new_kb = get_turbo_mode_inline_kb(lang, is_enabled=turbo_enabled, action=turbo_action)
     try:
         await callback.message.edit_reply_markup(reply_markup=new_kb)
     except Exception:
