@@ -5,6 +5,10 @@ from typing import List, Dict, Optional
 from aiogram.filters.callback_data import CallbackData
 from xdata_handlers.translator import get_text
 from xdata_handlers.database import get_post_name
+from post_handlers.custom_emojis import (
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_SETTINGS, EMOJI_EDIT, EMOJI_CREATE,
+    clean_btn_text
+)
 
 EMOJI_STYLES = {
     '🟢': 'success',
@@ -208,13 +212,15 @@ async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
 
     if post_name:
         builder.button(
-            text=get_text('edit_post_btn', lang),
-            callback_data=SavePostCallbackFactory(action="edit_save_menu", post_code=post_code).pack()
+            text=clean_btn_text(get_text('edit_post_btn', lang)),
+            callback_data=SavePostCallbackFactory(action="edit_save_menu", post_code=post_code).pack(),
+            icon_custom_emoji_id=EMOJI_EDIT
         )
     else:
         builder.button(
-            text=get_text('save_btn', lang), 
-            callback_data=SavePostCallbackFactory(action="start_save", post_code=post_code).pack()
+            text=clean_btn_text(get_text('save_btn', lang)), 
+            callback_data=SavePostCallbackFactory(action="start_save", post_code=post_code).pack(),
+            icon_custom_emoji_id=EMOJI_SAVE
         )
 
     builder.button(
@@ -222,8 +228,9 @@ async def get_post_management_keyboard(post_code: str, lang: str = 'uzl'):
         callback_data=PostSendCallbackFactory(action="start_sending", post_code=post_code).pack()
     )
     builder.button(
-        text=get_text('print_settings_btn', lang),
-        callback_data=f"print:{post_code}:menu"
+        text=clean_btn_text(get_text('print_settings_btn', lang)),
+        callback_data=f"print:{post_code}:menu",
+        icon_custom_emoji_id=EMOJI_SETTINGS
     )
     builder.adjust(2, 2)
     return builder.as_markup()
@@ -235,12 +242,14 @@ def get_post_save_edit_keyboard(post_code: str, lang: str = 'uzl'):
     """
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=get_text('rename_btn', lang),
-        callback_data=SavePostCallbackFactory(action="rename", post_code=post_code).pack()
+        text=clean_btn_text(get_text('rename_btn', lang)),
+        callback_data=SavePostCallbackFactory(action="rename", post_code=post_code).pack(),
+        icon_custom_emoji_id=EMOJI_EDIT
     )
     builder.button(
-        text=get_text('delete_btn', lang),
-        callback_data=SavePostCallbackFactory(action="delete_name", post_code=post_code).pack()
+        text=clean_btn_text(get_text('delete_btn', lang)),
+        callback_data=SavePostCallbackFactory(action="delete_name", post_code=post_code).pack(),
+        icon_custom_emoji_id=EMOJI_DELETE
     )
     builder.adjust(2)
     return builder.as_markup()
@@ -263,8 +272,9 @@ def get_edit_send_keyboard(post_code: str, lang: str = 'uzl'):
     """Postni tahrirlash yoki yuborishni tanlash klaviaturasi."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=get_text('edit_post_btn', lang),
-        callback_data=EditSendCallbackFactory(action="edit", post_code=post_code).pack()
+        text=clean_btn_text(get_text('edit_post_btn', lang)),
+        callback_data=EditSendCallbackFactory(action="edit", post_code=post_code).pack(),
+        icon_custom_emoji_id=EMOJI_EDIT
     )
     builder.button(
         text=get_text('send_confirm_btn', lang),
@@ -282,12 +292,13 @@ def get_channel_list_keyboard(channels: list[dict], post_code: str, bundles: lis
         for b in bundles:
             ch_count = len(b.get('channel_ids', []))
             builder.button(
-                text=f"📁 {b['name']} ({ch_count})",
+                text=f"{b['name']} ({ch_count})",
                 callback_data=PostSendCallbackFactory(
                     action="select_bundle",
                     post_code=post_code,
                     bundle_id=b.get('id')
-                ).pack()
+                ).pack(),
+                icon_custom_emoji_id=EMOJI_BUNDLE
             )
             bundle_buttons_count += 1
 
@@ -298,7 +309,8 @@ def get_channel_list_keyboard(channels: list[dict], post_code: str, bundles: lis
                 action="select_channel",
                 post_code=post_code,
                 channel_id=channel['channel_id']
-            ).pack()
+            ).pack(),
+            icon_custom_emoji_id=EMOJI_CHANNEL
         )
 
     if bundle_buttons_count > 0:
@@ -334,15 +346,20 @@ def get_send_confirmation_keyboard(post_code: str, channel_id: int = 0, lang: st
 def get_add_channel_prompt_keyboard(lang: str = 'uzl'):
     """Foydalanuvchini kanal qo'shishga undovchi klaviatura."""
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('add_channel_btn', lang), callback_data="add_channel_redirect")
+    builder.button(
+        text=clean_btn_text(get_text('add_channel_btn', lang)),
+        callback_data="add_channel_redirect",
+        icon_custom_emoji_id=EMOJI_CHANNEL
+    )
     return builder.as_markup()
 
 def get_add_channel_with_post_keyboard(post_code: str, lang: str = 'uzl'):
     """Post yuborish vaqtida kanal yo'q bo'lsa, post kodi bilan kanal qo'shish tugmasi."""
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=get_text('add_channel_post_btn', lang),
-        callback_data=PostSendCallbackFactory(action="add_channel_with_post", post_code=post_code).pack()
+        text=clean_btn_text(get_text('add_channel_post_btn', lang)),
+        callback_data=PostSendCallbackFactory(action="add_channel_with_post", post_code=post_code).pack(),
+        icon_custom_emoji_id=EMOJI_CHANNEL
     )
     return builder.as_markup()
 
@@ -373,20 +390,20 @@ def create_settings_main_keyboard(lang: str = 'uzl', timezone_str: str = "Tashke
     # Row 2: Vaqt mintaqasi
     builder.row(InlineKeyboardButton(text=f"🕒 Vaqt mintaqasi: {timezone_str}", callback_data="settings_timezone"))
     # Row 3: mybots
-    builder.row(InlineKeyboardButton(text="📢 mybots", callback_data="settings_mybots"))
+    builder.row(InlineKeyboardButton(text="mybots", callback_data="settings_mybots", icon_custom_emoji_id=EMOJI_CHANNEL))
     # Row 4: Post Shablonlari
     builder.row(InlineKeyboardButton(text="📂 Post Shablonlari", callback_data="settings_templates"))
     # Row 5: Yangi kanal / guruh
-    builder.row(InlineKeyboardButton(text="➕ Yangi kanal / guruh", callback_data="settings_add_channel"))
+    builder.row(InlineKeyboardButton(text="Yangi kanal / guruh", callback_data="settings_add_channel", icon_custom_emoji_id=EMOJI_CHANNEL))
     
     return builder.as_markup()
 
 def create_settings_interface_keyboard(settings: dict, lang: str = 'uzl', expanded: bool = False):
     """Interfeys sozlamalari menyusi."""
     builder = InlineKeyboardBuilder()
-    builder.row(InlineKeyboardButton(text="📂 Papkalar", callback_data="settings_folders"))
-    builder.row(InlineKeyboardButton(text="📢 Kanallar", callback_data="settings_channel_list_conf"))
-    builder.row(InlineKeyboardButton(text="📝 Post Tahrirlash", callback_data="settings_post_edit"))
+    builder.row(InlineKeyboardButton(text="Papkalar", callback_data="settings_folders", icon_custom_emoji_id=EMOJI_BUNDLE))
+    builder.row(InlineKeyboardButton(text="Kanallar", callback_data="settings_channel_list_conf", icon_custom_emoji_id=EMOJI_CHANNEL))
+    builder.row(InlineKeyboardButton(text="Post Tahrirlash", callback_data="settings_post_edit", icon_custom_emoji_id=EMOJI_EDIT))
     
     if expanded:
         def get_cb(key):
@@ -564,8 +581,16 @@ def create_city_selection_keyboard(country_code: str, lang: str = 'uzl'):
 def get_done_inline_keyboard(lang: str = 'uzl'):
     """Post saqlangandan keyin: [Chop etish sozlamalari] [Boshqa post yaratish] [Orqaga]"""
     builder = InlineKeyboardBuilder()
-    builder.button(text=get_text('print_settings_btn', lang), callback_data="print_settings")
-    builder.button(text=get_text('cr_another_post_btn', lang), callback_data="done_create_another")
+    builder.button(
+        text=clean_btn_text(get_text('print_settings_btn', lang)),
+        callback_data="print_settings",
+        icon_custom_emoji_id=EMOJI_SETTINGS
+    )
+    builder.button(
+        text=clean_btn_text(get_text('cr_another_post_btn', lang)),
+        callback_data="done_create_another",
+        icon_custom_emoji_id=EMOJI_CREATE
+    )
     builder.button(text=get_text('back_btn', lang), callback_data="done_back")
     builder.adjust(1, 2)
     return builder.as_markup()

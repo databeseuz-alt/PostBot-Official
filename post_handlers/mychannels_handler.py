@@ -34,6 +34,10 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
     channel_id: int | None = None
 
 from post_handlers.localize_filter import LocalizedText
+from post_handlers.custom_emojis import (
+    EMOJI_BUNDLE, EMOJI_CHANNEL, EMOJI_DELETE, EMOJI_SAVE, EMOJI_CREATE,
+    HTML_EMOJI_BUNDLE, HTML_EMOJI_CHANNEL, clean_btn_text
+)
 
 async def get_my_channels_keyboard(user_id: int):
     """Foydalanuvchi kanallari ro'yxati uchun inline klaviatura yaratadi."""
@@ -42,19 +46,22 @@ async def get_my_channels_keyboard(user_id: int):
     lang = await get_user_language(user_id)
 
     builder.button(
-        text=get_text('add_new_channel_btn', lang),
-        callback_data=MyChannelsCallback(action="add_new").pack()
+        text=clean_btn_text(get_text('add_new_channel_btn', lang)),
+        callback_data=MyChannelsCallback(action="add_new").pack(),
+        icon_custom_emoji_id=EMOJI_CHANNEL
     )
     builder.button(
-        text=get_text('bundles_btn', lang),
-        callback_data="bundle:list"
+        text=clean_btn_text(get_text('bundles_btn', lang)),
+        callback_data="bundle:list",
+        icon_custom_emoji_id=EMOJI_BUNDLE
     )
 
     if user_channels:
         for channel in user_channels:
             builder.button(
                 text=channel['channel_name'],
-                callback_data=MyChannelsCallback(action="select", channel_id=channel['channel_id']).pack()
+                callback_data=MyChannelsCallback(action="select", channel_id=channel['channel_id']).pack(),
+                icon_custom_emoji_id=EMOJI_CHANNEL
             )
         builder.button(
             text=get_text('back_btn', lang),
@@ -81,12 +88,14 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl', can_add_to_b
     builder = InlineKeyboardBuilder()
     if can_add_to_bundle:
         builder.button(
-            text=get_text('add_to_bundle_btn', lang),
-            callback_data=f"channel:add_to_bundle:{channel_id}"
+            text=clean_btn_text(get_text('add_to_bundle_btn', lang)),
+            callback_data=f"channel:add_to_bundle:{channel_id}",
+            icon_custom_emoji_id=EMOJI_BUNDLE
         )
     builder.button(
-        text=get_text('delete_channel_btn', lang),
-        callback_data=MyChannelsCallback(action="delete", channel_id=channel_id).pack()
+        text=clean_btn_text(get_text('delete_channel_btn', lang)),
+        callback_data=MyChannelsCallback(action="delete", channel_id=channel_id).pack(),
+        icon_custom_emoji_id=EMOJI_DELETE
     )
     builder.button(
         text=get_text('back_btn', lang),
@@ -107,12 +116,14 @@ async def cmd_my_channels(message: types.Message):
         # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - klaviatura bilan xabar yuborish
         builder = InlineKeyboardBuilder()
         builder.button(
-            text=get_text('add_channel_btn', lang),
-            callback_data=MyChannelsCallback(action="add_new").pack()
+            text=clean_btn_text(get_text('add_channel_btn', lang)),
+            callback_data=MyChannelsCallback(action="add_new").pack(),
+            icon_custom_emoji_id=EMOJI_CHANNEL
         )
         builder.button(
-            text=get_text('bundles_btn', lang),
-            callback_data="bundle:list"
+            text=clean_btn_text(get_text('bundles_btn', lang)),
+            callback_data="bundle:list",
+            icon_custom_emoji_id=EMOJI_BUNDLE
         )
         builder.button(
             text=get_text('back_btn', lang),
@@ -214,7 +225,7 @@ async def handle_select_channel(callback: types.CallbackQuery, callback_data: My
 
     if belonging_bundles:
         b_names = ", ".join([html.escape(b['name']) for b in belonging_bundles])
-        bundle_info = f"\n\n📁 <b>To'plamlar:</b> {b_names}"
+        bundle_info = f"\n\n{HTML_EMOJI_BUNDLE} <b>To'plamlar:</b> {b_names}"
     else:
         bundle_info = f"\n\n" + get_text('channel_not_in_any_bundle', lang)
 
@@ -237,7 +248,11 @@ async def handle_channel_add_to_bundle(callback: types.CallbackQuery):
 
     if not bundles:
         builder = InlineKeyboardBuilder()
-        builder.button(text=get_text('create_bundle_btn', lang), callback_data="bundle:create")
+        builder.button(
+            text=clean_btn_text(get_text('create_bundle_btn', lang)),
+            callback_data="bundle:create",
+            icon_custom_emoji_id=EMOJI_CREATE
+        )
         builder.button(
             text=get_text('back_btn', lang),
             callback_data=MyChannelsCallback(action="select", channel_id=channel_id).pack()
@@ -267,8 +282,9 @@ async def handle_channel_add_to_bundle(callback: types.CallbackQuery):
     builder = InlineKeyboardBuilder()
     for b in available_bundles:
         builder.button(
-            text=f"📁 {b['name']}",
-            callback_data=f"channel:assign_bundle:{channel_id}:{b['id']}"
+            text=b['name'],
+            callback_data=f"channel:assign_bundle:{channel_id}:{b['id']}",
+            icon_custom_emoji_id=EMOJI_BUNDLE
         )
     builder.button(
         text=get_text('back_btn', lang),
@@ -352,7 +368,8 @@ async def handle_back_to_list(callback: types.CallbackQuery):
     lang = await get_user_language(callback.from_user.id)
     await callback.message.edit_text(
         get_text('choose_channel_msg', lang),
-        reply_markup=keyboard
+        reply_markup=keyboard,
+        parse_mode="HTML"
     )
     await callback.answer()
 
@@ -367,12 +384,14 @@ async def get_bundles_list_keyboard(user_id: int, lang: str):
         for b in bundles:
             ch_count = len(b.get('channel_ids', []))
             builder.button(
-                text=f"📁 {b['name']} ({ch_count})",
-                callback_data=f"bundle:view:{b['id']}"
+                text=f"{b['name']} ({ch_count})",
+                callback_data=f"bundle:view:{b['id']}",
+                icon_custom_emoji_id=EMOJI_BUNDLE
             )
     builder.button(
-        text=get_text('create_bundle_btn', lang),
-        callback_data="bundle:create"
+        text=clean_btn_text(get_text('create_bundle_btn', lang)),
+        callback_data="bundle:create",
+        icon_custom_emoji_id=EMOJI_CREATE
     )
     builder.button(
         text=get_text('back_btn', lang),
@@ -390,11 +409,13 @@ def get_bundle_channels_keyboard(user_channels: list, selected_ids: set, lang: s
         mark = "✅" if is_sel else "◻️"
         builder.button(
             text=f"{mark} {ch['channel_name']}",
-            callback_data=f"bundle:toggle:{cid}"
+            callback_data=f"bundle:toggle:{cid}",
+            icon_custom_emoji_id=EMOJI_CHANNEL
         )
     builder.button(
-        text=get_text('save_bundle_btn', lang),
-        callback_data="bundle:save"
+        text=clean_btn_text(get_text('save_bundle_btn', lang)),
+        callback_data="bundle:save",
+        icon_custom_emoji_id=EMOJI_SAVE
     )
     builder.button(
         text=get_text('cancel_btn', lang),
@@ -443,11 +464,13 @@ def get_bundle_channels_edit_keyboard(user_channels: list, selected_ids: set, bu
         mark = "✅" if is_sel else "◻️"
         builder.button(
             text=f"{mark} {ch['channel_name']}",
-            callback_data=f"bundle:toggle_edit:{bundle_id}:{cid}"
+            callback_data=f"bundle:toggle_edit:{bundle_id}:{cid}",
+            icon_custom_emoji_id=EMOJI_CHANNEL
         )
     builder.button(
-        text=get_text('save_bundle_btn', lang),
-        callback_data=f"bundle:save_edited:{bundle_id}"
+        text=clean_btn_text(get_text('save_bundle_btn', lang)),
+        callback_data=f"bundle:save_edited:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_SAVE
     )
     builder.button(
         text=get_text('back_btn', lang),
@@ -484,12 +507,14 @@ async def handle_bundle_view(callback: types.CallbackQuery, state: FSMContext = 
 
     builder = InlineKeyboardBuilder()
     builder.button(
-        text=get_text('add_channels_to_bundle_btn', lang),
-        callback_data=f"bundle:edit_channels:{bundle_id}"
+        text=clean_btn_text(get_text('add_channels_to_bundle_btn', lang)),
+        callback_data=f"bundle:edit_channels:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_CHANNEL
     )
     builder.button(
-        text=get_text('delete_bundle_btn', lang),
-        callback_data=f"bundle:delete:{bundle_id}"
+        text=clean_btn_text(get_text('delete_bundle_btn', lang)),
+        callback_data=f"bundle:delete:{bundle_id}",
+        icon_custom_emoji_id=EMOJI_DELETE
     )
     builder.button(
         text=get_text('back_btn', lang),
