@@ -67,23 +67,14 @@ async def get_my_channels_keyboard(user_id: int):
                 callback_data=MyChannelsCallback(action="select", channel_id=channel['channel_id']).pack(),
                 icon_custom_emoji_id=EMOJI_CHANNEL
             )
-        builder.button(
-            text=get_text('back_btn', lang),
-            callback_data="cancel_action"
-        )
         ch_count = len(user_channels)
         sizes = [2]
         sizes.extend([2] * (ch_count // 2))
         if ch_count % 2 != 0:
             sizes.append(1)
-        sizes.append(1)
         builder.adjust(*sizes)
     else:
-        builder.button(
-            text=get_text('back_btn', lang),
-            callback_data="cancel_action"
-        )
-        builder.adjust(2, 1)
+        builder.adjust(2)
 
     return builder.as_markup()
 
@@ -131,23 +122,20 @@ async def cmd_my_channels(message: types.Message):
         # Agar foydalanuvchi birorta kanal qo'shmagan bo'lsa - klaviatura bilan xabar yuborish
         builder = InlineKeyboardBuilder()
         builder.button(
-            text=clean_btn_text(get_text('add_channel_btn', lang)),
+            text=clean_btn_text(get_text('add_new_channel_btn', lang)),
             callback_data=MyChannelsCallback(action="add_new").pack(),
             icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
         builder.button(
-            text=clean_btn_text(get_text('bundles_btn', lang)),
+            text=clean_btn_text(get_text('existing_bundles_btn', lang)),
             callback_data="bundle:list",
             icon_custom_emoji_id=EMOJI_BUNDLE
         )
-        builder.button(
-            text=get_text('back_btn', lang),
-            callback_data="cancel_action"
-        )
-        builder.adjust(2, 1)
+        builder.adjust(2)
         await message.answer(
             get_text('need_channel_msg', lang),
-            reply_markup=builder.as_markup()
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
         )
         return
 
@@ -167,45 +155,29 @@ async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMConte
     if not user_channels:
         builder = InlineKeyboardBuilder()
         builder.button(
-            text=get_text('add_channel_btn', lang),
-            callback_data=MyChannelsCallback(action="add_new").pack()
+            text=clean_btn_text(get_text('add_new_channel_btn', lang)),
+            callback_data=MyChannelsCallback(action="add_new").pack(),
+            icon_custom_emoji_id=EMOJI_ADD_CHANNEL
         )
         builder.button(
-            text=get_text('bundles_btn', lang),
-            callback_data="bundle:list"
+            text=clean_btn_text(get_text('existing_bundles_btn', lang)),
+            callback_data="bundle:list",
+            icon_custom_emoji_id=EMOJI_BUNDLE
         )
-        builder.button(
-            text=get_text('back_btn', lang),
-            callback_data="cancel_action"
+        builder.adjust(2)
+        await callback.message.answer(
+            get_text('need_channel_msg', lang),
+            reply_markup=builder.as_markup(),
+            parse_mode="HTML"
         )
-        builder.adjust(2, 1)
-        try:
-            await callback.message.edit_text(
-                get_text('need_channel_msg', lang),
-                reply_markup=builder.as_markup(),
-                parse_mode="HTML"
-            )
-        except Exception:
-            await callback.message.answer(
-                get_text('need_channel_msg', lang),
-                reply_markup=builder.as_markup(),
-                parse_mode="HTML"
-            )
         return
 
     keyboard = await get_my_channels_keyboard(user_id)
-    try:
-        await callback.message.edit_text(
-            get_text('choose_channel_msg', lang),
-            reply_markup=keyboard,
-            parse_mode="HTML"
-        )
-    except Exception:
-        await callback.message.answer(
-            get_text('choose_channel_msg', lang),
-            reply_markup=keyboard,
-            parse_mode="HTML"
-        )
+    await callback.message.answer(
+        get_text('choose_channel_msg', lang),
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "add_new"))
 async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContext):
