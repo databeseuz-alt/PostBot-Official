@@ -234,16 +234,13 @@ async def start_post_creation(event: types.Message | types.CallbackQuery, state:
     from xdata_handlers.database import get_user_channels
     user_channels = await get_user_channels(user.id)
     if not user_channels:
-        from post_handlers.send_handler import PostSending
         await state.clear()
-        await state.set_state(PostSending.waiting_for_channel_info)
-        await state.update_data(from_post_creation=True)
-        
-        need_channel_text = get_text('need_channel_instruction_msg', lang)
+        need_channel_text = get_text('need_channel_msg', lang)
 
         builder = InlineKeyboardBuilder()
-        cancel_text = get_text('cancel_btn', lang)
-        builder.button(text=cancel_text, callback_data="cancel_action")
+        builder.button(text=get_text('add_channel_btn', lang), callback_data="post:add_channel")
+        builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+        builder.adjust(1, 1)
         
         if isinstance(event, types.CallbackQuery):
             try:

@@ -19,6 +19,8 @@ class MyChannelsCallback(CallbackData, prefix="my_channels"):
     action: str
     channel_id: int | None = None
 
+from post_handlers.localize_filter import LocalizedText
+
 async def get_my_channels_keyboard(user_id: int):
     """Foydalanuvchi kanallari ro'yxati uchun inline klaviatura yaratadi."""
     builder = InlineKeyboardBuilder()
@@ -36,9 +38,17 @@ async def get_my_channels_keyboard(user_id: int):
                 text=channel['channel_name'],
                 callback_data=MyChannelsCallback(action="select", channel_id=channel['channel_id']).pack()
             )
-        builder.adjust(1, 3)
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data="cancel_action"
+        )
+        builder.adjust(1, 2, 1)
     else:
-        builder.adjust(1)
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data="cancel_action"
+        )
+        builder.adjust(1, 1)
 
     return builder.as_markup()
 
@@ -57,6 +67,7 @@ def get_channel_manage_keyboard(channel_id: int, lang: str = 'uzl'):
     return builder.as_markup()
 
 @mychannels_router.message(Command("mychannels"))
+@mychannels_router.message(LocalizedText('my_channels_btn'))
 async def cmd_my_channels(message: types.Message):
     """/mychannels buyrug'iga javob beradi va kanallar ro'yxatini ko'rsatadi."""
     user_id = message.from_user.id
@@ -70,7 +81,11 @@ async def cmd_my_channels(message: types.Message):
             text=get_text('add_channel_btn', lang),
             callback_data=MyChannelsCallback(action="add_new").pack()
         )
-        builder.adjust(1)
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data="cancel_action"
+        )
+        builder.adjust(1, 1)
         await message.answer(
             get_text('need_channel_msg', lang),
             reply_markup=builder.as_markup()
@@ -82,6 +97,52 @@ async def cmd_my_channels(message: types.Message):
         get_text('choose_channel_msg', lang),
         reply_markup=keyboard
     )
+
+@mychannels_router.callback_query(F.data == "main:my_channels")
+async def handle_main_my_channels(callback: types.CallbackQuery, state: FSMContext):
+    await callback.answer()
+    user_id = callback.from_user.id
+    user_channels = await get_user_channels(user_id)
+    lang = await get_user_language(user_id)
+
+    if not user_channels:
+        builder = InlineKeyboardBuilder()
+        builder.button(
+            text=get_text('add_channel_btn', lang),
+            callback_data=MyChannelsCallback(action="add_new").pack()
+        )
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data="cancel_action"
+        )
+        builder.adjust(1, 1)
+        try:
+            await callback.message.edit_text(
+                get_text('need_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        except Exception:
+            await callback.message.answer(
+                get_text('need_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
+        return
+
+    keyboard = await get_my_channels_keyboard(user_id)
+    try:
+        await callback.message.edit_text(
+            get_text('choose_channel_msg', lang),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+    except Exception:
+        await callback.message.answer(
+            get_text('choose_channel_msg', lang),
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
 
 @mychannels_router.callback_query(MyChannelsCallback.filter(F.action == "add_new"))
 async def handle_add_new_channel(callback: types.CallbackQuery, state: FSMContext):
