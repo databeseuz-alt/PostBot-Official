@@ -223,5 +223,16 @@
     "statistics_empty_msg": "📊 <b>Statistika yoxdur</b>\n\nHələ bot vasitəsilə heç bir post göndərməmisiniz.",
     "generating_statistics_msg": "📊 <b>Lütfən gözləyin ...</b>",
     "statistics_image_caption": "📊 <b>Kanal Statistikasi</b>",
-    "statistics_no_channel_msg": "<b>❌ Qoşulmuş kanal yoxdur</b>\n\nPost göndərmə statistikasını görmək üçün ən az bir kanal əlavə edin."
+    "statistics_no_channel_msg": "<b>❌ Qoşulmuş kanal yoxdur</b>\n\nPost göndərmə statistikasını görmək üçün ən az bir kanal əlavə edin.",
+    "turbo_mode_btn": "Turbo rejim",
+    "turbo_now_btn": "İndi dərc et",
+    "turbo_schedule_btn": "Cədvəl üzrə",
+    "turbo_already_active_now": "Sürətli paylaşım rejimi artıq aktivdir.\nMəzmununuzu göndərin — birbaşa kanala göndəriləcək.",
+    "turbo_already_active_schedule": "Cədvəl üzrə paylaşım rejimi artıq aktivdir.\nMəzmununuzu göndərin — cədvələ uyğun kanala göndəriləcək.",
+    "turbo_starting_msg": "{sparkle} <b>Turbo rejim işə düşür. Gözləyin!</b>",
+    "turbo_cancelled_msg": "❌ <b>Turbo göndəriş ləğv edildi.</b>",
+    "turbo_success_msg": "{sparkle} <b>Hazır {post_link} kanala göndərildi!</b>\n{channel_emoji} <b>Kanal :</b> {channel_link}\n\n<b>Nə edirik:</b>\n{bullet} Yeni postları göndərin\n{bullet} Turbo rejimindən çıxmaq üçün Əsas menyu düyməsinə basın",
+    "turbo_main_menu_btn": "Əsas menyu",
+    "exit_turbo_mode_btn": "❌ Turbo rejimindən çıx",
+    "exit_turbo_mode_msg": "Turbo rejimindən çıxıldı."
 }

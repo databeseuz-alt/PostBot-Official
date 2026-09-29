@@ -286,5 +286,16 @@
     "stats_best_time_intro": "Sizning postlaringiz o'rtacha ko'rishlar bo'yicha eng samarali vaqtlar:",
     "stats_avg_views_label": "o'rtacha",
     "stats_posts_word": "post",
-    "stats_best_time_advice": "💡 Tavsiya: keyingi muhim postni <b>{hour}</b> da joylashtirish eng samarali bo'lishi mumkin."
+    "stats_best_time_advice": "💡 Tavsiya: keyingi muhim postni <b>{hour}</b> da joylashtirish eng samarali bo'lishi mumkin.",
+    "turbo_mode_btn": "Turbo rejim",
+    "turbo_now_btn": "Hozir chop etish",
+    "turbo_schedule_btn": "Jadval bo'yicha",
+    "turbo_already_active_now": "Tezkor postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u to'g'ridan-to'g'ri kanalga ketadi.",
+    "turbo_already_active_schedule": "Jadval bo'yicha postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u belgilangan jadval bo'yicha kanalga ketadi.",
+    "turbo_starting_msg": "{sparkle} <b>Turbo rejim ishga tushirilmoqda. Kuting!</b>",
+    "turbo_cancelled_msg": "❌ <b>Turbo yuborish bekor qilindi.</b>",
+    "turbo_success_msg": "{sparkle} <b>Tayyor {post_link} yuborildi!</b>\n{channel_emoji} <b>Kanal :</b> {channel_link}\n\n<b>Nima qilamiz:</b>\n{bullet} Yangi postlarni yuboring\n{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing",
+    "turbo_main_menu_btn": "Bosh menyu",
+    "exit_turbo_mode_btn": "❌ Turbo rejimdan chiqish",
+    "exit_turbo_mode_msg": "Turbo rejimdan chiqildi."
 }

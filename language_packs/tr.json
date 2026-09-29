@@ -223,5 +223,16 @@
     "statistics_empty_msg": "📊 <b>İstatistik yok</b>\n\nHenüz bot aracılığıyla gönderi göndermediniz.",
     "generating_statistics_msg": "📊 <b>Lütfen bekleyin ...</b>",
     "statistics_image_caption": "📊 <b>Kanal İstatistikleri</b>",
-    "statistics_no_channel_msg": "<b>❌ Bağlı kanal yok</b>\n\nGönderme istatistiklerini görmek için en az bir kanal ekleyin."
+    "statistics_no_channel_msg": "<b>❌ Bağlı kanal yok</b>\n\nGönderme istatistiklerini görmek için en az bir kanal ekleyin.",
+    "turbo_mode_btn": "Turbo modu",
+    "turbo_now_btn": "Şimdi yayınla",
+    "turbo_schedule_btn": "Zamanlamaya göre",
+    "turbo_already_active_now": "Hızlı yayınlama modu zaten etkin.\nİçeriğinizi gönderin — doğrudan kanala gidecektir.",
+    "turbo_already_active_schedule": "Zamanlanmış yayınlama modu zaten etkin.\nİçeriğinizi gönderin — programa göre kanala gidecektir.",
+    "turbo_starting_msg": "{sparkle} <b>Turbo modu başlatılıyor. Bekleyin!</b>",
+    "turbo_cancelled_msg": "❌ <b>Turbo gönderim iptal edildi.</b>",
+    "turbo_success_msg": "{sparkle} <b>Hazır {post_link} kanala gönderildi!</b>\n{channel_emoji} <b>Kanal :</b> {channel_link}\n\n<b>Ne yapalım:</b>\n{bullet} Yeni gönderiler gönderin\n{bullet} Turbo modundan çıkmak için Ana menü düğmesine basın",
+    "turbo_main_menu_btn": "Ana menü",
+    "exit_turbo_mode_btn": "❌ Turbo modundan çık",
+    "exit_turbo_mode_msg": "Turbo modundan çıkıldı."
 }

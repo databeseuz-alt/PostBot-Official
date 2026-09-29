@@ -223,5 +223,16 @@
     "statistics_empty_msg": "📊 <b>Aucune Statistique Disponible</b>\n\nVous n'avez pas encore envoyé de publications via le bot.",
     "generating_statistics_msg": "📊 <b>Veuillez patienter ...</b>",
     "statistics_image_caption": "📊 <b>Statistiques de la Chaîne</b>",
-    "statistics_no_channel_msg": "<b>❌ Aucune chaîne connectée</b>\n\nAjoutez au moins une chaîne pour voir les statistiques d'envoi de publications."
+    "statistics_no_channel_msg": "<b>❌ Aucune chaîne connectée</b>\n\nAjoutez au moins une chaîne pour voir les statistiques d'envoi de publications.",
+    "turbo_mode_btn": "Turbo mode",
+    "turbo_now_btn": "Publish now",
+    "turbo_schedule_btn": "By schedule",
+    "turbo_already_active_now": "Fast posting mode is already active.\nJust send your content — it goes directly to the channel.",
+    "turbo_already_active_schedule": "Scheduled posting mode is already active.\nJust send your content — it will be posted by schedule.",
+    "turbo_starting_msg": "{sparkle} <b>Starting Turbo mode. Please wait!</b>",
+    "turbo_cancelled_msg": "❌ <b>Turbo sending cancelled.</b>",
+    "turbo_success_msg": "{sparkle} <b>Done, {post_link} has been sent!</b>\n{channel_emoji} <b>Channel :</b> {channel_link}\n\n<b>What's next:</b>\n{bullet} Send new posts\n{bullet} Press Main menu button to exit Turbo mode",
+    "turbo_main_menu_btn": "Main menu",
+    "exit_turbo_mode_btn": "❌ Exit Turbo mode",
+    "exit_turbo_mode_msg": "Exited Turbo mode."
 }
