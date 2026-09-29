@@ -417,18 +417,21 @@ async def show_scheduled_posts_list(callback: types.CallbackQuery, state: FSMCon
     await callback.answer()
 
 
-async def show_scheduled_posts_for_message(message: types.Message, state: FSMContext, bot: Bot):
+async def show_scheduled_posts_for_message(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot, user_id: int = None):
     """Asosiy menyu tugmasi orqali ro'yxatni ko'rsatish (start_handler delegatsiya qiladi)."""
-    user_id = message.from_user.id
+    if user_id is None:
+        user_id = event.from_user.id
+    target_message = event.message if isinstance(event, types.CallbackQuery) else event
+    is_edit = isinstance(event, types.CallbackQuery)
     await state.clear()
     lang = await get_user_language(user_id)
 
     try:
         posts = await get_user_scheduled_posts(user_id)
-        await _render_schedules(message, posts, lang, edit=False)
+        await _render_schedules(target_message, posts, lang, edit=is_edit)
     except Exception as e:
         await log_bot_error("show_scheduled_posts_for_message", e, user_id=user_id)
-        await message.answer(get_text('unknown_error', lang))
+        await target_message.answer(get_text('unknown_error', lang))
 
 
 async def _render_schedules(target: types.Message, posts: list, lang: str, edit: bool):

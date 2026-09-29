@@ -570,9 +570,13 @@ async def generate_channel_statistics_image(user_id: int, lang: str = 'uzl', bot
 
 
 @statistic_router.message(LocalizedText('statistic_btn'))
-async def handle_generate_statistics(message: types.Message, state: FSMContext, bot: Bot):
+@statistic_router.callback_query(F.data == "main:statistic")
+async def handle_generate_statistics(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot, user_id: int = None):
     """Statistika tugmasi bosilganda statistikani yaratadi (faqat kanal ulaganlar uchun)"""
-    user_id = message.from_user.id
+    if user_id is None:
+        user_id = event.from_user.id
+
+    message = event.message if isinstance(event, types.CallbackQuery) else event
     lang = await get_user_language(user_id)
 
     # Foydalanuvchi kanal ulaganligni tekshirish
@@ -584,11 +588,30 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
             text=get_text('add_channel_btn', lang),
             callback_data=AddChannelFromStatsCallback(action="add").pack()
         )
-        builder.adjust(1)
-        await message.answer(
-            get_text('statistics_no_channel_msg', lang),
-            reply_markup=builder.as_markup()
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data="cancel_action"
         )
+        builder.adjust(1, 1)
+        if isinstance(event, types.CallbackQuery):
+            try:
+                await event.message.edit_text(
+                    get_text('statistics_no_channel_msg', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+            except Exception:
+                await event.message.answer(
+                    get_text('statistics_no_channel_msg', lang),
+                    reply_markup=builder.as_markup(),
+                    parse_mode="HTML"
+                )
+        else:
+            await message.answer(
+                get_text('statistics_no_channel_msg', lang),
+                reply_markup=builder.as_markup(),
+                parse_mode="HTML"
+            )
         return
 
     if len(user_channels) > 1:
@@ -602,13 +625,31 @@ async def handle_generate_statistics(message: types.Message, state: FSMContext, 
                 text=ch.get('channel_name', 'Kanal'),
                 callback_data=StatChannelSelectCallback(channel_id=str(ch.get('channel_id'))).pack()
             )
+        builder.button(
+            text=get_text('back_btn', lang),
+            callback_data="cancel_action"
+        )
         builder.adjust(1)
         
-        await message.answer(
-            "📊 Qaysi kanal statistikasini ko'rmoqchisiz? Iltimos, kanalni tanlang:",
-            reply_markup=builder.as_markup()
-        )
+        choose_text = "📊 Qaysi kanal statistikasini ko'rmoqchisiz? Iltimos, kanalni tanlang:"
+        if isinstance(event, types.CallbackQuery):
+            try:
+                await event.message.edit_text(choose_text, reply_markup=builder.as_markup())
+            except Exception:
+                await event.message.answer(choose_text, reply_markup=builder.as_markup())
+        else:
+            await message.answer(
+                choose_text,
+                reply_markup=builder.as_markup()
+            )
         return
+
+    # Agar bitta kanal bo'lsa
+    if isinstance(event, types.CallbackQuery):
+        try:
+            await event.message.delete()
+        except Exception:
+            pass
 
     # Yuklanayotgan xabar
     loading_msg = await message.answer(get_text('generating_statistics_msg', lang))
@@ -696,9 +737,19 @@ async def handle_stat_channel_selection(callback: types.CallbackQuery, callback_
 @statistic_router.callback_query(AddChannelFromStatsCallback.filter(F.action == "add"))
 async def handle_add_channel_from_stats(callback: types.CallbackQuery, state: FSMContext):
     """Statistika bo'limidan kanal qo'shish tugmasi bosilganda."""
-    await callback.message.delete()
-    from post_handlers.send_handler import cmd_add_channel
-    await cmd_add_channel(callback.message, state)
+    lang = await get_user_language(callback.from_user.id)
+    from post_handlers.send_handler import PostSending
+    await state.clear()
+    await state.set_state(PostSending.waiting_for_channel_info)
+
+    builder = InlineKeyboardBuilder()
+    builder.button(text=get_text('cancel_btn', lang), callback_data="cancel_action")
+
+    add_channel_text = get_text('add_channel_msg', lang)
+    try:
+        await callback.message.edit_text(add_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+    except Exception:
+        await callback.message.answer(add_channel_text, reply_markup=builder.as_markup(), parse_mode="HTML")
     await callback.answer()
 
 
