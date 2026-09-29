@@ -709,7 +709,8 @@ async def execute_send_post(
             )
 
         if sent_message:
-            channel_name = data.get('selected_channel_name', '')
+            if not channel_name:
+                channel_name = data.get('selected_channel_name', '')
             await save_sent_post(
                 post_code=post_code,
                 user_id=user_id,
@@ -741,37 +742,64 @@ async def execute_send_post(
                     schedule_message_deletion(bot, channel_id, sent_message.message_id, delete_timer_seconds)
                 )
 
-        display_channel_name = channel_name or (await state.get_data() if state else {}).get('selected_channel_name', '')
+        display_channel_name = channel_name or data.get('selected_channel_name', '')
+
+        # Kanal ma'lumotlarini olish va havolani shakllantirish
+        chat = None
+        try:
+            chat = await bot.get_chat(channel_id)
+            if not display_channel_name and getattr(chat, 'title', None):
+                display_channel_name = chat.title
+        except Exception as e:
+            logger.warning(f"get_chat error for channel {channel_id}: {e}")
+
+        if not display_channel_name:
+            from xdata_handlers.database import get_channel_name
+            display_channel_name = await get_channel_name(user_id, channel_id) or "Kanal"
+
+        post_url = ""
+        channel_url = ""
+        clean_id = str(channel_id).replace("-100", "").replace("-", "")
+
+        if chat:
+            username = getattr(chat, 'username', None)
+            if username:
+                post_url = f"https://t.me/{username}/{sent_message.message_id}" if sent_message else f"https://t.me/{username}"
+                channel_url = f"https://t.me/{username}"
+            else:
+                post_url = f"https://t.me/c/{clean_id}/{sent_message.message_id}" if sent_message else f"https://t.me/c/{clean_id}"
+                invite_link = getattr(chat, 'invite_link', None)
+                if not invite_link:
+                    try:
+                        invite_link = await bot.export_chat_invite_link(channel_id)
+                    except Exception:
+                        invite_link = None
+                channel_url = invite_link or f"https://t.me/c/{clean_id}"
+        else:
+            post_url = f"https://t.me/c/{clean_id}/{sent_message.message_id}" if sent_message else f"https://t.me/c/{clean_id}"
+            channel_url = f"https://t.me/c/{clean_id}"
+
+        safe_channel_title = html.escape(display_channel_name.strip() or "Kanal")
+        if channel_url:
+            channel_link = f'<a href="{channel_url}">{safe_channel_title}</a>'
+        else:
+            channel_link = safe_channel_title
 
         if not is_turbo and state:
             state_data = await state.get_data()
             is_turbo = state_data.get('turbo_mode', False) or state_data.get('turbo_enabled', False)
 
         if is_turbo:
-            post_url = ""
-            channel_url = ""
-            try:
-                chat = await bot.get_chat(channel_id)
-                username = getattr(chat, 'username', None)
-                if username:
-                    post_url = f"https://t.me/{username}/{sent_message.message_id}"
-                    channel_url = f"https://t.me/{username}"
-                else:
-                    clean_id = str(channel_id).replace("-100", "").replace("-", "")
-                    post_url = f"https://t.me/c/{clean_id}/{sent_message.message_id}"
-                    channel_url = getattr(chat, 'invite_link', None) or f"https://t.me/c/{clean_id}"
-            except Exception:
-                clean_id = str(channel_id).replace("-100", "").replace("-", "")
-                post_url = f"https://t.me/c/{clean_id}/{sent_message.message_id}"
-                channel_url = f"https://t.me/c/{clean_id}"
+            if post_url:
+                post_link = f'<a href="{post_url}">post</a>'
+            else:
+                post_link = "post"
 
-            post_link = f'<a href="{post_url}">post</a>'
-            channel_link = f'<a href="{channel_url}">{html.escape(display_channel_name)}</a>'
             sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
 
             if lang == 'ru':
                 success_text = (
-                    f"{sparkle} <b>Готово, {post_link} отправлен в канал!</b>\n"
+                    f"{sparkle} <b>Готово, {post_link} отправлен!</b>\n"
                     f"<b>Канал :</b> {channel_link}\n\n"
                     f"<b>Что делаем:</b>\n"
                     f"▫️ Отправляйте новые посты\n"
@@ -779,7 +807,7 @@ async def execute_send_post(
                 )
             elif lang == 'en':
                 success_text = (
-                    f"{sparkle} <b>Done, {post_link} has been sent to the channel!</b>\n"
+                    f"{sparkle} <b>Done, {post_link} has been sent!</b>\n"
                     f"<b>Channel :</b> {channel_link}\n\n"
                     f"<b>What's next:</b>\n"
                     f"▫️ Send new posts\n"
@@ -787,7 +815,7 @@ async def execute_send_post(
                 )
             elif lang == 'uzk':
                 success_text = (
-                    f"{sparkle} <b>Тайёр {post_link} каналга юборилди!</b>\n"
+                    f"{sparkle} <b>Тайёр {post_link} юборилди!</b>\n"
                     f"<b>Канал :</b> {channel_link}\n\n"
                     f"<b>Нима қиламиз:</b>\n"
                     f"▫️ Янги постларни юборинг\n"
@@ -795,7 +823,7 @@ async def execute_send_post(
                 )
             else:
                 success_text = (
-                    f"{sparkle} <b>Tayyor {post_link} kanalga yuborildi!</b>\n"
+                    f"{sparkle} <b>Tayyor {post_link} yuborildi!</b>\n"
                     f"<b>Kanal :</b> {channel_link}\n\n"
                     f"<b>Nima qilamiz:</b>\n"
                     f"▫️ Yangi postlarni yuboring\n"
