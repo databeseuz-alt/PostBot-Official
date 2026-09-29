@@ -294,7 +294,7 @@
     "turbo_already_active_schedule": "Jadval bo'yicha postlash rejimi allaqachon faol.\nFaqat kontentingizni yuboring — u belgilangan jadval bo'yicha kanalga ketadi.",
     "turbo_starting_msg": "{sparkle} <b>Turbo rejim ishga tushirilmoqda. Kuting!</b>",
     "turbo_cancelled_msg": "❌ <b>Turbo yuborish bekor qilindi.</b>",
-    "turbo_success_msg": "{sparkle} <b>Tayyor {post_link} yuborildi!</b>\n{channel_emoji} <b>Kanal :</b> {channel_link}\n\n<b>Nima qilamiz:</b>\n{bullet} Yangi postlarni yuboring\n{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing",
+    "turbo_success_msg": "{sparkle} <b>Tayyor {post_link} yuborildi !</b>\n{channel_emoji} <b>Kanal :</b> {channel_link}\n\n<b>Nima qilamiz:</b>\n{bullet} Yangi postlarni yuboring\n{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing",
     "turbo_main_menu_btn": "Bosh menyu",
     "exit_turbo_mode_btn": "❌ Turbo rejimdan chiqish",
     "exit_turbo_mode_msg": "Turbo rejimdan chiqildi.",

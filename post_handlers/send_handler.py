@@ -784,10 +784,7 @@ async def execute_send_post(
             is_turbo = state_data.get('turbo_mode', False) or state_data.get('turbo_enabled', False)
 
         if is_turbo:
-            if post_url:
-                post_link = f'<a href="{post_url}">post</a>'
-            else:
-                post_link = "post"
+            post_link = "пост" if lang in ['ru', 'uzk', 'tj', 'kg'] else "post"
 
             sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
             channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'

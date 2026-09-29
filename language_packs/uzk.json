@@ -238,7 +238,7 @@
     "turbo_already_active_schedule": "Жадвал бўйича постлаш режими аллақачон фаол.\nФақат контентингизни юборинг — у белгиланган жадвал бўйича каналга кетади.",
     "turbo_starting_msg": "{sparkle} <b>Турбо режим ишга туширилмоқда. Кутинг!</b>",
     "turbo_cancelled_msg": "❌ <b>Турбо юбориш бекор қилинди.</b>",
-    "turbo_success_msg": "{sparkle} <b>Тайёр {post_link} юборилди!</b>\n{channel_emoji} <b>Канал :</b> {channel_link}\n\n<b>Нима қиламиз:</b>\n{bullet} Янги постларни юборинг\n{bullet} Турбо режимдан чиқиш учун Бош меню тугмасини босинг",
+    "turbo_success_msg": "{sparkle} <b>Тайёр {post_link} юборилди !</b>\n{channel_emoji} <b>Канал :</b> {channel_link}\n\n<b>Нима қиламиз:</b>\n{bullet} Янги постларни юборинг\n{bullet} Турбо режимдан чиқиш учун Бош меню тугмасини босинг",
     "turbo_main_menu_btn": "Бош меню",
     "exit_turbo_mode_btn": "❌ Турбо режимдан чиқиш",
     "exit_turbo_mode_msg": "Турбо режимдан чиқилди.",
