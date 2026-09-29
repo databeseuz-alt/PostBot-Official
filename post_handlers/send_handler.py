@@ -796,11 +796,12 @@ async def execute_send_post(
                 post_link = "post"
 
             sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
+            channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
 
             if lang == 'ru':
                 success_text = (
                     f"{sparkle} <b>Готово, {post_link} отправлен!</b>\n"
-                    f"<b>Канал :</b> {channel_link}\n\n"
+                    f"{channel_emoji} <b>Канал :</b> {channel_link}\n\n"
                     f"<b>Что делаем:</b>\n"
                     f"▫️ Отправляйте новые посты\n"
                     f"▫️ Или нажмите любую кнопку, чтобы выйти из режима Турбо отправки"
@@ -808,7 +809,7 @@ async def execute_send_post(
             elif lang == 'en':
                 success_text = (
                     f"{sparkle} <b>Done, {post_link} has been sent!</b>\n"
-                    f"<b>Channel :</b> {channel_link}\n\n"
+                    f"{channel_emoji} <b>Channel :</b> {channel_link}\n\n"
                     f"<b>What's next:</b>\n"
                     f"▫️ Send new posts\n"
                     f"▫️ Or press any button to exit Turbo mode"
@@ -816,7 +817,7 @@ async def execute_send_post(
             elif lang == 'uzk':
                 success_text = (
                     f"{sparkle} <b>Тайёр {post_link} юборилди!</b>\n"
-                    f"<b>Канал :</b> {channel_link}\n\n"
+                    f"{channel_emoji} <b>Канал :</b> {channel_link}\n\n"
                     f"<b>Нима қиламиз:</b>\n"
                     f"▫️ Янги постларни юборинг\n"
                     f"▫️ Ёки Турбо Юбориш режимидан чиқиш учун ҳар қандай тугмани босинг"
@@ -824,7 +825,7 @@ async def execute_send_post(
             else:
                 success_text = (
                     f"{sparkle} <b>Tayyor {post_link} yuborildi!</b>\n"
-                    f"<b>Kanal :</b> {channel_link}\n\n"
+                    f"{channel_emoji} <b>Kanal :</b> {channel_link}\n\n"
                     f"<b>Nima qilamiz:</b>\n"
                     f"▫️ Yangi postlarni yuboring\n"
                     f"▫️ Yoki Turbo Yuborish rejimidan chiqish uchun har qanday tugmani bosing"
