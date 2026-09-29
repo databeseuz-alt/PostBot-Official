@@ -2,7 +2,7 @@ import html
 import logging
 
 from aiogram import F, Router, types, Bot
-from aiogram.filters import CommandStart, Command, StateFilter
+from aiogram.filters import CommandStart, Command, StateFilter, CommandObject
 from aiogram.fsm.context import FSMContext
 from aiogram.types import ReplyKeyboardRemove
 from aiogram.utils.keyboard import InlineKeyboardBuilder, InlineKeyboardButton
@@ -15,6 +15,7 @@ from post_handlers.post_handler import PostCreation
 from post_handlers.send_handler import PostSending
 from xdata_handlers import config
 from post_handlers.localize_filter import LocalizedText
+from post_handlers.custom_emojis import EMOJI_SAVE, clean_btn_text
 
 start_router = Router()
 logger = logging.getLogger(__name__)
@@ -64,7 +65,7 @@ async def show_main_menu(event: types.Message | types.CallbackQuery, state: FSMC
             await event.message.answer(start_text, reply_markup=main_menu_keyboard)
 
 @start_router.message(CommandStart(), StateFilter("*"), F.forward_from.is_(None))
-async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot):
+async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContext, bot: Bot, command: CommandObject = None):
     user = event.from_user
 
     from xdata_handlers.database import get_user_language
@@ -86,6 +87,44 @@ async def cmd_start(event: types.Message | types.CallbackQuery, state: FSMContex
             except Exception:
                 pass
         return
+
+    # Check for bundle share deep link: /start bnd_<owner_id>_<bundle_id>
+    if command and command.args and command.args.startswith("bnd_"):
+        parts = command.args.split("_", 2)
+        if len(parts) >= 3:
+            try:
+                owner_id = int(parts[1])
+                bundle_id = parts[2]
+                from xdata_handlers.database import get_user_channel_bundles, get_user_channels
+                owner_bundles = await get_user_channel_bundles(owner_id)
+                bundle = next((b for b in owner_bundles if b.get('id') == bundle_id), None)
+                if bundle:
+                    owner_channels = await get_user_channels(owner_id)
+                    ch_map = {ch['channel_id']: ch['channel_name'] for ch in owner_channels}
+                    channel_lines = [f"• {html.escape(ch_map.get(cid, str(cid)))}" for cid in bundle.get('channel_ids', [])]
+                    channel_list_str = "\n".join(channel_lines) if channel_lines else get_text('bundle_no_channels_yet', current_lang)
+
+                    import_text = get_text('bundle_shared_import_prompt', current_lang).format(
+                        bundle_name=html.escape(bundle.get('name', "To'plam")),
+                        count=len(bundle.get('channel_ids', [])),
+                        channel_list=channel_list_str
+                    )
+
+                    builder = InlineKeyboardBuilder()
+                    builder.button(
+                        text=clean_btn_text(get_text('bundle_import_save_btn', current_lang)),
+                        callback_data=f"bundle:import:{owner_id}:{bundle_id}",
+                        icon_custom_emoji_id=EMOJI_SAVE
+                    )
+                    builder.button(
+                        text=get_text('cancel_btn', current_lang),
+                        callback_data="cancel_action"
+                    )
+                    builder.adjust(1)
+                    await event.answer(import_text, reply_markup=builder.as_markup(), parse_mode="HTML")
+                    return
+            except Exception as e:
+                logger.error(f"Error handling shared bundle deep link: {e}")
 
     await show_main_menu(event, state, bot)
 
