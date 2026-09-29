@@ -259,5 +259,13 @@
     "bundle_details": "📁 <b>Тўплам:</b> {bundle_name}\n\n📢 <b>Уланган каналлар ({count} та):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Тўпламни ўчириш",
     "save_bundle_btn": "💾 Сақлаш",
-    "bundle_no_channels_selected": "⚠️ Илтимос, камида битта канални танланг!"
+    "bundle_no_channels_selected": "⚠️ Илтимос, камида битта канални танланг!",
+    "add_to_bundle_btn": "📁 Тўпламга қўшиш",
+    "choose_bundle_to_add": "📁 <b>Қайси тўпламга қўшилсин?</b>\n\nКанални қўшмоқчи бўлган тўпламни танланг:",
+    "channel_added_to_bundle_success": "✅ <b>{channel_name}</b> канали <b>«{bundle_name}»</b> тўпламига муваффақиятли қўшилди!",
+    "add_channels_to_bundle_btn": "➕ Канал қўшиш",
+    "bundle_channels_updated_success": "✅ Тўплам каналлари муваффақиятли янгиланди!",
+    "bundle_no_channels_yet": "<i>Ушбу тўпламда ҳали каналлар йўқ.</i>",
+    "bundle_channel_already_in_all": "ℹ️ Ушбу канал барча мавжуд тўпламларга қўшилган!",
+    "channel_not_in_any_bundle": "⚠️ Ушбу канал бирорта ҳам тўпламга киритилмаган."
 }

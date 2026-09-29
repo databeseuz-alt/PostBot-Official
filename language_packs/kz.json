@@ -252,5 +252,13 @@
     "bundle_details": "📁 <b>Bundle:</b> {bundle_name}\n\n📢 <b>Channels ({count}):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Delete bundle",
     "save_bundle_btn": "💾 Save",
-    "bundle_no_channels_selected": "⚠️ Please select at least one channel!"
+    "bundle_no_channels_selected": "⚠️ Please select at least one channel!",
+    "add_to_bundle_btn": "📁 Топтамаға қосу",
+    "choose_bundle_to_add": "📁 <b>Қай топтамаға қосылсын?</b>\n\nАрнаны қосқыңыз келетін топтаманы таңдаңыз:",
+    "channel_added_to_bundle_success": "✅ <b>{channel_name}</b> арнасы <b>«{bundle_name}»</b> топтамасына сәтті қосылды!",
+    "add_channels_to_bundle_btn": "➕ Арна қосу",
+    "bundle_channels_updated_success": "✅ Топтама арналары сәтті жаңартылды!",
+    "bundle_no_channels_yet": "<i>Бұл топтамада әзірге арналар жоқ.</i>",
+    "bundle_channel_already_in_all": "ℹ️ Бұл арна барлық қолжетімді топтамаларға қосылған!",
+    "channel_not_in_any_bundle": "⚠️ Бұл арна әзірге ешбір топтамаға қосылмаған."
 }

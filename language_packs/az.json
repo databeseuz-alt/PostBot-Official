@@ -252,5 +252,13 @@
     "bundle_details": "📁 <b>Bundle:</b> {bundle_name}\n\n📢 <b>Channels ({count}):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Delete bundle",
     "save_bundle_btn": "💾 Save",
-    "bundle_no_channels_selected": "⚠️ Please select at least one channel!"
+    "bundle_no_channels_selected": "⚠️ Please select at least one channel!",
+    "add_to_bundle_btn": "📁 Topluya əlavə et",
+    "choose_bundle_to_add": "📁 <b>Hansı topluya əlavə edilsin?</b>\n\nKanalı əlavə etmək istədiyiniz toplunu seçin:",
+    "channel_added_to_bundle_success": "✅ <b>{channel_name}</b> kanalı <b>«{bundle_name}»</b> toplusuna uğurla əlavə edildi!",
+    "add_channels_to_bundle_btn": "➕ Kanal əlavə et",
+    "bundle_channels_updated_success": "✅ Toplu kanalları uğurla yeniləndi!",
+    "bundle_no_channels_yet": "<i>Bu topluda hələ kanal yoxdur.</i>",
+    "bundle_channel_already_in_all": "ℹ️ Bu kanal artıq bütün mövcud toplulara əlavə edilib!",
+    "channel_not_in_any_bundle": "⚠️ Bu kanal hələ heç bir topluya daxil edilməyib."
 }

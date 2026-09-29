@@ -307,5 +307,13 @@
     "bundle_details": "📁 <b>Bundle:</b> {bundle_name}\n\n📢 <b>Channels ({count}):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Delete bundle",
     "save_bundle_btn": "💾 Save",
-    "bundle_no_channels_selected": "⚠️ Please select at least one channel!"
+    "bundle_no_channels_selected": "⚠️ Please select at least one channel!",
+    "add_to_bundle_btn": "📁 Add to collection",
+    "choose_bundle_to_add": "📁 <b>Which collection to add to?</b>\n\nSelect the collection you want to add the channel to:",
+    "channel_added_to_bundle_success": "✅ Channel <b>{channel_name}</b> successfully added to collection <b>«{bundle_name}»</b>!",
+    "add_channels_to_bundle_btn": "➕ Add channels",
+    "bundle_channels_updated_success": "✅ Collection channels successfully updated!",
+    "bundle_no_channels_yet": "<i>There are no channels in this collection yet.</i>",
+    "bundle_channel_already_in_all": "ℹ️ This channel is already in all available collections!",
+    "channel_not_in_any_bundle": "⚠️ This channel is not included in any collection yet."
 }

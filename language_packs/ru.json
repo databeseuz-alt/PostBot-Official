@@ -298,5 +298,13 @@
     "bundle_details": "📁 <b>Набор:</b> {bundle_name}\n\n📢 <b>Каналы ({count}):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Удалить набор",
     "save_bundle_btn": "💾 Сохранить",
-    "bundle_no_channels_selected": "⚠️ Пожалуйста, выберите хотя бы один канал!"
+    "bundle_no_channels_selected": "⚠️ Пожалуйста, выберите хотя бы один канал!",
+    "add_to_bundle_btn": "📁 Добавить в набор",
+    "choose_bundle_to_add": "📁 <b>В какой набор добавить?</b>\n\nВыберите набор, в который хотите добавить канал:",
+    "channel_added_to_bundle_success": "✅ Канал <b>{channel_name}</b> успешно добавлен в набор <b>«{bundle_name}»</b>!",
+    "add_channels_to_bundle_btn": "➕ Добавить каналы",
+    "bundle_channels_updated_success": "✅ Каналы набора успешно обновлены!",
+    "bundle_no_channels_yet": "<i>В этом наборе пока нет каналов.</i>",
+    "bundle_channel_already_in_all": "ℹ️ Этот канал уже добавлен во все доступные наборы!",
+    "channel_not_in_any_bundle": "⚠️ Этот канал пока не входит ни в один набор."
 }

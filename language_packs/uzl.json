@@ -315,5 +315,13 @@
     "bundle_details": "📁 <b>To'plam:</b> {bundle_name}\n\n📢 <b>Ulangan kanallar ({count} ta):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 To'plamni o'chirish",
     "save_bundle_btn": "💾 Saqlash",
-    "bundle_no_channels_selected": "⚠️ Iltimos, kamida bitta kanalni tanlang!"
+    "bundle_no_channels_selected": "⚠️ Iltimos, kamida bitta kanalni tanlang!",
+    "add_to_bundle_btn": "📁 To'plamga qo'shish",
+    "choose_bundle_to_add": "📁 <b>Qaysi to'plamga qo'shilsin?</b>\n\nKanalni qo'shmoqchi bo'lgan to'plamni tanlang:",
+    "channel_added_to_bundle_success": "✅ <b>{channel_name}</b> kanali <b>«{bundle_name}»</b> to'plamiga muvaffaqiyatli qo'shildi!",
+    "add_channels_to_bundle_btn": "➕ Kanal qo'shish",
+    "bundle_channels_updated_success": "✅ To'plam kanallari muvaffaqiyatli yangilandi!",
+    "bundle_no_channels_yet": "<i>Ushbu to'plamda hali kanallar yo'q.</i>",
+    "bundle_channel_already_in_all": "ℹ️ Ushbu kanal barcha mavjud to'plamlarga qo'shilgan!",
+    "channel_not_in_any_bundle": "⚠️ Ushbu kanal birorta ham to'plamga kiritilmagan."
 }

@@ -252,5 +252,13 @@
     "bundle_details": "📁 <b>Bundle:</b> {bundle_name}\n\n📢 <b>Channels ({count}):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Delete bundle",
     "save_bundle_btn": "💾 Save",
-    "bundle_no_channels_selected": "⚠️ Please select at least one channel!"
+    "bundle_no_channels_selected": "⚠️ Please select at least one channel!",
+    "add_to_bundle_btn": "📁 Ба коллексия илова кардан",
+    "choose_bundle_to_add": "📁 <b>Ба кадом коллексия илова шавад?</b>\n\nКоллексияеро интихоб кунед, ки мехоҳед каналро илова кунед:",
+    "channel_added_to_bundle_success": "✅ Канали <b>{channel_name}</b> бо муваффақият ба коллексияи <b>«{bundle_name}»</b> илова шуд!",
+    "add_channels_to_bundle_btn": "➕ Илова кардани канал",
+    "bundle_channels_updated_success": "✅ Каналҳои коллексия бо муваффақият нав карда шуданд!",
+    "bundle_no_channels_yet": "<i>Дар ин коллексия ҳоло каналҳо нестанд.</i>",
+    "bundle_channel_already_in_all": "ℹ️ Ин канал аллакай ба ҳамаи коллексияҳо илова шудааст!",
+    "channel_not_in_any_bundle": "⚠️ Ин канал ҳоло ба ягон коллексия дохил нашудааст."
 }

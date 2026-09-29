@@ -252,5 +252,13 @@
     "bundle_details": "📁 <b>Bundle:</b> {bundle_name}\n\n📢 <b>Channels ({count}):</b>\n{channel_list}",
     "delete_bundle_btn": "🗑 Delete bundle",
     "save_bundle_btn": "💾 Save",
-    "bundle_no_channels_selected": "⚠️ Please select at least one channel!"
+    "bundle_no_channels_selected": "⚠️ Please select at least one channel!",
+    "add_to_bundle_btn": "📁 إضافة إلى المجموعة",
+    "choose_bundle_to_add": "📁 <b>إلى أي مجموعة تريد الإضافة؟</b>\n\nاختر المجموعة التي ترغب في إضافة القناة إليها:",
+    "channel_added_to_bundle_success": "✅ تم بنجاح إضافة القناة <b>{channel_name}</b> إلى المجموعة <b>«{bundle_name}»</b>!",
+    "add_channels_to_bundle_btn": "➕ إضافة قنوات",
+    "bundle_channels_updated_success": "✅ تم تحديث قنوات المجموعة بنجاح!",
+    "bundle_no_channels_yet": "<i>لا توجد قنوات في هذه المجموعة حتى الآن.</i>",
+    "bundle_channel_already_in_all": "ℹ️ هذه القناة موجودة بالفعل في جميع المجموعات المتاحة!",
+    "channel_not_in_any_bundle": "⚠️ هذه القناة غير مضافة إلى أي مجموعة حتى الآن."
 }
