@@ -335,6 +335,74 @@ async def select_channel_handler(callback: types.CallbackQuery, callback_data: P
 
     await callback.answer()
 
+@send_router.callback_query(PostSending.choosing_channel_to_send, PostSendCallbackFactory.filter(F.action == "select_bundle"))
+async def select_bundle_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, state: FSMContext, bot: Bot):
+    """To'plam tanlagandan keyin: Qachon yuborilsin? oynasini ko'rsatadi yoki Turbo yuboradi."""
+    from post_handlers.xinline_keyboard import get_send_timing_keyboard
+
+    user_id = callback.from_user.id
+    lang = await get_user_language(user_id)
+    bundle_id = callback_data.bundle_id
+    bundle = await get_user_channel_bundle_by_id(user_id, bundle_id)
+
+    if not bundle or not bundle.get('channel_ids'):
+        await callback.answer(get_text('bundle_no_channels_selected', lang), show_alert=True)
+        return
+
+    bundle_name = bundle.get('name', "To'plam")
+    safe_bundle_name = html.escape(bundle_name)
+
+    await state.update_data(
+        selected_bundle_id=bundle_id,
+        selected_bundle_name=bundle_name,
+        bundle_channel_ids=bundle['channel_ids'],
+        selected_channel_name=f"📁 {bundle_name}"
+    )
+
+    state_data = await state.get_data()
+    turbo_mode = state_data.get('turbo_mode', False)
+    turbo_action = state_data.get('turbo_action', 'now')
+
+    if turbo_mode:
+        if turbo_action == 'schedule':
+            from post_handlers.schedule_handler import ScheduleManage, get_schedule_quick_keyboard
+            await state.update_data(
+                schedule_post_code=callback_data.post_code,
+                schedule_bundle_id=bundle_id,
+                schedule_bundle_name=bundle_name,
+                schedule_channel_ids=bundle['channel_ids']
+            )
+            await state.set_state(ScheduleManage.waiting_for_custom_time)
+            text = get_text('schedule_when_to_send', lang) + "\n\n" + get_text('schedule_enter_date_format', lang)
+            try:
+                await callback.message.edit_text(text, reply_markup=get_schedule_quick_keyboard(lang), parse_mode="HTML")
+            except Exception:
+                await callback.message.answer(text, reply_markup=get_schedule_quick_keyboard(lang), parse_mode="HTML")
+            await callback.answer()
+            return
+        else:
+            # TURBO REJIM ('now'): 3 sekund kutiladi va to'plamdagi barcha kanallarga yuboriladi
+            try:
+                await callback.message.delete()
+            except Exception:
+                pass
+            await callback.answer()
+            await start_turbo_countdown_and_send_bundle(
+                bot=bot,
+                user_id=user_id,
+                post_code=callback_data.post_code,
+                bundle=bundle,
+                lang=lang,
+                state=state
+            )
+            return
+
+    await callback.message.edit_text(
+        get_text_formatted('send_timing_msg', lang, channel_name=f"📁 {safe_bundle_name}"),
+        reply_markup=get_send_timing_keyboard(callback_data.post_code, channel_id=0, lang=lang, bundle_id=bundle_id)
+    )
+    await callback.answer()
+
 @send_router.callback_query(PostSendCallbackFactory.filter(F.action == "confirm_prompt"))
 async def confirm_prompt_handler(callback: types.CallbackQuery, callback_data: PostSendCallbackFactory, state: FSMContext, bot: Bot):
     """Hozir yuborish tanlanganda tasdiqlash oynasini ko'rsatadi."""
@@ -346,7 +414,12 @@ async def confirm_prompt_handler(callback: types.CallbackQuery, callback_data: P
 
     await callback.message.edit_text(
         get_text_formatted('confirm_send_msg', lang, channel_name=safe_channel_name),
-        reply_markup=get_send_confirmation_keyboard(callback_data.post_code, callback_data.channel_id, lang)
+        reply_markup=get_send_confirmation_keyboard(
+            callback_data.post_code,
+            callback_data.channel_id,
+            lang=lang,
+            bundle_id=callback_data.bundle_id
+        )
     )
 
     await callback.answer()
@@ -362,7 +435,12 @@ async def back_to_timing_from_confirm(callback: types.CallbackQuery, callback_da
 
     await callback.message.edit_text(
         get_text_formatted('send_timing_msg', lang, channel_name=channel_name),
-        reply_markup=get_send_timing_keyboard(callback_data.post_code, callback_data.channel_id, lang)
+        reply_markup=get_send_timing_keyboard(
+            callback_data.post_code,
+            callback_data.channel_id,
+            lang=lang,
+            bundle_id=callback_data.bundle_id
+        )
     )
 
     await callback.answer()
@@ -426,6 +504,82 @@ async def start_turbo_countdown_and_send(
         is_turbo=True
     )
 
+async def start_turbo_countdown_and_send_bundle(
+    bot: Bot,
+    user_id: int,
+    post_code: str,
+    bundle: dict,
+    lang: str,
+    state: FSMContext = None
+):
+    """Turbo rejimda to'plamdagi barcha kanallarga 3 sekund kutib yuborish."""
+    sparkle_emoji = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
+    waiting_text = get_text_formatted('turbo_starting_msg', lang, sparkle=sparkle_emoji)
+
+    waiting_msg = None
+    try:
+        waiting_msg = await bot.send_message(
+            chat_id=user_id,
+            text=waiting_text,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        logger.error(f"Error sending turbo waiting message: {e}")
+
+    await asyncio.sleep(3.0)
+
+    if waiting_msg:
+        try:
+            await waiting_msg.delete()
+        except Exception:
+            pass
+
+    channel_ids = bundle.get('channel_ids', [])
+    bundle_name = bundle.get('name', "To'plam")
+
+    for ch_id in channel_ids:
+        await execute_send_post(
+            bot=bot,
+            user_id=user_id,
+            post_code=post_code,
+            channel_id=ch_id,
+            channel_name="",
+            lang=lang,
+            state=state,
+            is_turbo=True,
+            suppress_user_message=True
+        )
+
+    post_link = "пост" if lang in ['ru', 'uzk', 'tj', 'kg'] else "post"
+    sparkle = '<tg-emoji emoji-id="5890925363067886150">✨</tg-emoji>'
+    channel_emoji = '<tg-emoji emoji-id="5771695636411847302">📢</tg-emoji>'
+    bullet = '<tg-emoji emoji-id="6203760464397078712">🫙</tg-emoji>'
+    safe_bname = html.escape(bundle_name)
+
+    success_text = (
+        f"{sparkle} <b>Tayyor {post_link} yuborildi !</b>\n"
+        f"{channel_emoji} <b>To'plam :</b> 📁 {safe_bname} ({len(channel_ids)} ta kanal)\n\n"
+        f"<b>Nima qilamiz:</b>\n"
+        f"{bullet} Yangi postlarni yuboring\n"
+        f"{bullet} Turbo rejimdan chiqish uchun Bosh menyu tugmasini bosing"
+    )
+
+    await bot.send_message(
+        user_id,
+        success_text,
+        reply_markup=get_turbo_success_keyboard(lang, post_code=post_code),
+        parse_mode="HTML",
+        disable_web_page_preview=True
+    )
+
+    if state:
+        from post_handlers.post_handler import PostCreation
+        await state.set_state(PostCreation.waiting_for_content)
+        await state.update_data(
+            turbo_enabled=True,
+            turbo_action='now'
+        )
+
 async def execute_send_post(
     bot: Bot,
     user_id: int,
@@ -434,7 +588,8 @@ async def execute_send_post(
     channel_name: str,
     lang: str,
     state: FSMContext = None,
-    is_turbo: bool = False
+    is_turbo: bool = False,
+    suppress_user_message: bool = False
 ):
     """Postni kanalga to'g'ridan-to'g'ri yuboruvchi asosiy funksiya."""
     data = await state.get_data() if state else {}
